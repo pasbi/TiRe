@@ -14,6 +14,12 @@ def create_parser():
         default=None,
     )
     parser.add_argument("--project", help="The project name.")
+    parser.add_argument(
+        "--accumulate",
+        help="Accumulate records of the same projects.",
+        action="store_true",
+        default=False,
+    )
 
     command_group = parser.add_mutually_exclusive_group()
     command_group.add_argument(
@@ -40,6 +46,12 @@ def create_parser():
     command_group.add_argument(
         "--create-database",
         help="Creates a new database.",
+        action="store_true",
+        default=False,
+    )
+    command_group.add_argument(
+        "--list-day",
+        help="List all records of a day.",
         action="store_true",
         default=False,
     )

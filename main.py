@@ -35,3 +35,5 @@ if __name__ == "__main__":
         app.add_end(args.project, get_datetime(args.timestamp))
     elif args.list_records:
         app.list_records(args.project)
+    elif args.list_day:
+        app.list_day(get_datetime(args.timestamp), args.accumulate)
