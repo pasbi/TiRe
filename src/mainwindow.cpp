@@ -1,9 +1,24 @@
 #include "mainwindow.h"
-
 #include "datetimeeditor.h"
+#include "exceptions.h"
 #include "model.h"
 #include "projecteditor.h"
 #include "ui_mainwindow.h"
+#include <QFileDialog>
+#include <QMessageBox>
+#include <fstream>
+#include <nlohmann/json.hpp>
+
+namespace
+{
+
+constexpr auto extension = ".ts";
+[[nodiscard]] auto file_filter()
+{
+  return QObject::tr("Time Sheets (*%1)").arg(extension);
+}
+
+}  // namespace
 
 MainWindow::MainWindow(QWidget* parent)
   : QMainWindow(parent), m_ui(std::make_unique<Ui::MainWindow>()), m_model(std::make_unique<Model>())
@@ -18,9 +33,69 @@ MainWindow::MainWindow(QWidget* parent)
       edit_project(index);
     }
   });
+  connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
+  connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
+  connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
 }
 
 MainWindow::~MainWindow() = default;
+
+void MainWindow::load()
+{
+  const auto last_load_dir = QDir::home().path();  // TODO
+  const auto q_filename =
+      QFileDialog::getOpenFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
+  if (q_filename.isEmpty()) {
+    return;
+  }
+
+  load(static_cast<std::filesystem::path>(q_filename.toStdString()));
+}
+
+void MainWindow::load(std::filesystem::path filename)
+{
+  try {
+    std::ifstream ifs(filename);
+    if (!ifs) {
+      QMessageBox::critical(this, QApplication::applicationDisplayName(),
+                            tr("Failed to open '%1' for reading.").arg(QString::fromStdString(m_filename.string())));
+    }
+    nlohmann::json data;
+    ifs >> data;
+    m_model->deserialize(data);
+    m_filename = std::move(filename);
+  } catch (const DeserializationError& e) {
+    QMessageBox::critical(this, QApplication::applicationDisplayName(),
+                          tr("Failed to open '%1'.").arg(QString::fromStdString(filename.string())));
+  }
+}
+
+void MainWindow::save()
+{
+  if (m_filename.empty()) {
+    save_as();
+  }
+
+  std::ofstream ofs(m_filename);
+  if (!ofs) {
+    QMessageBox::critical(this, QApplication::applicationDisplayName(),
+                          tr("Failed to open '%1' for writing.").arg(QString::fromStdString(m_filename.string())));
+  }
+  ofs << m_model->serialize();
+}
+
+void MainWindow::save_as()
+{
+  const auto last_load_dir = QDir::home().path();  // TODO
+  const auto q_filename =
+      QFileDialog::getSaveFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
+
+  if (q_filename.isEmpty()) {
+    return;
+  }
+  m_filename = static_cast<std::filesystem::path>(q_filename.toStdString());
+  save();
+}
 
 void MainWindow::edit_date_time(const QModelIndex& index) const
 {

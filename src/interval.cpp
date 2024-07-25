@@ -1,4 +1,17 @@
 #include "interval.h"
+#include "exceptions.h"
+#include "json.h"
+
+#include <nlohmann/json.hpp>
+
+namespace
+{
+
+constexpr auto project_key = "project";
+constexpr auto begin_key = "begin";
+constexpr auto end_key = "end";
+
+}  // namespace
 
 void Interval::set_project(QString project) noexcept
 {
@@ -56,3 +69,22 @@ std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept
   }
   return a.begin() <=> b.begin();
 }
+
+namespace nlohmann
+{
+
+void adl_serializer<Interval>::to_json(json& j, const Interval& value)
+{
+  j[project_key] = value.project();
+  j[begin_key] = value.begin();
+  j[end_key] = value.end();
+}
+
+void adl_serializer<Interval>::from_json(const json& j, Interval& value)
+{
+  value.set_project(j[project_key]);
+  value.set_begin(j[begin_key]);
+  value.set_end(j[end_key]);
+}
+
+}  // namespace nlohmann

@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <compare>
+#include <nlohmann/json_fwd.hpp>
 
 class Project;
 
@@ -23,3 +24,13 @@ private:
   QDateTime m_begin;
   QDateTime m_end;
 };
+
+namespace nlohmann
+{
+template<> struct adl_serializer<Interval>
+{
+  static void to_json(json& j, const Interval& value);
+  static void from_json(const json& j, Interval& value);
+};
+
+}  // namespace nlohmann

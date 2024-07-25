@@ -1,4 +1,24 @@
 #include "model.h"
+#include <nlohmann/json.hpp>
+
+namespace
+{
+
+constexpr auto intervals_key = "intervals";
+
+}  // namespace
+
+nlohmann::json Model::serialize() const
+{
+  return {
+      {intervals_key, m_intervals},
+  };
+}
+
+void Model::deserialize(const nlohmann::json& data)
+{
+  set_intervals(data[intervals_key]);
+}
 
 int Model::rowCount(const QModelIndex& parent) const
 {
@@ -106,6 +126,18 @@ void Model::add_interval(Interval interval)
 const QStringList& Model::projects() const noexcept
 {
   return m_projects;
+}
+
+void Model::set_intervals(std::deque<Interval> intervals)
+{
+  beginResetModel();
+  m_intervals = std::move(intervals);
+  endResetModel();
+}
+
+const std::deque<Interval>& Model::intervals() const noexcept
+{
+  return m_intervals;
 }
 
 void Model::set_project(Interval& interval, QString project)

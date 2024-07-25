@@ -14,6 +14,9 @@ qt_add_executable(tire main.cpp
         projecteditor.cpp
         projecteditor.h
         projecteditor.ui
+        json.cpp
+        json.h
+        exceptions.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets)
