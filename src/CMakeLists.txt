@@ -17,6 +17,12 @@ qt_add_executable(tire main.cpp
         json.cpp
         json.h
         exceptions.h
+        periodsummary.cpp
+        periodsummary.h
+        periodsummary.ui
+        period.cpp
+        period.h
+        days.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets)

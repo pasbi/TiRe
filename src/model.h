@@ -5,6 +5,8 @@
 #include <deque>
 #include <nlohmann/json_fwd.hpp>
 
+class Period;
+
 class Model : public QAbstractTableModel
 {
 public:
@@ -21,6 +23,8 @@ public:
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
   bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+
+  [[nodiscard]] int minutes_worked(const Period& period, const QString& project = {});
 
   void new_interval();
   void add_interval(Interval interval);

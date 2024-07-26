@@ -2,6 +2,7 @@
 #include "datetimeeditor.h"
 #include "exceptions.h"
 #include "model.h"
+#include "period.h"
 #include "projecteditor.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
@@ -36,6 +37,11 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
+
+  m_ui->tab_day->set_period_type(Period::Type::Day);
+  m_ui->tab_week->set_period_type(Period::Type::Week);
+  m_ui->tab_month->set_period_type(Period::Type::Month);
+  m_ui->tab_year->set_period_type(Period::Type::Year);
 }
 
 MainWindow::~MainWindow() = default;

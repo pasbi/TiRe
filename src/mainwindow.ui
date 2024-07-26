@@ -6,20 +6,50 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>584</width>
-    <height>399</height>
+    <width>794</width>
+    <height>516</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTableView" name="tableView">
-      <attribute name="horizontalHeaderVisible">
-       <bool>false</bool>
-      </attribute>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+      <widget class="QTableView" name="tableView">
+       <attribute name="horizontalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+      </widget>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="PeriodSummary" name="tab_year">
+        <attribute name="title">
+         <string>Year</string>
+        </attribute>
+       </widget>
+       <widget class="PeriodSummary" name="tab_month">
+        <attribute name="title">
+         <string>Month</string>
+        </attribute>
+       </widget>
+       <widget class="PeriodSummary" name="tab_week">
+        <attribute name="title">
+         <string>Week</string>
+        </attribute>
+       </widget>
+       <widget class="PeriodSummary" name="tab_day">
+        <attribute name="title">
+         <string>Day</string>
+        </attribute>
+       </widget>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -29,7 +59,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>584</width>
+     <width>794</width>
      <height>20</height>
     </rect>
    </property>
@@ -93,6 +123,14 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PeriodSummary</class>
+   <extends>QWidget</extends>
+   <header>periodsummary.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

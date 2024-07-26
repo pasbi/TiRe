@@ -1,4 +1,6 @@
 #include "model.h"
+#include "days.h"
+#include "period.h"
 #include <nlohmann/json.hpp>
 
 namespace
@@ -157,4 +159,12 @@ void Model::set_project(Interval& interval, QString project)
     m_projects.append(project);
   }
   interval.set_project(std::move(project));
+}
+
+int Model::minutes_worked(const Period& period, const QString& project)
+{
+  const auto accumulate_minutes_in_period = [period, &project](const int accu, const Interval& interval) {
+    return accu + (interval.project() == project ? period.minutes_overlap(interval) : 0);
+  };
+  return std::accumulate(m_intervals.begin(), m_intervals.end(), 0, accumulate_minutes_in_period);
 }
