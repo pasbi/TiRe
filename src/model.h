@@ -3,16 +3,16 @@
 #include "interval.h"
 #include <QAbstractTableModel>
 #include <deque>
-#include <filesystem>
 #include <nlohmann/json_fwd.hpp>
 
 class Model : public QAbstractTableModel
 {
 public:
   static constexpr auto project_column = 0;
-  static constexpr auto begin_column = 1;
-  static constexpr auto end_column = 2;
-  static constexpr auto duration_column = 3;
+  static constexpr auto date_column = 1;
+  static constexpr auto begin_column = 2;
+  static constexpr auto end_column = 3;
+  static constexpr auto duration_column = 4;
   [[nodiscard]] nlohmann::json serialize() const;
   void deserialize(const nlohmann::json& data);
   [[nodiscard]] int rowCount(const QModelIndex& parent) const override;

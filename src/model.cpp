@@ -6,6 +6,15 @@ namespace
 
 constexpr auto intervals_key = "intervals";
 
+[[nodiscard]] QString format_date(const QDate& begin, const QDate& end)
+{
+  static constexpr auto format = "ddd, dd.";
+  if (begin == end) {
+    return begin.toString(format);
+  }
+  return begin.toString(format) + " - " + end.toString(format);
+}
+
 }  // namespace
 
 nlohmann::json Model::serialize() const
@@ -27,50 +36,52 @@ int Model::rowCount(const QModelIndex& parent) const
 
 int Model::columnCount(const QModelIndex& parent) const
 {
-  return 4;
+  return 5;
 }
 
 QVariant Model::data(const QModelIndex& index, const int role) const
 {
-  if (!index.isValid() || (role != Qt::DisplayRole && role != Qt::EditRole)) {
+  if (!index.isValid()) {
     return {};
   }
 
   const auto& interval = m_intervals.at(index.row());
-  switch (index.column()) {
-  case project_column:
-    return interval.project();
-  case begin_column:
-    return interval.begin();
-  case end_column:
-    return interval.end();
-  case duration_column:
-    return interval.duration_text();
-  default:
-    return {};
+  if (role == Qt::DisplayRole) {
+    switch (index.column()) {
+    case project_column:
+      return interval.project();
+    case begin_column:
+      return interval.begin().time();
+    case end_column:
+      return interval.end().time();
+    case date_column:
+      return ::format_date(interval.begin().date(), interval.end().date());
+    case duration_column:
+      return interval.duration_text();
+    default:
+      return {};
+    }
   }
+
+  if (role == Qt::EditRole) {
+    switch (index.column()) {
+    case project_column:
+      return interval.project();
+    case begin_column:
+      return interval.begin();
+    case end_column:
+      return interval.end();
+    default:
+      return {};
+    }
+  }
+
+  return {};
 }
 
-QVariant Model::headerData(const int section, const Qt::Orientation orientation, const int role) const
+QVariant Model::headerData(const int, const Qt::Orientation, const int) const
 {
-  if (role != Qt::DisplayRole) {
-    return {};
-  }
-  if (orientation != Qt::Horizontal) {
-    return {};
-  }
-  switch (section) {
-  case begin_column:
-    return tr("begin");
-  case end_column:
-    return tr("end");
-  case project_column:
-    return tr("project");
-  case duration_column:
-    return tr("duration");
-  default:
-    return {};
-  }
+  return {};
 }
 
 Qt::ItemFlags Model::flags(const QModelIndex& index) const
