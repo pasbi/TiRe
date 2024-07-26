@@ -38,4 +38,5 @@ private:
   QStringList m_projects;
 
   void set_project(Interval& interval, QString project);
+  [[nodiscard]] QVariant background_data(const QModelIndex& index) const;
 };

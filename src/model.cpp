@@ -47,6 +47,10 @@ QVariant Model::data(const QModelIndex& index, const int role) const
     return {};
   }
 
+  if (role == Qt::BackgroundRole) {
+    return background_data(index);
+  }
+
   const auto& interval = m_intervals.at(index.row());
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
@@ -159,6 +163,34 @@ void Model::set_project(Interval& interval, QString project)
     m_projects.append(project);
   }
   interval.set_project(std::move(project));
+}
+
+QVariant Model::background_data(const QModelIndex& index) const
+{
+  if (!index.isValid()) {
+    return {};
+  }
+
+  switch (m_intervals.at(index.row()).begin().date().dayOfWeek()) {
+  case 0:
+    return QColor{0xFF808080};
+  case monday:
+    return QColor{0xFF54DFDA};
+  case tuesday:
+    return QColor{0xFF4FE056};
+  case wednesday:
+    return QColor{0xFF606BE0};
+  case thursday:
+    return QColor{0xFFE0DE4F}.darker();
+  case friday:
+    return QColor{0xFFC255DF};
+  case saturday:
+    return QColor{0xFFE0B156}.darker();
+  case sunday:
+    return QColor{0xFFC25144};
+  default:
+    return {};
+  }
 }
 
 int Model::minutes_worked(const Period& period, const QString& project)
