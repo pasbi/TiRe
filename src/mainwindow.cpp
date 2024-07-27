@@ -39,9 +39,13 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
 
   m_ui->tab_day->set_period_type(Period::Type::Day);
+  m_ui->tab_day->set_model(*m_model);
   m_ui->tab_week->set_period_type(Period::Type::Week);
+  m_ui->tab_week->set_model(*m_model);
   m_ui->tab_month->set_period_type(Period::Type::Month);
+  m_ui->tab_month->set_model(*m_model);
   m_ui->tab_year->set_period_type(Period::Type::Year);
+  m_ui->tab_year->set_model(*m_model);
 }
 
 MainWindow::~MainWindow() = default;

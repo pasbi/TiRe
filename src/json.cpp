@@ -26,4 +26,15 @@ void adl_serializer<QDateTime>::from_json(const json& j, QDateTime& value)
   value = QDateTime::fromString(j.get<QString>(), Qt::ISODate);
 }
 
+void adl_serializer<QList<QString>, void>::to_json(json& j, const QStringList& value)
+{
+  j = std::vector(value.begin(), value.end());
+}
+
+void adl_serializer<QList<QString>, void>::from_json(const json& j, QStringList& value)
+{
+  auto vec = j.get<std::vector<QString>>();
+  value = QStringList(vec.begin(), vec.end());
+}
+
 }  // namespace nlohmann

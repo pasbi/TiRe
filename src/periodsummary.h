@@ -3,6 +3,8 @@
 #include "period.h"
 #include <QWidget>
 
+class Model;
+
 namespace Ui
 {
 class PeriodSummary;
@@ -18,8 +20,13 @@ public:
 
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
+  void set_model(const Model& model);
 
 private:
+  void recalculate();
   std::unique_ptr<Ui::PeriodSummary> m_ui;
-  Period::Type m_type;
+  Period::Type m_type = Period::Type::Day;
+  Period m_current_period;
+  const Model* m_model = nullptr;
+  void clear();
 };

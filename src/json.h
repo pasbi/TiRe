@@ -18,4 +18,10 @@ template<> struct adl_serializer<QDateTime>
   static void from_json(const json& j, QDateTime& value);
 };
 
+template<> struct adl_serializer<QStringList>
+{
+  static void to_json(json& j, const QStringList& value);
+  static void from_json(const json& j, QStringList& value);
+};
+
 }  // namespace nlohmann

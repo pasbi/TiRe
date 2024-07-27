@@ -24,7 +24,7 @@ public:
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
   bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
-  [[nodiscard]] int minutes_worked(const Period& period, const QString& project = {});
+  [[nodiscard]] std::chrono::minutes minutes_worked(const Period& period, const QString& project = {}) const;
 
   void new_interval();
   void add_interval(Interval interval);

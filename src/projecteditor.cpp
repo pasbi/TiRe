@@ -24,8 +24,6 @@ ProjectEditor::ProjectEditor(const QStringList& projects, QWidget* parent)
   if (!m_projects.empty()) {
     m_ui->comboBox->setCurrentText(m_projects.front());
   }
-  connect(m_ui->comboBox->lineEdit(), &QLineEdit::textChanged, this,
-          [this](const QString& text) { m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(!text.isEmpty()); });
 }
 
 ProjectEditor::~ProjectEditor() = default;

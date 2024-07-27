@@ -4,6 +4,8 @@ project(tire)
 
 find_package(Qt6 6.4 REQUIRED Core Widgets)
 find_package(nlohmann_json REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)

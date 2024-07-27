@@ -1,12 +1,14 @@
 #include "model.h"
-#include "days.h"
+#include "json.h"
 #include "period.h"
+#include <QColor>
 #include <nlohmann/json.hpp>
 
 namespace
 {
 
 constexpr auto intervals_key = "intervals";
+constexpr auto projects_key = "projects";
 
 [[nodiscard]] QString format_date(const QDate& begin, const QDate& end)
 {
@@ -22,13 +24,15 @@ constexpr auto intervals_key = "intervals";
 nlohmann::json Model::serialize() const
 {
   return {
-      {intervals_key, m_intervals},
+      {::intervals_key, m_intervals},
+      {::projects_key, m_projects},
   };
 }
 
 void Model::deserialize(const nlohmann::json& data)
 {
   set_intervals(data[intervals_key]);
+  m_projects = data.value(projects_key, QStringList{});
 }
 
 int Model::rowCount(const QModelIndex& parent) const
@@ -174,29 +178,31 @@ QVariant Model::background_data(const QModelIndex& index) const
   switch (m_intervals.at(index.row()).begin().date().dayOfWeek()) {
   case 0:
     return QColor{0xFF808080};
-  case monday:
+  case Qt::Monday:
     return QColor{0xFF54DFDA};
-  case tuesday:
+  case Qt::Tuesday:
     return QColor{0xFF4FE056};
-  case wednesday:
+  case Qt::Wednesday:
     return QColor{0xFF606BE0};
-  case thursday:
+  case Qt::Thursday:
     return QColor{0xFFE0DE4F}.darker();
-  case friday:
+  case Qt::Friday:
     return QColor{0xFFC255DF};
-  case saturday:
+  case Qt::Saturday:
     return QColor{0xFFE0B156}.darker();
-  case sunday:
+  case Qt::Sunday:
     return QColor{0xFFC25144};
   default:
     return {};
   }
 }
 
-int Model::minutes_worked(const Period& period, const QString& project)
+std::chrono::minutes Model::minutes_worked(const Period& period, const QString& project) const
 {
-  const auto accumulate_minutes_in_period = [period, &project](const int accu, const Interval& interval) {
-    return accu + (interval.project() == project ? period.minutes_overlap(interval) : 0);
+  using std::chrono_literals::operator""min;
+  const auto accumulate_minutes_in_period = [period, &project](const std::chrono::minutes accu,
+                                                               const Interval& interval) {
+    return accu + (project.isEmpty() || interval.project() == project ? period.minutes_overlap(interval) : 0min);
   };
-  return std::accumulate(m_intervals.begin(), m_intervals.end(), 0, accumulate_minutes_in_period);
+  return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
 }
