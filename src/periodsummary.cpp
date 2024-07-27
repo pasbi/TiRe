@@ -1,6 +1,7 @@
 #include "periodsummary.h"
 #include "model.h"
 #include "ui_periodsummary.h"
+#include <QSortFilterProxyModel>
 
 namespace
 {
@@ -19,9 +20,48 @@ namespace
 
 }  // namespace
 
-PeriodSummary::PeriodSummary(QWidget* parent) : QWidget(parent), m_ui(std::make_unique<Ui::PeriodSummary>())
+class PeriodSummary::ProxyModel : public QSortFilterProxyModel
+{
+public:
+  using QSortFilterProxyModel::QSortFilterProxyModel;
+
+  void set_source_model(Model* const model)
+  {
+    m_model = model;
+    setSourceModel(model);
+  }
+
+  void set_period(Period period)
+  {
+    m_period = std::move(period);
+    invalidate();
+  }
+
+protected:
+  [[nodiscard]] bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const override
+  {
+    if (m_model == nullptr) {
+      return false;
+    }
+    const auto& interval = m_model->intervals().at(source_row);
+    return m_period.contains(interval.begin().date(), interval.end().date());
+  }
+
+private:
+  const Model* m_model;
+  Period m_period;
+};
+
+PeriodSummary::PeriodSummary(QWidget* parent)
+  : QWidget(parent)
+  , m_ui(std::make_unique<Ui::PeriodSummary>())
+  , m_proxy_model(std::make_unique<PeriodSummary::ProxyModel>())
 {
   m_ui->setupUi(this);
+  connect(m_ui->pb_next, &QPushButton::clicked, this, [this]() { set_date(m_current_period.end().addDays(1)); });
+  connect(m_ui->pb_prev, &QPushButton::clicked, this, [this]() { set_date(m_current_period.begin().addDays(-1)); });
+  connect(m_ui->pb_today, &QPushButton::clicked, this, [this]() { set_date(QDate::currentDate()); });
+  m_ui->tableView->setModel(m_proxy_model.get());
 }
 
 PeriodSummary::~PeriodSummary() = default;
@@ -35,11 +75,12 @@ void PeriodSummary::set_period_type(const Period::Type type)
 void PeriodSummary::set_date(const QDate& date)
 {
   m_current_period = Period(date, m_type);
+  m_proxy_model->set_period(m_current_period);
   m_ui->lb_current_period->setText(m_current_period.label());
   recalculate();
 }
 
-void PeriodSummary::set_model(const Model& model)
+void PeriodSummary::set_model(Model& model)
 {
   m_model = &model;
   recalculate();
@@ -63,6 +104,7 @@ void PeriodSummary::clear()
 
 void PeriodSummary::recalculate()
 {
+  m_proxy_model->set_source_model(m_model);
   if (m_model == nullptr) {
     clear();
     return;

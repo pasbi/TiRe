@@ -111,6 +111,11 @@ QString Period::label() const
   return {};
 }
 
+bool Period::contains(const QDate& begin, const QDate& end) const noexcept
+{
+  return std::max(begin, m_begin) <= std::min(end, m_end);
+}
+
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
 {
   return fmt::format_to(ctx.out(), "{}({}, {})", p.type(), p.begin(), p.end());

@@ -23,6 +23,8 @@ qt_add_executable(tire main.cpp
         period.cpp
         period.h
         fmt.h
+        tableview.cpp
+        tableview.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)

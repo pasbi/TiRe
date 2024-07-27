@@ -20,7 +20,7 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="QTableView" name="tableView">
+      <widget class="TableView" name="tableView">
        <attribute name="horizontalHeaderVisible">
         <bool>false</bool>
        </attribute>
@@ -129,6 +129,11 @@
    <extends>QWidget</extends>
    <header>periodsummary.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TableView</class>
+   <extends>QTableView</extends>
+   <header>tableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
