@@ -15,7 +15,34 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QComboBox" name="comboBox">
+    <widget class="QComboBox" name="cb_type">
+     <property name="editable">
+      <bool>false</bool>
+     </property>
+     <item>
+      <property name="text">
+       <string>None</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Work</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Holiday</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Sick</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="cb_name">
      <property name="editable">
       <bool>true</bool>
      </property>

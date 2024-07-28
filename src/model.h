@@ -11,7 +11,7 @@ class Period;
 class Model : public QAbstractTableModel
 {
 public:
-  explicit Model(std::vector<std::unique_ptr<Project>> projects, std::deque<Interval> intervals);
+  explicit Model(std::vector<std::unique_ptr<Project>> projects, std::deque<std::unique_ptr<Interval>> intervals);
   explicit Model() = default;
 
   static constexpr auto project_column = 0;
@@ -24,20 +24,21 @@ public:
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
-  bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+  // bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+  void add_project(std::unique_ptr<Project> project);
 
   [[nodiscard]] std::chrono::minutes minutes(const Period& period, const Project* project = nullptr) const;
 
   void new_interval();
-  void add_interval(Interval interval);
+  void add_interval(std::unique_ptr<Interval> interval);
   [[nodiscard]] std::vector<Project*> projects() const noexcept;
 
-  void set_intervals(std::deque<Interval> intervals);
-  [[nodiscard]] const std::deque<Interval>& intervals() const noexcept;
+  void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
+  [[nodiscard]] std::vector<Interval*> intervals() const;
 
 private:
-  std::deque<Interval> m_intervals;
-  std::vector<std::unique_ptr<Project>> m_projects;
+  std::deque<std::unique_ptr<Interval>> m_intervals;
+  std::vector<std::unique_ptr<Project>> m_projects = {nullptr};
 
   // void set_project(Interval& interval, QString project);
   [[nodiscard]] QVariant background_data(const QModelIndex& index) const;

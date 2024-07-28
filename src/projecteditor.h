@@ -4,6 +4,7 @@
 #include <memory>
 
 class Project;
+class Model;
 namespace Ui
 {
 class ProjectEditor;
@@ -14,12 +15,16 @@ class ProjectEditor : public QDialog
   Q_OBJECT
 
 public:
-  explicit ProjectEditor(const std::vector<Project*>& projects, QWidget* parent = nullptr);
+  explicit ProjectEditor(Model& model, QWidget* parent = nullptr);
   ~ProjectEditor() override;
   [[nodiscard]] QString project_name() const;
-  void set_project(const QString& project);
+  void set_project(const Project* project);
+
+  [[nodiscard]] std::optional<Project*> current_project() const;
+  std::unique_ptr<Project> create_project() const;
 
 private:
-  const std::vector<Project*>& m_projects;
+  Model& m_model;
   std::unique_ptr<Ui::ProjectEditor> m_ui;
+  void update_enabledness();
 };

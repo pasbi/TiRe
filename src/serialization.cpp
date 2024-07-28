@@ -5,6 +5,7 @@
 #include "model.h"
 
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -31,11 +32,12 @@ std::vector<std::unique_ptr<Project>> deserialize_projects(const nlohmann::json&
   return projects;
 }
 
-std::deque<Interval> deserialize_intervals(const nlohmann::json& json, const std::vector<Project*>& projects)
+std::deque<std::unique_ptr<Interval>> deserialize_intervals(const nlohmann::json& json,
+                                                            const std::vector<Project*>& projects)
 {
-  std::deque<Interval> intervals;
+  std::deque<std::unique_ptr<Interval>> intervals;
   for (const auto& data : json) {
-    auto& interval = intervals.emplace_back();
+    auto& interval = *intervals.emplace_back(std::make_unique<Interval>());
     try {
       interval.set_project(projects.at(data[project_key]));
     } catch (const std::out_of_range&) {
@@ -51,16 +53,21 @@ std::deque<Interval> deserialize_intervals(const nlohmann::json& json, const std
 
 nlohmann::json serialize(const Model& model)
 {
-  std::map<const Project*, int> project_index_map;
+  std::map<const Project*, int> project_index_map{{nullptr, 0}};
   for (const auto& project : model.projects()) {
     project_index_map.try_emplace(project, static_cast<int>(project_index_map.size()));
   }
 
-  const auto serialize_interval = [&project_index_map](const Interval& interval) {
+  spdlog::info("Project Index Map: {}", project_index_map.size());
+  for (const auto& [project, index] : project_index_map) {
+    spdlog::info("  {}: {}", fmt::ptr(project), index);
+  }
+  const auto serialize_interval = [&project_index_map](const Interval* const interval) {
+    spdlog::info("Serialize interval with project {}", fmt::ptr(interval->project()));
     return nlohmann::json{
-        {project_key, project_index_map.at(interval.project())},
-        {begin_key, interval.begin()},
-        {end_key, interval.end()},
+        {project_key, project_index_map.at(interval->project())},
+        {begin_key, interval->begin()},
+        {end_key, interval->end()},
     };
   };
   auto project_indices = model.intervals() | std::views::transform(serialize_interval);

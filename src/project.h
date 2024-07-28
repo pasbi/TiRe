@@ -7,6 +7,7 @@ class Project
 public:
   explicit Project(const nlohmann::json& data);
   enum class Type { Work, Holiday, Sick };
+  explicit Project(Type type, QString name);
 
   [[nodiscard]] const QString& name() const noexcept;
   [[nodiscard]] Type type() const noexcept;

@@ -10,6 +10,7 @@
 #include <QMessageBox>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -37,14 +38,13 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
 
+  // TODO unify them in one widget
   m_ui->tab_day->set_period_type(Period::Type::Day);
-  m_ui->tab_day->set_model(*m_model);
   m_ui->tab_week->set_period_type(Period::Type::Week);
-  m_ui->tab_week->set_model(*m_model);
   m_ui->tab_month->set_period_type(Period::Type::Month);
-  m_ui->tab_month->set_model(*m_model);
   m_ui->tab_year->set_period_type(Period::Type::Year);
-  m_ui->tab_year->set_model(*m_model);
+
+  set_model(std::make_unique<Model>());
 }
 
 MainWindow::~MainWindow() = default;
@@ -54,6 +54,11 @@ void MainWindow::set_model(std::unique_ptr<Model> model)
   m_model = std::move(model);
   m_ui->tableView->setModel(m_model.get());
   connect(m_ui->action_Add_Interval, &QAction::triggered, m_model.get(), &Model::new_interval);
+
+  m_ui->tab_day->set_model(*m_model);
+  m_ui->tab_week->set_model(*m_model);
+  m_ui->tab_month->set_model(*m_model);
+  m_ui->tab_year->set_model(*m_model);
 }
 
 void MainWindow::load()
@@ -128,9 +133,14 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
 
 void MainWindow::edit_project(const QModelIndex& index) const
 {
-  ProjectEditor e(m_model->projects());
-  e.set_project(m_model->data(index, Qt::EditRole).toString());
+  ProjectEditor e(*m_model);
+  auto* const interval = m_model->intervals().at(index.row());
+  e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
-    m_model->setData(index, e.project_name(), Qt::EditRole);
+    if (const auto project = e.current_project(); !project.has_value()) {
+      interval->set_project(*project);
+      // TODO emit data changed?
+    }
+    spdlog::error("Failed to create project.");
   }
 }

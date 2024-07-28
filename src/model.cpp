@@ -4,6 +4,7 @@
 #include <QColor>
 #include <complex>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -37,7 +38,7 @@ namespace
 
 }  // namespace
 
-Model::Model(std::vector<std::unique_ptr<Project>> projects, std::deque<Interval> intervals)
+Model::Model(std::vector<std::unique_ptr<Project>> projects, std::deque<std::unique_ptr<Interval>> intervals)
   : m_projects(std::move(projects)), m_intervals(std::move(intervals))
 {
 }
@@ -66,15 +67,15 @@ QVariant Model::data(const QModelIndex& index, const int role) const
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
     case project_column:
-      return ::label(interval.project());
+      return ::label(interval->project());
     case begin_column:
-      return interval.begin().time();
+      return interval->begin().time();
     case end_column:
-      return interval.end().time();
+      return interval->end().time();
     case date_column:
-      return ::format_date(interval.begin().date(), interval.end().date());
+      return ::format_date(interval->begin().date(), interval->end().date());
     case duration_column:
-      return interval.duration_text();
+      return interval->duration_text();
     default:
       return {};
     }
@@ -83,11 +84,11 @@ QVariant Model::data(const QModelIndex& index, const int role) const
   if (role == Qt::EditRole) {
     switch (index.column()) {
     case project_column:
-      return label(interval.project());
+      return label(interval->project());
     case begin_column:
-      return interval.begin();
+      return interval->begin();
     case end_column:
-      return interval.end();
+      return interval->end();
     default:
       return {};
     }
@@ -109,41 +110,46 @@ Qt::ItemFlags Model::flags(const QModelIndex& index) const
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-bool Model::setData(const QModelIndex& index, const QVariant& value, const int role)
-{
-  if (role != Qt::EditRole) {
-    return false;
-  }
+// bool Model::setData(const QModelIndex& index, const QVariant& value, const int role)
+// {
+//   if (role != Qt::EditRole) {
+//     return false;
+//   }
+//
+//   auto& interval = m_intervals.at(index.row());
+//   const auto emit_data_changed = [left = index.siblingAtColumn(0), right = index.siblingAtColumn(columnCount({}) - 1),
+//                                   this]() { Q_EMIT dataChanged(left, right); };
+//   switch (index.column()) {
+//   case begin_column:
+//     interval->set_begin(value.toDateTime());
+//     emit_data_changed();
+//     return true;
+//   case end_column:
+//     interval->set_end(value.toDateTime());
+//     emit_data_changed();
+//     return true;
+//   case project_column:
+//     // TODO set_project(interval, value.toString());
+//     emit_data_changed();
+//     return true;
+//   default:
+//     return false;
+//   }
+// }
 
-  auto& interval = m_intervals.at(index.row());
-  const auto emit_data_changed = [left = index.siblingAtColumn(0), right = index.siblingAtColumn(columnCount({}) - 1),
-                                  this]() { Q_EMIT dataChanged(left, right); };
-  switch (index.column()) {
-  case begin_column:
-    interval.set_begin(value.toDateTime());
-    emit_data_changed();
-    return true;
-  case end_column:
-    interval.set_end(value.toDateTime());
-    emit_data_changed();
-    return true;
-  case project_column:
-    // TODO set_project(interval, value.toString());
-    emit_data_changed();
-    return true;
-  default:
-    return false;
-  }
+void Model::add_project(std::unique_ptr<Project> project)
+{
+  m_projects.emplace_back(std::move(project));
 }
 
 void Model::new_interval()
 {
-  Interval interval;
-  interval.set_begin(QDateTime::currentDateTime());
+  auto interval = std::make_unique<Interval>();
+  interval->set_begin(QDateTime::currentDateTime());
   add_interval(std::move(interval));
 }
 
-void Model::add_interval(Interval interval)
+void Model::add_interval(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());
   beginInsertRows({}, row, row);
@@ -157,16 +163,17 @@ std::vector<Project*> Model::projects() const noexcept
   return std::vector(view.begin(), view.end());
 }
 
-void Model::set_intervals(std::deque<Interval> intervals)
+void Model::set_intervals(std::deque<std::unique_ptr<Interval>> intervals)
 {
   beginResetModel();
   m_intervals = std::move(intervals);
   endResetModel();
 }
 
-const std::deque<Interval>& Model::intervals() const noexcept
+std::vector<Interval*> Model::intervals() const
 {
-  return m_intervals;
+  auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
+  return std::vector(view.begin(), view.end());
 }
 
 // void Model::set_project(Interval& interval, QString project)
@@ -183,7 +190,7 @@ QVariant Model::background_data(const QModelIndex& index) const
     return {};
   }
 
-  switch (m_intervals.at(index.row()).begin().date().dayOfWeek()) {
+  switch (m_intervals.at(index.row())->begin().date().dayOfWeek()) {
   case 0:
     return QColor{0xFF808080};
   case Qt::Monday:

@@ -41,6 +41,11 @@ Project::Project(const nlohmann::json& data) : m_name(data.at(name_key)), m_type
 {
 }
 
+Project::Project(Type type, QString name)
+  : m_type(type), m_name(std::move(name))
+{
+}
+
 const QString& Project::name() const noexcept
 {
   return m_name;

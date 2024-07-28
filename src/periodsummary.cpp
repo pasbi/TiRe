@@ -2,6 +2,7 @@
 #include "model.h"
 #include "ui_periodsummary.h"
 #include <QSortFilterProxyModel>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -43,12 +44,12 @@ protected:
     if (m_model == nullptr) {
       return false;
     }
-    const auto& interval = m_model->intervals().at(source_row);
-    return m_period.contains(interval.begin().date(), interval.end().date());
+    const auto* const interval = m_model->intervals().at(source_row);
+    return m_period.contains(interval->begin().date(), interval->end().date());
   }
 
 private:
-  const Model* m_model;
+  const Model* m_model = nullptr;
   Period m_period;
 };
 
