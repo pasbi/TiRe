@@ -1,11 +1,10 @@
 #pragma once
 
 #include "interval.h"
+#include "period.h"
 #include "project.h"
 #include <QAbstractTableModel>
 #include <deque>
-
-class Period;
 
 class IntervalModel final : public QAbstractTableModel
 {
@@ -24,9 +23,8 @@ public:
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
-  // bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
-  [[nodiscard]] std::chrono::minutes minutes(const Period& period,
+  [[nodiscard]] std::chrono::minutes minutes(const std::optional<Period>& period = std::nullopt,
                                              const std::optional<Project::Type>& type = std::nullopt,
                                              const std::optional<QString>& name = std::nullopt) const;
 

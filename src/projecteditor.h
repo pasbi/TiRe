@@ -11,7 +11,7 @@ namespace Ui
 class ProjectEditor;
 }
 
-class ProjectEditor : public QDialog
+class ProjectEditor final : public QDialog
 {
   Q_OBJECT
 
@@ -27,4 +27,5 @@ private:
   std::unique_ptr<Ui::ProjectEditor> m_ui;
   ProjectModel& m_project_model;
   void update_enabledness() const;
+  void update_project_list() const;
 };

@@ -19,6 +19,7 @@ public:
   [[nodiscard]] const QDateTime& begin() const noexcept;
   [[nodiscard]] const QDateTime& end() const noexcept;
   [[nodiscard]] QString duration_text() const;
+  std::chrono::minutes duration() const;
 
 private:
   const Project* m_project;

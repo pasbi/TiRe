@@ -33,6 +33,8 @@ qt_add_executable(tire main.cpp
         projectmodel.h
         timesheet.cpp
         timesheet.h
+        plan.cpp
+        plan.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)

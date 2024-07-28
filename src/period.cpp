@@ -77,7 +77,7 @@ Period::Type Period::type() const noexcept
   return m_type;
 }
 
-std::chrono::minutes Period::minutes_overlap(const Interval& interval) const noexcept
+std::chrono::minutes Period::overlap(const Interval& interval) const noexcept
 {
   const auto begin = std::max(m_begin.startOfDay(), interval.begin());
   const auto end = std::min(m_end.endOfDay(), interval.end());

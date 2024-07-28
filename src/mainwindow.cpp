@@ -2,6 +2,7 @@
 #include "datetimeeditor.h"
 #include "exceptions.h"
 #include "intervalmodel.h"
+#include "plan.h"
 #include "projecteditor.h"
 #include "projectmodel.h"
 #include "serialization.h"
@@ -69,7 +70,7 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
   connect(m_ui->action_Add_Interval, &QAction::triggered, this,
           [this]() { m_time_sheet->interval_model().new_interval(m_time_sheet->project_model().empty_project()); });
 
-  m_ui->period_summary->set_model(m_time_sheet->interval_model());
+  m_ui->period_summary->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
 }
 
 void MainWindow::set_period_type(const Period::Type type)
@@ -102,6 +103,10 @@ void MainWindow::load(std::filesystem::path filename)
     set_time_sheet(::deserialize(data));
     m_filename = std::move(filename);
   } catch (const DeserializationError& e) {
+    QMessageBox::critical(
+        this, QApplication::applicationDisplayName(),
+        tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));
+  } catch (const nlohmann::json::parse_error& e) {
     QMessageBox::critical(
         this, QApplication::applicationDisplayName(),
         tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));

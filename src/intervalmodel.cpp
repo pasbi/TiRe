@@ -159,13 +159,20 @@ QVariant IntervalModel::background_data(const QModelIndex& index) const
   }
 }
 
-std::chrono::minutes IntervalModel::minutes(const Period& period, const std::optional<Project::Type>& type,
+std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,
+                                            const std::optional<Project::Type>& type,
                                             const std::optional<QString>& name) const
 {
-  using std::chrono_literals::operator""min;
   const auto accumulate_minutes_in_period = [period, &type, &name](const std::chrono::minutes accu,
                                                                    const auto& interval) {
-    return accu + (is_match(interval->project(), type, name) ? period.minutes_overlap(*interval) : 0min);
+    if (!is_match(interval->project(), type, name)) {
+      return accu;
+    }
+    if (period.has_value()) {
+      return period->overlap(*interval);
+    }
+    return interval->duration();
   };
+  using std::chrono_literals::operator""min;
   return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
 }

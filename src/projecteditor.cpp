@@ -5,7 +5,6 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
-#include <ranges>
 #include <spdlog/spdlog.h>
 
 ProjectEditor::ProjectEditor(ProjectModel& project_model, QWidget* parent)
@@ -13,11 +12,11 @@ ProjectEditor::ProjectEditor(ProjectModel& project_model, QWidget* parent)
 {
   m_ui->setupUi(this);
 
-  // connect(m_ui->cb_type, &QComboBox::currentIndexChanged, this, &ProjectEditor::update_enabledness);
+  update_project_list();
   connect(m_ui->cb_name, &QComboBox::currentTextChanged, this, &ProjectEditor::update_enabledness);
-
-  auto labels = m_project_model.projects() | std::views::transform(&Project::label);
-  m_ui->cb_name->addItems(QStringList(labels.begin(), labels.end()));
+  connect(m_ui->cb_name, &QComboBox::currentIndexChanged, this, [](int index) {  //x
+    spdlog::info("index: {}", index);
+  });
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, [this]() {
     if (m_ui->cb_name->currentText() != m_ui->cb_name->itemText(m_ui->cb_name->currentIndex())) {
       if (QMessageBox::question(
@@ -28,8 +27,9 @@ ProjectEditor::ProjectEditor(ProjectModel& project_model, QWidget* parent)
       {
         return;
       }
-      m_project_model.add_project(create_project());
-      m_ui->cb_name->setCurrentIndex(static_cast<int>(m_project_model.projects().size()));
+      const auto& project = m_project_model.add_project(create_project());
+      update_project_list();
+      set_project(project);
     }
     accept();
   });
@@ -39,7 +39,6 @@ ProjectEditor::~ProjectEditor() = default;
 
 void ProjectEditor::set_project(const Project& project)
 {
-
   m_ui->cb_name->setCurrentIndex(m_project_model.index_of(project));
 }
 
@@ -56,4 +55,13 @@ std::unique_ptr<Project> ProjectEditor::create_project() const
 void ProjectEditor::update_enabledness() const
 {
   m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(!m_ui->cb_name->currentText().isEmpty());
+}
+
+void ProjectEditor::update_project_list() const
+{
+  const QSignalBlocker _(m_ui->cb_name);
+  m_ui->cb_name->clear();
+  for (const auto& project : m_project_model.projects()) {
+    m_ui->cb_name->addItem(project->label());
+  }
 }

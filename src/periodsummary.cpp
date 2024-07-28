@@ -1,5 +1,6 @@
 #include "periodsummary.h"
 #include "intervalmodel.h"
+#include "plan.h"
 #include "ui_periodsummary.h"
 #include <QSortFilterProxyModel>
 #include <spdlog/spdlog.h>
@@ -81,8 +82,9 @@ void PeriodSummary::set_date(const QDate& date)
   recalculate();
 }
 
-void PeriodSummary::set_model(IntervalModel& interval_model)
+void PeriodSummary::set_model(IntervalModel& interval_model, const Plan& plan)
 {
+  m_plan = &plan;
   m_interval_model = &interval_model;
   recalculate();
   if (m_interval_model != nullptr) {
@@ -122,9 +124,17 @@ void PeriodSummary::recalculate()
     return;
   }
 
-  m_ui->lb_total->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Work)));
-  m_ui->lb_holiday->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Holiday)));
-  m_ui->lb_sick->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Sick)));
+  const auto actual_working_time = m_interval_model->minutes(m_current_period, Project::Type::Work);
+  const auto planned_working_time = m_plan->planned_working_time(m_current_period.begin(), m_current_period.end());
+  m_ui->lb_total->setText(::format_minutes(actual_working_time));
+  m_ui->lb_holiday->setText(::format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Holiday)));
+  m_ui->lb_sick->setText(::format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Sick)));
+  m_ui->lb_planned->setText(::format_minutes(planned_working_time));
+  m_ui->lb_overtime->setText(::format_minutes(actual_working_time - planned_working_time));
+
+  const auto total_overtime = m_plan->overtime_offset() + m_interval_model->minutes({}, Project::Type::Work)
+                              - m_plan->planned_working_time({}, QDate::currentDate());
+  m_ui->lb_overtime_cum->setText(::format_minutes(total_overtime));
 
   update();
 }

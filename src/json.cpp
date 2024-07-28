@@ -16,6 +16,27 @@ void adl_serializer<QString>::from_json(const json& j, QString& value)
   value = QString::fromStdString(static_cast<std::string>(j));
 }
 
+void adl_serializer<std::chrono::minutes>::to_json(json& j, const std::chrono::minutes& value)
+{
+  j = value.count();
+}
+
+void adl_serializer<std::chrono::minutes>::from_json(const json& j, std::chrono::minutes& value)
+{
+  using std::chrono_literals::operator""min;
+  value = j.get<int>() * 1min;
+}
+
+void adl_serializer<QDate>::to_json(json& j, const QDate& value)
+{
+  j = value.toString(Qt::ISODate);
+}
+
+void adl_serializer<QDate>::from_json(const json& j, QDate& value)
+{
+  value = QDate::fromString(j.get<QString>(), Qt::ISODate);
+}
+
 void adl_serializer<QDateTime>::to_json(json& j, const QDateTime& value)
 {
   j = value.toString(Qt::ISODate);

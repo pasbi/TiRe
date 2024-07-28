@@ -15,7 +15,7 @@ public:
   [[nodiscard]] std::vector<Project*> projects() const;
   Project& add_project(std::unique_ptr<Project> project);
   [[nodiscard]] const Project& empty_project() const noexcept;
-  [[nodoiscard]] const Project& project(std::size_t index) const;
+  [[nodiscard]] const Project& project(std::size_t index) const;
   [[nodiscard]] std::size_t index_of(const Project& project) const;
 
 private:

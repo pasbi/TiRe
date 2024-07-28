@@ -5,6 +5,7 @@
 #include <qabstractitemmodel.h>
 
 class IntervalModel;
+class Plan;
 
 namespace Ui
 {
@@ -21,7 +22,7 @@ public:
 
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
-  void set_model(IntervalModel& interval_model);
+  void set_model(IntervalModel& interval_model, const Plan& plan);
 
   void next();
   void prev();
@@ -36,6 +37,7 @@ private:
   Period::Type m_type = Period::Type::Day;
   Period m_current_period;
   IntervalModel* m_interval_model = nullptr;
+  const Plan* m_plan = nullptr;
   void clear() const;
   class ProxyModel;
   std::unique_ptr<ProxyModel> m_proxy_model;

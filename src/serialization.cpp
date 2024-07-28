@@ -1,6 +1,7 @@
 #include "serialization.h"
 #include "exceptions.h"
 #include "intervalmodel.h"
+#include "plan.h"
 #include "projectmodel.h"
 #include "timesheet.h"
 #include <nlohmann/json.hpp>
@@ -8,8 +9,9 @@
 
 namespace
 {
-constexpr auto intervals_key = "intervals";
-constexpr auto projects_key = "projects";
+constexpr auto interval_model_key = "intervals";
+constexpr auto project_model_key = "projects";
+constexpr auto plan_key = "plan";
 constexpr auto project_key = "project";
 constexpr auto begin_key = "begin";
 constexpr auto end_key = "end";
@@ -25,7 +27,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
   return map;
 }
 
-[[nodiscard]] nlohmann::json serialize(const IntervalModel& interval_model, const ProjectIndexMap& project_index_map)
+[[nodiscard]] auto serialize(const IntervalModel& interval_model, const ProjectIndexMap& project_index_map)
 {
   std::list<nlohmann::json> vs;
   for (const auto* const interval : interval_model.intervals()) {
@@ -41,7 +43,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
   return vs;
 }
 
-[[nodiscard]] nlohmann::json serialize(const ProjectModel& project_model)
+[[nodiscard]] auto serialize(const ProjectModel& project_model)
 {
   std::list<nlohmann::json> vs;
   for (const auto* const project : project_model.projects()) {
@@ -50,8 +52,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
   return vs;
 }
 
-[[nodiscard]] std::unique_ptr<IntervalModel> deserialize_interval_model(const nlohmann::json& data,
-                                                                        const std::vector<Project*>& projects)
+[[nodiscard]] auto deserialize_interval_model(const nlohmann::json& data, const std::vector<Project*>& projects)
 {
   std::deque<std::unique_ptr<Interval>> intervals;
   for (const auto& v : data) {
@@ -67,7 +68,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
   return std::make_unique<IntervalModel>(std::move(intervals));
 }
 
-[[nodiscard]] std::unique_ptr<ProjectModel> deserialize_project_model(const nlohmann::json& data)
+[[nodiscard]] auto deserialize_project_model(const nlohmann::json& data)
 {
   std::vector<std::unique_ptr<Project>> projects;
   projects.reserve(data.size());
@@ -90,19 +91,21 @@ using ProjectIndexMap = std::map<const Project*, int>;
 nlohmann::json serialize(const TimeSheet& time_sheet)
 {
   nlohmann::json j;
-  j[projects_key] = serialize(time_sheet.project_model());
-  j[intervals_key] =
+  j[project_model_key] = serialize(time_sheet.project_model());
+  j[interval_model_key] =
       serialize(time_sheet.interval_model(), ::create_project_index_map(time_sheet.project_model().projects()));
+  j[plan_key] = time_sheet.plan().to_json();
   return j;
 }
 
 std::unique_ptr<TimeSheet> deserialize(const nlohmann::json& json)
 {
   try {
-    auto project_model = ::deserialize_project_model(json.at(projects_key));
+    auto project_model = ::deserialize_project_model(json.at(project_model_key));
     const auto projects = project_model->projects();
-    auto interval_model = ::deserialize_interval_model(json.at(intervals_key), projects);
-    return std::make_unique<TimeSheet>(std::move(project_model), std::move(interval_model));
+    auto interval_model = ::deserialize_interval_model(json.at(interval_model_key), projects);
+    auto plan = std::make_unique<Plan>(json.at(plan_key));
+    return std::make_unique<TimeSheet>(std::move(project_model), std::move(interval_model), std::move(plan));
   } catch (const nlohmann::json::out_of_range& e) {
     throw DeserializationError("Failed to load time sheet: {}", e.what());
   }
