@@ -44,6 +44,9 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
 
+  connect(m_ui->action_Add_Interval, &QAction::triggered, this,
+          [this]() { m_time_sheet->interval_model().new_interval(m_time_sheet->project_model().empty_project()); });
+
   const auto init_view_action = [this](QAction* action, const Period::Type type) {
     m_view_action_group.addAction(action);
     connect(action, &QAction::triggered, this, [type, this]() { set_period_type(type); });
@@ -67,9 +70,6 @@ MainWindow::~MainWindow() = default;
 void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
   m_time_sheet = std::move(time_sheet);
-  connect(m_ui->action_Add_Interval, &QAction::triggered, this,
-          [this]() { m_time_sheet->interval_model().new_interval(m_time_sheet->project_model().empty_project()); });
-
   m_ui->period_summary->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
 }
 
