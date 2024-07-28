@@ -124,7 +124,7 @@ void IntervalModel::split_interval(const Interval& interval, const QDateTime& sp
   const auto row = static_cast<int>(std::distance(m_intervals.begin(), it));
   auto& left_interval = **it;
   beginInsertRows({}, row, row);
-  auto& right_interval = *m_intervals.emplace(std::next(it), std::make_unique<Interval>(interval.project()));
+  const auto& right_interval = *m_intervals.emplace(std::next(it), std::make_unique<Interval>(interval.project()));
   endInsertRows();
   right_interval->set_end(left_interval.end());
   left_interval.set_end(split_point);
@@ -203,9 +203,9 @@ std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,
       return accu;
     }
     if (period.has_value()) {
-      return period->overlap(*interval);
+      return accu + period->overlap(*interval);
     }
-    return interval->duration();
+    return accu + interval->duration();
   };
   using std::chrono_literals::operator""min;
   return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);

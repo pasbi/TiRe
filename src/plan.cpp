@@ -42,15 +42,17 @@ std::chrono::minutes Plan::planned_working_time(const QDate& date) const noexcep
 
 std::chrono::minutes Plan::planned_working_time(const QDate& begin, const QDate& end) const noexcept
 {
-  if (!begin.isValid()) {
-    return planned_working_time(m_start, end);
-  }
-
-  const auto day_count = begin.daysTo(end) + 1;
   using std::chrono_literals::operator""min;
   auto duration = 0min;
+  const auto actual_begin = std::clamp(begin.isValid() ? begin : m_start, m_start, QDate::currentDate());
+  if (end < m_start) {
+    return duration;
+  }
+  const auto actual_end = std::clamp(end, m_start, QDate::currentDate());
+
+  const auto day_count = actual_begin.daysTo(actual_end) + 1;
   for (qint64 day = 0; day < day_count; ++day) {
-    duration += planned_working_time(begin.addDays(day));
+    duration += planned_working_time(actual_begin.addDays(day));
   }
   return duration;
 }

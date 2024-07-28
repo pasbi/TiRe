@@ -15,9 +15,10 @@ namespace
   static constexpr auto field_width = 2;
   static constexpr auto base = 10;
   static constexpr auto fill_char = QChar('0');
-  return QString{"%1:%2"}
-      .arg(minutes / 1h, field_width, base, fill_char)
-      .arg((minutes / 1min) % (1h / 1min), field_width, base, fill_char);
+  return QString{"%1%2:%3"}
+      .arg(minutes < 0min ? "-" : "")
+      .arg(std::abs(minutes / 1h), field_width, base, fill_char)
+      .arg(std::abs((minutes / 1min)) % (1h / 1min), field_width, base, fill_char);
 }
 
 }  // namespace
@@ -94,7 +95,8 @@ void PeriodSummary::set_model(IntervalModel& interval_model, const Plan& plan)
 const Interval* PeriodSummary::current_interval()
 {
   if (const auto index = m_ui->tableView->currentIndex(); index.isValid()) {
-    return m_interval_model->interval(index.row());
+    const auto row = m_proxy_model->mapToSource(index).row();
+    return m_interval_model->interval(row);
   }
   return nullptr;
 }
@@ -103,7 +105,8 @@ std::set<const Interval*> PeriodSummary::selected_intervals() const
 {
   std::set<const Interval*> selection;
   for (const auto& index : m_ui->tableView->selectionModel()->selectedRows()) {
-    selection.insert(m_interval_model->interval(index.row()));
+    const auto row = m_proxy_model->mapToSource(index).row();
+    selection.insert(m_interval_model->interval(row));
   }
   return selection;
 }
