@@ -3,6 +3,7 @@
 #include "period.h"
 #include <QWidget>
 #include <qabstractitemmodel.h>
+#include <set>
 
 class IntervalModel;
 class Plan;
@@ -23,6 +24,8 @@ public:
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
   void set_model(IntervalModel& interval_model, const Plan& plan);
+  const Interval* current_interval();
+  std::set<const Interval*> selected_intervals() const;
 
   void next();
   void prev();

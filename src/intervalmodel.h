@@ -5,6 +5,7 @@
 #include "project.h"
 #include <QAbstractTableModel>
 #include <deque>
+#include <set>
 
 class IntervalModel final : public QAbstractTableModel
 {
@@ -30,9 +31,13 @@ public:
 
   void new_interval(const Project& project);
   void add_interval(std::unique_ptr<Interval> interval);
+  void split_interval(const Interval& interval, const QDateTime& split_point);
+  void delete_intervals(const std::set<const Interval*>& intervals);
+  void delete_interval(const Interval& interval);
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
   [[nodiscard]] std::vector<Interval*> intervals() const;
+  [[nodiscard]] const Interval* interval(const std::size_t index) const;
 
 Q_SIGNALS:
   void data_changed();

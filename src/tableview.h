@@ -4,8 +4,8 @@
 
 class TableView : public QTableView
 {
-public:
   Q_OBJECT
+public:
   using QTableView::QTableView;
 
 protected:

@@ -31,9 +31,13 @@ public:
 private:
   std::unique_ptr<Ui::MainWindow> m_ui;
   std::unique_ptr<TimeSheet> m_time_sheet;
-  void edit_date_time(const QModelIndex& index) const;
-  void edit_project(const QModelIndex& index) const;
   std::filesystem::path m_filename;
   QActionGroup m_view_action_group;
+
+  void delete_selected_intervals() const;
+  void split_selected_intervals() const;
+  void show_table_context_menu(const QPoint& pos);
+  void edit_date_time(const QModelIndex& index) const;
+  void edit_project(const QModelIndex& index) const;
   void set_period_type(Period::Type type);
 };

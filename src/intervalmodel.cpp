@@ -118,6 +118,35 @@ void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
   Q_EMIT data_changed();
 }
 
+void IntervalModel::split_interval(const Interval& interval, const QDateTime& split_point)
+{
+  const auto it = std::ranges::find(m_intervals, &interval, &std::unique_ptr<Interval>::get);
+  const auto row = static_cast<int>(std::distance(m_intervals.begin(), it));
+  auto& left_interval = **it;
+  beginInsertRows({}, row, row);
+  auto& right_interval = *m_intervals.emplace(std::next(it), std::make_unique<Interval>(interval.project()));
+  endInsertRows();
+  right_interval->set_end(left_interval.end());
+  left_interval.set_end(split_point);
+  right_interval->set_begin(split_point);
+}
+
+void IntervalModel::delete_intervals(const std::set<const Interval*>& intervals)
+{
+  for (const auto* const interval : intervals) {
+    delete_interval(*interval);
+  }
+}
+
+void IntervalModel::delete_interval(const Interval& interval)
+{
+  const auto it = std::ranges::find(m_intervals, &interval, &std::unique_ptr<Interval>::get);
+  const int row = static_cast<int>(std::distance(m_intervals.begin(), it));
+  beginRemoveRows({}, row, row);
+  m_intervals.erase(it);
+  endRemoveRows();
+}
+
 void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> intervals)
 {
   beginResetModel();
@@ -129,6 +158,11 @@ std::vector<Interval*> IntervalModel::intervals() const
 {
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
   return std::vector(view.begin(), view.end());
+}
+
+const Interval* IntervalModel::interval(const std::size_t index) const
+{
+  return m_intervals.at(index).get();
 }
 
 QVariant IntervalModel::background_data(const QModelIndex& index) const

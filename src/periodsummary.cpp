@@ -91,6 +91,23 @@ void PeriodSummary::set_model(IntervalModel& interval_model, const Plan& plan)
     connect(m_interval_model, &IntervalModel::data_changed, this, &PeriodSummary::recalculate);
   }
 }
+const Interval* PeriodSummary::current_interval()
+{
+  if (const auto index = m_ui->tableView->currentIndex(); index.isValid()) {
+    return m_interval_model->interval(index.row());
+  }
+  return nullptr;
+}
+
+std::set<const Interval*> PeriodSummary::selected_intervals() const
+{
+  std::set<const Interval*> selection;
+  for (const auto& index : m_ui->tableView->selectionModel()->selectedRows()) {
+    selection.insert(m_interval_model->interval(index.row()));
+  }
+  return selection;
+}
+
 void PeriodSummary::next()
 {
   set_date(m_current_period.end().addDays(1));

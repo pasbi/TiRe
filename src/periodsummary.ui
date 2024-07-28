@@ -26,6 +26,9 @@
    </item>
    <item>
     <widget class="TableView" name="tableView">
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+     </property>
      <attribute name="horizontalHeaderVisible">
       <bool>false</bool>
      </attribute>

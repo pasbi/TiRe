@@ -40,6 +40,9 @@ MainWindow::MainWindow(QWidget* parent)
       edit_project(index);
     }
   });
+  m_ui->period_summary->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(m_ui->period_summary, &QWidget::customContextMenuRequested, this,
+          [this](const QPoint& pos) { show_table_context_menu(m_ui->period_summary->mapToGlobal(pos)); });
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
@@ -138,6 +141,40 @@ void MainWindow::save_as()
   }
   m_filename = static_cast<std::filesystem::path>(q_filename.toStdString());
   save();
+}
+
+void MainWindow::delete_selected_intervals() const
+{
+  const auto selection = m_ui->period_summary->selected_intervals();
+  m_time_sheet->interval_model().delete_intervals(selection);
+}
+
+void MainWindow::split_selected_intervals() const
+{
+  const auto* const interval = m_ui->period_summary->current_interval();
+  if (interval == nullptr) {
+    return;
+  }
+  DateTimeEditor e;
+  e.set_date(interval->begin().date());
+  e.set_time(interval->begin().time());
+  // TODO
+  // e.set_range(interval.begin(), interval.end());
+  if (e.exec() == QDialog::Accepted) {
+    m_time_sheet->interval_model().split_interval(*interval, e.date_time());
+  }
+}
+
+void MainWindow::show_table_context_menu(const QPoint& pos)
+{
+  QMenu menu;
+  const auto add_action = [this, &menu](const QString& label, auto slot) {
+    const auto* const action = menu.addAction(label);
+    connect(action, &QAction::triggered, this, slot);
+  };
+  add_action(tr("Delete"), &MainWindow::delete_selected_intervals);
+  add_action(tr("Split"), &MainWindow::split_selected_intervals);
+  menu.exec(pos);
 }
 
 void MainWindow::edit_date_time(const QModelIndex& index) const
