@@ -60,9 +60,8 @@ PeriodSummary::PeriodSummary(QWidget* parent)
   , m_proxy_model(std::make_unique<PeriodSummary::ProxyModel>())
 {
   m_ui->setupUi(this);
-  connect(m_ui->pb_next, &QPushButton::clicked, this, [this]() { set_date(m_current_period.end().addDays(1)); });
-  connect(m_ui->pb_prev, &QPushButton::clicked, this, [this]() { set_date(m_current_period.begin().addDays(-1)); });
-  connect(m_ui->pb_today, &QPushButton::clicked, this, [this]() { set_date(QDate::currentDate()); });
+  connect(m_ui->tableView, &QAbstractItemView::doubleClicked, this,
+          [this](const QModelIndex& index) { Q_EMIT double_clicked(m_proxy_model->mapToSource(index)); });
   m_ui->tableView->setModel(m_proxy_model.get());
 }
 
@@ -89,6 +88,20 @@ void PeriodSummary::set_model(IntervalModel& interval_model)
   if (m_interval_model != nullptr) {
     connect(m_interval_model, &IntervalModel::data_changed, this, &PeriodSummary::recalculate);
   }
+}
+void PeriodSummary::next()
+{
+  set_date(m_current_period.end().addDays(1));
+}
+
+void PeriodSummary::prev()
+{
+  set_date(m_current_period.begin().addDays(-1));
+}
+
+void PeriodSummary::today()
+{
+  set_date(QDate::currentDate());
 }
 
 void PeriodSummary::clear() const

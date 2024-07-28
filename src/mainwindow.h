@@ -1,6 +1,8 @@
 #pragma once
 
 #include "intervalmodel.h"
+#include "period.h"
+#include <QActionGroup>
 #include <QMainWindow>
 #include <filesystem>
 #include <memory>
@@ -32,4 +34,6 @@ private:
   void edit_date_time(const QModelIndex& index) const;
   void edit_project(const QModelIndex& index) const;
   std::filesystem::path m_filename;
+  QActionGroup m_view_action_group;
+  void set_period_type(Period::Type type);
 };

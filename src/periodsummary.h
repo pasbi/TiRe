@@ -2,6 +2,7 @@
 
 #include "period.h"
 #include <QWidget>
+#include <qabstractitemmodel.h>
 
 class IntervalModel;
 
@@ -21,6 +22,13 @@ public:
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
   void set_model(IntervalModel& interval_model);
+
+  void next();
+  void prev();
+  void today();
+
+Q_SIGNALS:
+  void double_clicked(const QModelIndex& index);
 
 private:
   void recalculate();

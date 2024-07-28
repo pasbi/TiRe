@@ -20,36 +20,8 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="TableView" name="tableView">
-       <attribute name="horizontalHeaderVisible">
-        <bool>false</bool>
-       </attribute>
-      </widget>
-      <widget class="QTabWidget" name="tabWidget">
-       <property name="currentIndex">
-        <number>0</number>
-       </property>
-       <widget class="PeriodSummary" name="tab_year">
-        <attribute name="title">
-         <string>Year</string>
-        </attribute>
-       </widget>
-       <widget class="PeriodSummary" name="tab_month">
-        <attribute name="title">
-         <string>Month</string>
-        </attribute>
-       </widget>
-       <widget class="PeriodSummary" name="tab_week">
-        <attribute name="title">
-         <string>Week</string>
-        </attribute>
-       </widget>
-       <widget class="PeriodSummary" name="tab_day">
-        <attribute name="title">
-         <string>Day</string>
-        </attribute>
-       </widget>
-      </widget>
+      <widget class="PeriodSummary" name="period_summary" native="true"/>
+      <widget class="QTableView" name="tableView"/>
      </widget>
     </item>
    </layout>
@@ -78,8 +50,27 @@
     </property>
     <addaction name="action_Add_Interval"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionYear"/>
+    <addaction name="actionMonth"/>
+    <addaction name="actionWeek"/>
+    <addaction name="actionDay"/>
+   </widget>
+   <widget class="QMenu" name="menuNavigation">
+    <property name="title">
+     <string>&amp;Navigation</string>
+    </property>
+    <addaction name="actionNext"/>
+    <addaction name="actionPrevious"/>
+    <addaction name="actionToday"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menuIntervals"/>
+   <addaction name="menuView"/>
+   <addaction name="menuNavigation"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_Load">
@@ -122,6 +113,74 @@
     <string>Ctrl+N</string>
    </property>
   </action>
+  <action name="actionYear">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Year</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+1</string>
+   </property>
+  </action>
+  <action name="actionMonth">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Month</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+2</string>
+   </property>
+  </action>
+  <action name="actionWeek">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Week</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+3</string>
+   </property>
+  </action>
+  <action name="actionDay">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Day</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionNext">
+   <property name="text">
+    <string>&amp;Next</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Right</string>
+   </property>
+  </action>
+  <action name="actionPrevious">
+   <property name="text">
+    <string>&amp;Previous</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Left</string>
+   </property>
+  </action>
+  <action name="actionToday">
+   <property name="text">
+    <string>&amp;Today</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Space</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -129,11 +188,6 @@
    <extends>QWidget</extends>
    <header>periodsummary.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TableView</class>
-   <extends>QTableView</extends>
-   <header>tableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
