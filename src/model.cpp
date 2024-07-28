@@ -2,13 +2,11 @@
 #include "json.h"
 #include "period.h"
 #include <QColor>
+#include <complex>
 #include <nlohmann/json.hpp>
 
 namespace
 {
-
-constexpr auto intervals_key = "intervals";
-constexpr auto projects_key = "projects";
 
 [[nodiscard]] QString format_date(const QDate& begin, const QDate& end)
 {
@@ -19,20 +17,29 @@ constexpr auto projects_key = "projects";
   return begin.toString(format) + " - " + end.toString(format);
 }
 
-}  // namespace
-
-nlohmann::json Model::serialize() const
+[[nodiscard]] bool is_match(const Interval& interval, const Project* const project)
 {
-  return {
-      {::intervals_key, m_intervals},
-      {::projects_key, m_projects},
-  };
+  if (project == nullptr) {
+    return true;  // nullptr is the wild card: match any interval
+  }
+
+  if (interval.project() == project) {
+    return true;  // actual match!
+  }
+
+  if (!project->name().isEmpty() || interval.project() == nullptr) {
+    return false;  // no way to match anymore
+  }
+
+  // "name" wild card if project name is empty match any interval with matching project type.
+  return project->type() == interval.project()->type();
 }
 
-void Model::deserialize(const nlohmann::json& data)
+}  // namespace
+
+Model::Model(std::vector<std::unique_ptr<Project>> projects, std::deque<Interval> intervals)
+  : m_projects(std::move(projects)), m_intervals(std::move(intervals))
 {
-  set_intervals(data[intervals_key]);
-  m_projects = data.value(projects_key, QStringList{});
 }
 
 int Model::rowCount(const QModelIndex& parent) const
@@ -59,7 +66,7 @@ QVariant Model::data(const QModelIndex& index, const int role) const
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
     case project_column:
-      return interval.project();
+      return ::label(interval.project());
     case begin_column:
       return interval.begin().time();
     case end_column:
@@ -76,7 +83,7 @@ QVariant Model::data(const QModelIndex& index, const int role) const
   if (role == Qt::EditRole) {
     switch (index.column()) {
     case project_column:
-      return interval.project();
+      return label(interval.project());
     case begin_column:
       return interval.begin();
     case end_column:
@@ -121,7 +128,7 @@ bool Model::setData(const QModelIndex& index, const QVariant& value, const int r
     emit_data_changed();
     return true;
   case project_column:
-    set_project(interval, value.toString());
+    // TODO set_project(interval, value.toString());
     emit_data_changed();
     return true;
   default:
@@ -144,9 +151,10 @@ void Model::add_interval(Interval interval)
   endInsertRows();
 }
 
-const QStringList& Model::projects() const noexcept
+std::vector<Project*> Model::projects() const noexcept
 {
-  return m_projects;
+  auto view = m_projects | std::views::transform(&std::unique_ptr<Project>::get);
+  return std::vector(view.begin(), view.end());
 }
 
 void Model::set_intervals(std::deque<Interval> intervals)
@@ -161,13 +169,13 @@ const std::deque<Interval>& Model::intervals() const noexcept
   return m_intervals;
 }
 
-void Model::set_project(Interval& interval, QString project)
-{
-  if (!m_projects.contains(project)) {
-    m_projects.append(project);
-  }
-  interval.set_project(std::move(project));
-}
+// void Model::set_project(Interval& interval, QString project)
+// {
+//   if (!m_projects.contains(project)) {
+//     m_projects.append(project);
+//   }
+//   interval.set_project(std::move(project));
+// }
 
 QVariant Model::background_data(const QModelIndex& index) const
 {
@@ -197,12 +205,13 @@ QVariant Model::background_data(const QModelIndex& index) const
   }
 }
 
-std::chrono::minutes Model::minutes_worked(const Period& period, const QString& project) const
+std::chrono::minutes Model::minutes(const Period& period, const Project* const project) const
 {
-  using std::chrono_literals::operator""min;
-  const auto accumulate_minutes_in_period = [period, &project](const std::chrono::minutes accu,
-                                                               const Interval& interval) {
-    return accu + (project.isEmpty() || interval.project() == project ? period.minutes_overlap(interval) : 0min);
-  };
-  return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
+  return {};
+  // using std::chrono_literals::operator""min;
+  // const auto accumulate_minutes_in_period = [period, &project](const std::chrono::minutes accu,
+  //                                                              const Interval& interval) {
+  //   return accu + (is_match ? period.minutes_overlap(interval) : 0min);
+  // };
+  // return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
 }

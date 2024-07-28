@@ -19,6 +19,7 @@ class MainWindow : public QMainWindow
 public:
   explicit MainWindow(QWidget* parent = nullptr);
   ~MainWindow() override;
+  void set_model(std::unique_ptr<Model> model);
 
   void load();
   void load(std::filesystem::path filename);

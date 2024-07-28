@@ -1,17 +1,21 @@
 #include "projecteditor.h"
+#include "project.h"
 #include "ui_projecteditor.h"
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <ranges>
 
-ProjectEditor::ProjectEditor(const QStringList& projects, QWidget* parent)
+ProjectEditor::ProjectEditor(const std::vector<Project*>& projects, QWidget* parent)
   : QDialog(parent), m_ui(std::make_unique<Ui::ProjectEditor>()), m_projects(projects)
 {
   m_ui->setupUi(this);
-  m_ui->comboBox->addItems(projects);
+  auto labels = projects | std::views::transform([](const Project* project) { return ::label(project); });
+  m_ui->comboBox->addItems(QStringList(labels.begin(), labels.end()));
   connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, [this]() {
     if (const auto current_text = m_ui->comboBox->currentText();
-        !m_projects.contains(current_text)
+        // !m_projects.contains(current_text)
+        true  // TODO
         && QMessageBox::question(this, QApplication::applicationDisplayName(),
                                  tr("There is no project '%1'. Do you want to create it?").arg(current_text),
                                  QMessageBox::Yes | QMessageBox::No)
@@ -21,8 +25,8 @@ ProjectEditor::ProjectEditor(const QStringList& projects, QWidget* parent)
     }
     accept();
   });
-  if (!m_projects.empty()) {
-    m_ui->comboBox->setCurrentText(m_projects.front());
+  if (!m_projects.empty()) {  // TODO m_projects cannot be empty
+    m_ui->comboBox->setCurrentText(::label(m_projects.front()));
   }
 }
 

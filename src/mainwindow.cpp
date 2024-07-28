@@ -4,6 +4,7 @@
 #include "model.h"
 #include "period.h"
 #include "projecteditor.h"
+#include "serialization.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -25,8 +26,6 @@ MainWindow::MainWindow(QWidget* parent)
   : QMainWindow(parent), m_ui(std::make_unique<Ui::MainWindow>()), m_model(std::make_unique<Model>())
 {
   m_ui->setupUi(this);
-  m_ui->tableView->setModel(m_model.get());
-  connect(m_ui->action_Add_Interval, &QAction::triggered, m_model.get(), &Model::new_interval);
   connect(m_ui->tableView, &QAbstractItemView::doubleClicked, this, [this](const QModelIndex& index) {
     if (index.column() == Model::begin_column || index.column() == Model::end_column) {
       edit_date_time(index);
@@ -50,6 +49,13 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow() = default;
 
+void MainWindow::set_model(std::unique_ptr<Model> model)
+{
+  m_model = std::move(model);
+  m_ui->tableView->setModel(m_model.get());
+  connect(m_ui->action_Add_Interval, &QAction::triggered, m_model.get(), &Model::new_interval);
+}
+
 void MainWindow::load()
 {
   const auto last_load_dir = QDir::home().path();  // TODO
@@ -72,11 +78,13 @@ void MainWindow::load(std::filesystem::path filename)
     }
     nlohmann::json data;
     ifs >> data;
-    m_model->deserialize(data);
+    set_model(::deserialize(data));
     m_filename = std::move(filename);
   } catch (const DeserializationError& e) {
     QMessageBox::critical(this, QApplication::applicationDisplayName(),
-                          tr("Failed to open '%1'.").arg(QString::fromStdString(filename.string())));
+                          tr("Failed to open '%1': %2")
+                              .arg(QString::fromStdString(filename.string()))
+                              .arg(QString::fromStdString(e.what())));
   }
 }
 
@@ -91,7 +99,7 @@ void MainWindow::save()
     QMessageBox::critical(this, QApplication::applicationDisplayName(),
                           tr("Failed to open '%1' for writing.").arg(QString::fromStdString(m_filename.string())));
   }
-  ofs << m_model->serialize();
+  ofs << ::serialize(*m_model);
 }
 
 void MainWindow::save_as()

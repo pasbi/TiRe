@@ -110,6 +110,6 @@ void PeriodSummary::recalculate()
     return;
   }
 
-  m_ui->lb_total->setText(format_minutes(m_model->minutes_worked(m_current_period)));
+  // m_ui->lb_total->setText(format_minutes(m_model->minutes_worked(m_current_period)));
   update();
 }

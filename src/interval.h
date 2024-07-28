@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <compare>
+#include <nlohmann/adl_serializer.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 class Project;
@@ -11,8 +12,10 @@ class Interval
 public:
   friend std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept;
 
-  void set_project(QString project) noexcept;
-  [[nodiscard]] const QString& project() const noexcept;
+  explicit Interval() = default;
+
+  void set_project(const Project* project) noexcept;
+  [[nodiscard]] const Project* project() const noexcept;
   void set_begin(const QDateTime& begin);
   void set_end(const QDateTime& end);
   [[nodiscard]] const QDateTime& begin() const noexcept;
@@ -20,17 +23,7 @@ public:
   [[nodiscard]] QString duration_text() const;
 
 private:
-  QString m_project;
+  const Project* m_project = nullptr;
   QDateTime m_begin;
   QDateTime m_end;
 };
-
-namespace nlohmann
-{
-template<> struct adl_serializer<Interval>
-{
-  static void to_json(json& j, const Interval& value);
-  static void from_json(const json& j, Interval& value);
-};
-
-}  // namespace nlohmann
