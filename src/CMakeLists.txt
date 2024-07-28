@@ -1,6 +1,6 @@
 qt_add_executable(tire main.cpp
-        model.cpp
-        model.h
+        intervalmodel.cpp
+        intervalmodel.h
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
@@ -29,6 +29,10 @@ qt_add_executable(tire main.cpp
         project.h
         serialization.cpp
         serialization.h
+        projectmodel.cpp
+        projectmodel.h
+        timesheet.cpp
+        timesheet.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)

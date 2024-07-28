@@ -10,13 +10,13 @@ public:
   }
 };
 
-class DeserializationError : public RuntimeError
+class DeserializationError final : public RuntimeError
 {
 public:
   using RuntimeError::RuntimeError;
 };
 
-class InvalidEnumNameException : public RuntimeError
+class InvalidEnumNameException final : public RuntimeError
 {
 public:
   using RuntimeError::RuntimeError;

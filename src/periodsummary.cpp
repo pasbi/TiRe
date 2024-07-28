@@ -1,5 +1,5 @@
 #include "periodsummary.h"
-#include "model.h"
+#include "intervalmodel.h"
 #include "ui_periodsummary.h"
 #include <QSortFilterProxyModel>
 #include <spdlog/spdlog.h>
@@ -26,9 +26,9 @@ class PeriodSummary::ProxyModel : public QSortFilterProxyModel
 public:
   using QSortFilterProxyModel::QSortFilterProxyModel;
 
-  void set_source_model(Model* const model)
+  void set_source_model(IntervalModel* const model)
   {
-    m_model = model;
+    m_interval_model = model;
     setSourceModel(model);
   }
 
@@ -41,15 +41,15 @@ public:
 protected:
   [[nodiscard]] bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const override
   {
-    if (m_model == nullptr) {
+    if (m_interval_model == nullptr) {
       return false;
     }
-    const auto* const interval = m_model->intervals().at(source_row);
+    const auto* const interval = m_interval_model->intervals().at(source_row);
     return m_period.contains(interval->begin().date(), interval->end().date());
   }
 
 private:
-  const Model* m_model = nullptr;
+  const IntervalModel* m_interval_model = nullptr;
   Period m_period;
 };
 
@@ -81,15 +81,15 @@ void PeriodSummary::set_date(const QDate& date)
   recalculate();
 }
 
-void PeriodSummary::set_model(Model& model)
+void PeriodSummary::set_model(IntervalModel& interval_model)
 {
-  m_model = &model;
+  m_interval_model = &interval_model;
   recalculate();
-  if (m_model != nullptr) {
-    connect(m_model, &Model::dataChanged, this, &PeriodSummary::recalculate);
-    connect(m_model, &Model::modelReset, this, &PeriodSummary::recalculate);
-    connect(m_model, &Model::rowsInserted, this, &PeriodSummary::recalculate);
-    connect(m_model, &Model::rowsRemoved, this, &PeriodSummary::recalculate);
+  if (m_interval_model != nullptr) {
+    connect(m_interval_model, &IntervalModel::dataChanged, this, &PeriodSummary::recalculate);
+    connect(m_interval_model, &IntervalModel::modelReset, this, &PeriodSummary::recalculate);
+    connect(m_interval_model, &IntervalModel::rowsInserted, this, &PeriodSummary::recalculate);
+    connect(m_interval_model, &IntervalModel::rowsRemoved, this, &PeriodSummary::recalculate);
   }
 }
 
@@ -105,12 +105,12 @@ void PeriodSummary::clear()
 
 void PeriodSummary::recalculate()
 {
-  m_proxy_model->set_source_model(m_model);
-  if (m_model == nullptr) {
+  m_proxy_model->set_source_model(m_interval_model);
+  if (m_interval_model == nullptr) {
     clear();
     return;
   }
 
-  // m_ui->lb_total->setText(format_minutes(m_model->minutes_worked(m_current_period)));
+  // m_ui->lb_total->setText(format_minutes(m_interval_model->minutes_worked(m_current_period)));
   update();
 }

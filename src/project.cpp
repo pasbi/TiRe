@@ -14,6 +14,8 @@ constexpr auto type_key = "type";
 {
   switch (type) {
     using enum Project::Type;
+  case Empty:
+    return "Empty";
   case Work:
     return "Work";
   case Holiday:
@@ -27,9 +29,10 @@ constexpr auto type_key = "type";
 [[nodiscard]] Project::Type label_type(const QString& name)
 {
   using enum Project::Type;
-  static constexpr auto types = std::array{Work, Holiday, Sick};
-  const auto it = std::ranges::find_if(types, [name](const auto type) { return ::type_label(type) == name; });
-  if (it != types.end()) {
+  static constexpr auto types = std::array{Empty, Work, Holiday, Sick};
+  if (const auto it = std::ranges::find_if(types, [name](const auto type) { return ::type_label(type) == name; });
+      it != types.end())
+  {
     return *it;
   }
   throw InvalidEnumNameException("Failed to convert '{}' to Project::Type", name);
@@ -37,12 +40,11 @@ constexpr auto type_key = "type";
 
 }  // namespace
 
-Project::Project(const nlohmann::json& data) : m_name(data.at(name_key)), m_type(::label_type(data.at(type_key)))
+Project::Project(const nlohmann::json& data) : m_type(::label_type(data.at(type_key))), m_name(data.at(name_key))
 {
 }
 
-Project::Project(Type type, QString name)
-  : m_type(type), m_name(std::move(name))
+Project::Project(const Type type, QString name) : m_type(type), m_name(std::move(name))
 {
 }
 
@@ -63,6 +65,18 @@ nlohmann::json Project::to_json() const
       {type_key, ::type_label(m_type)},
   };
 }
+QString Project::label() const
+{
+  switch (m_type) {
+    using enum Type;
+  case Empty:
+    return QObject::tr("No Project");
+  case Work:
+    return name();
+  default:
+    return ::type_label(m_type);
+  }
+}
 
 fmt::formatter<Project>::format_return_type fmt::formatter<Project>::format(const Project& p, fmt::format_context& ctx)
 {
@@ -79,15 +93,4 @@ fmt::formatter<Project::Type>::format_return_type fmt::formatter<Project::Type>:
                                                                                         fmt::format_context& ctx)
 {
   return fmt::format_to(ctx.out(), "{}", ::type_label(t));
-}
-
-QString label(const Project* const project)
-{
-  if (project == nullptr) {
-    return QObject::tr("No Project");
-  }
-  if (project->type() == Project::Type::Work) {
-    return project->name();
-  }
-  return ::type_label(project->type());
 }

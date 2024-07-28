@@ -1,13 +1,16 @@
 #include "mainwindow.h"
 #include "datetimeeditor.h"
 #include "exceptions.h"
-#include "model.h"
+#include "intervalmodel.h"
 #include "period.h"
 #include "projecteditor.h"
+#include "projectmodel.h"
 #include "serialization.h"
+#include "timesheet.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <fmt/chrono.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -24,13 +27,13 @@ constexpr auto extension = ".ts";
 }  // namespace
 
 MainWindow::MainWindow(QWidget* parent)
-  : QMainWindow(parent), m_ui(std::make_unique<Ui::MainWindow>()), m_model(std::make_unique<Model>())
+  : QMainWindow(parent), m_ui(std::make_unique<Ui::MainWindow>()), m_time_sheet(std::make_unique<TimeSheet>())
 {
   m_ui->setupUi(this);
   connect(m_ui->tableView, &QAbstractItemView::doubleClicked, this, [this](const QModelIndex& index) {
-    if (index.column() == Model::begin_column || index.column() == Model::end_column) {
+    if (index.column() == IntervalModel::begin_column || index.column() == IntervalModel::end_column) {
       edit_date_time(index);
-    } else if (index.column() == Model::project_column) {
+    } else if (index.column() == IntervalModel::project_column) {
       edit_project(index);
     }
   });
@@ -44,21 +47,22 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui->tab_month->set_period_type(Period::Type::Month);
   m_ui->tab_year->set_period_type(Period::Type::Year);
 
-  set_model(std::make_unique<Model>());
+  set_time_sheet(std::make_unique<TimeSheet>());
 }
 
 MainWindow::~MainWindow() = default;
 
-void MainWindow::set_model(std::unique_ptr<Model> model)
+void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
-  m_model = std::move(model);
-  m_ui->tableView->setModel(m_model.get());
-  connect(m_ui->action_Add_Interval, &QAction::triggered, m_model.get(), &Model::new_interval);
+  m_time_sheet = std::move(time_sheet);
+  m_ui->tableView->setModel(&m_time_sheet->interval_model());
+  connect(m_ui->action_Add_Interval, &QAction::triggered, this,
+          [this]() { m_time_sheet->interval_model().new_interval(m_time_sheet->project_model().empty_project()); });
 
-  m_ui->tab_day->set_model(*m_model);
-  m_ui->tab_week->set_model(*m_model);
-  m_ui->tab_month->set_model(*m_model);
-  m_ui->tab_year->set_model(*m_model);
+  m_ui->tab_day->set_model(m_time_sheet->interval_model());
+  m_ui->tab_week->set_model(m_time_sheet->interval_model());
+  m_ui->tab_month->set_model(m_time_sheet->interval_model());
+  m_ui->tab_year->set_model(m_time_sheet->interval_model());
 }
 
 void MainWindow::load()
@@ -83,13 +87,12 @@ void MainWindow::load(std::filesystem::path filename)
     }
     nlohmann::json data;
     ifs >> data;
-    set_model(::deserialize(data));
+    set_time_sheet(::deserialize(data));
     m_filename = std::move(filename);
   } catch (const DeserializationError& e) {
-    QMessageBox::critical(this, QApplication::applicationDisplayName(),
-                          tr("Failed to open '%1': %2")
-                              .arg(QString::fromStdString(filename.string()))
-                              .arg(QString::fromStdString(e.what())));
+    QMessageBox::critical(
+        this, QApplication::applicationDisplayName(),
+        tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));
   }
 }
 
@@ -104,7 +107,7 @@ void MainWindow::save()
     QMessageBox::critical(this, QApplication::applicationDisplayName(),
                           tr("Failed to open '%1' for writing.").arg(QString::fromStdString(m_filename.string())));
   }
-  ofs << ::serialize(*m_model);
+  ofs << ::serialize(*m_time_sheet);
 }
 
 void MainWindow::save_as()
@@ -123,21 +126,22 @@ void MainWindow::save_as()
 void MainWindow::edit_date_time(const QModelIndex& index) const
 {
   DateTimeEditor e;
-  const auto old_date_time = m_model->data(index, Qt::EditRole).toDateTime();
+  auto& model = m_time_sheet->interval_model();
+  const auto old_date_time = model.data(index, Qt::EditRole).toDateTime();
   e.set_date(old_date_time.date());
   e.set_time(old_date_time.time());
   if (e.exec() == QDialog::Accepted) {
-    m_model->setData(index, e.date_time(), Qt::EditRole);
+    model.setData(index, e.date_time(), Qt::EditRole);
   }
 }
 
 void MainWindow::edit_project(const QModelIndex& index) const
 {
-  ProjectEditor e(*m_model);
-  auto* const interval = m_model->intervals().at(index.row());
+  ProjectEditor e(m_time_sheet->project_model());
+  auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
-    if (const auto project = e.current_project(); !project.has_value()) {
+    if (const auto* const project = e.current_project(); project != nullptr) {
       interval->set_project(*project);
       // TODO emit data changed?
     }

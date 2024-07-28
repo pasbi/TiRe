@@ -1,9 +1,8 @@
 #include "serialization.h"
-
 #include "exceptions.h"
-#include "json.h"
-#include "model.h"
-
+#include "intervalmodel.h"
+#include "projectmodel.h"
+#include "timesheet.h"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -15,78 +14,96 @@ constexpr auto project_key = "project";
 constexpr auto begin_key = "begin";
 constexpr auto end_key = "end";
 
-template<typename ProjectPointer>
-[[nodiscard]] nlohmann::json serialize_projects(const std::vector<ProjectPointer>& projects)
-{
-  auto view = projects | std::views::transform(&Project::to_json);
-  return std::vector(view.begin(), view.end());
-}
+using ProjectIndexMap = std::map<const Project*, int>;
 
-std::vector<std::unique_ptr<Project>> deserialize_projects(const nlohmann::json& json)
+[[nodiscard]] auto create_project_index_map(const std::vector<Project*>& projects)
 {
-  std::vector<std::unique_ptr<Project>> projects;
-  projects.reserve(json.size());
-  for (const auto& data : json) {
-    projects.emplace_back(std::make_unique<Project>(json));
+  ProjectIndexMap map;
+  for (const auto* const project : projects) {
+    map.try_emplace(project, static_cast<int>(map.size()));
   }
-  return projects;
+  return map;
 }
 
-std::deque<std::unique_ptr<Interval>> deserialize_intervals(const nlohmann::json& json,
-                                                            const std::vector<Project*>& projects)
+[[nodiscard]] nlohmann::json serialize(const IntervalModel& interval_model, const ProjectIndexMap& project_index_map)
+{
+  std::list<nlohmann::json> vs;
+  for (const auto* const interval : interval_model.intervals()) {
+    nlohmann::json& j = vs.emplace_back();
+    j[begin_key] = interval->begin();
+    j[end_key] = interval->end();
+    try {
+      j[project_key] = project_index_map.at(&interval->project());
+    } catch (std::out_of_range&) {
+      throw DeserializationError("Failed to store project reference.");
+    }
+  }
+  return vs;
+}
+
+[[nodiscard]] nlohmann::json serialize(const ProjectModel& project_model)
+{
+  std::list<nlohmann::json> vs;
+  for (const auto* const project : project_model.projects()) {
+    vs.emplace_back(project->to_json());
+  }
+  return vs;
+}
+
+[[nodiscard]] std::unique_ptr<IntervalModel> deserialize_interval_model(const nlohmann::json& data,
+                                                                        const std::vector<Project*>& projects)
 {
   std::deque<std::unique_ptr<Interval>> intervals;
-  for (const auto& data : json) {
-    auto& interval = *intervals.emplace_back(std::make_unique<Interval>());
+  for (const auto& v : data) {
     try {
-      interval.set_project(projects.at(data[project_key]));
+      const Project& project = *projects.at(v.at(project_key));
+      auto& interval = *intervals.emplace_back(std::make_unique<Interval>(project));
+      interval.set_begin(v.at(begin_key));
+      interval.set_end(v.at(end_key));
     } catch (const std::out_of_range&) {
       throw DeserializationError("Failed to restore project reference.");
     }
-    interval.set_begin(data[begin_key]);
-    interval.set_end(data[end_key]);
   }
-  return intervals;
+  return std::make_unique<IntervalModel>(std::move(intervals));
+}
+
+[[nodiscard]] std::unique_ptr<ProjectModel> deserialize_project_model(const nlohmann::json& data)
+{
+  std::vector<std::unique_ptr<Project>> projects;
+  projects.reserve(data.size());
+  for (const auto& v : data) {
+    try {
+      projects.emplace_back(std::make_unique<Project>(v));
+    } catch (const InvalidEnumNameException& e) {
+      throw DeserializationError("{}", e.what());
+    }
+  }
+  try {
+    return std::make_unique<ProjectModel>(std::move(projects));
+  } catch (const std::runtime_error& e) {
+    throw DeserializationError("{}", e.what());
+  }
 }
 
 }  // namespace
 
-nlohmann::json serialize(const Model& model)
+nlohmann::json serialize(const TimeSheet& time_sheet)
 {
-  std::map<const Project*, int> project_index_map{{nullptr, 0}};
-  for (const auto& project : model.projects()) {
-    project_index_map.try_emplace(project, static_cast<int>(project_index_map.size()));
-  }
-
-  spdlog::info("Project Index Map: {}", project_index_map.size());
-  for (const auto& [project, index] : project_index_map) {
-    spdlog::info("  {}: {}", fmt::ptr(project), index);
-  }
-  const auto serialize_interval = [&project_index_map](const Interval* const interval) {
-    spdlog::info("Serialize interval with project {}", fmt::ptr(interval->project()));
-    return nlohmann::json{
-        {project_key, project_index_map.at(interval->project())},
-        {begin_key, interval->begin()},
-        {end_key, interval->end()},
-    };
-  };
-  auto project_indices = model.intervals() | std::views::transform(serialize_interval);
-  return {
-      {::intervals_key, std::vector(project_indices.begin(), project_indices.end())},
-      {::projects_key, ::serialize_projects(model.projects())},
-  };
+  nlohmann::json j;
+  j[projects_key] = serialize(time_sheet.project_model());
+  j[intervals_key] =
+      serialize(time_sheet.interval_model(), ::create_project_index_map(time_sheet.project_model().projects()));
+  return j;
 }
 
-std::unique_ptr<Model> deserialize(const nlohmann::json& json)
+std::unique_ptr<TimeSheet> deserialize(const nlohmann::json& json)
 {
   try {
-    auto projects = ::deserialize_projects(json.at(projects_key));
-    auto projects_view = projects | std::views::transform(&std::unique_ptr<Project>::get);
-    auto intervals =
-        ::deserialize_intervals(json.at(intervals_key), std::vector(projects_view.begin(), projects_view.end()));
-
-    return std::make_unique<Model>(std::move(projects), std::move(intervals));
+    auto project_model = ::deserialize_project_model(json.at(projects_key));
+    const auto projects = project_model->projects();
+    auto interval_model = ::deserialize_interval_model(json.at(intervals_key), projects);
+    return std::make_unique<TimeSheet>(std::move(project_model), std::move(interval_model));
   } catch (const nlohmann::json::out_of_range& e) {
-    throw DeserializationError("Failed to load project: {}", e.what());
+    throw DeserializationError("Failed to load time sheet: {}", e.what());
   }
 }

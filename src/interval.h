@@ -12,10 +12,9 @@ class Interval
 public:
   friend std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept;
 
-  explicit Interval() = default;
-
-  void set_project(const Project* project) noexcept;
-  [[nodiscard]] const Project* project() const noexcept;
+  explicit Interval(const Project& project);
+  void set_project(const Project& project) noexcept;
+  [[nodiscard]] const Project& project() const noexcept;
   void set_begin(const QDateTime& begin);
   void set_end(const QDateTime& end);
   [[nodiscard]] const QDateTime& begin() const noexcept;
@@ -23,7 +22,7 @@ public:
   [[nodiscard]] QString duration_text() const;
 
 private:
-  const Project* m_project = nullptr;
+  const Project* m_project;
   QDateTime m_begin;
   QDateTime m_end;
 };

@@ -3,7 +3,7 @@
 #include "period.h"
 #include <QWidget>
 
-class Model;
+class IntervalModel;
 
 namespace Ui
 {
@@ -20,14 +20,14 @@ public:
 
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
-  void set_model(Model& model);
+  void set_model(IntervalModel& model);
 
 private:
   void recalculate();
   std::unique_ptr<Ui::PeriodSummary> m_ui;
   Period::Type m_type = Period::Type::Day;
   Period m_current_period;
-  Model* m_model = nullptr;
+  IntervalModel* m_interval_model = nullptr;
   void clear();
   class ProxyModel;
   std::unique_ptr<ProxyModel> m_proxy_model;

@@ -1,7 +1,7 @@
 #pragma once
 #include "json.h"
 
-class Model;
+class TimeSheet;
 
-[[nodiscard]] nlohmann::json serialize(const Model& model);
-[[nodiscard]] std::unique_ptr<Model> deserialize(const nlohmann::json& json);
+[[nodiscard]] nlohmann::json serialize(const TimeSheet& time_sheet);
+[[nodiscard]] std::unique_ptr<TimeSheet> deserialize(const nlohmann::json& json);

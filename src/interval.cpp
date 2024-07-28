@@ -4,14 +4,18 @@
 
 #include <nlohmann/json.hpp>
 
-void Interval::set_project(const Project* const project) noexcept
+Interval::Interval(const Project& project) : m_project(&project)
 {
-  m_project = project;
 }
 
-[[nodiscard]] const Project* Interval::project() const noexcept
+void Interval::set_project(const Project& project) noexcept
 {
-  return m_project;
+  m_project = &project;
+}
+
+[[nodiscard]] const Project& Interval::project() const noexcept
+{
+  return *m_project;
 }
 
 void Interval::set_begin(const QDateTime& begin)
