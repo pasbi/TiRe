@@ -1,5 +1,4 @@
 #include "intervalmodel.h"
-#include "json.h"
 #include "period.h"
 #include <QColor>
 #include <complex>
@@ -18,22 +17,16 @@ namespace
   return begin.toString(format) + " - " + end.toString(format);
 }
 
-[[nodiscard]] bool is_match(const Interval& interval, const Project* const project)
+[[nodiscard]] bool is_match(const Project& project, const std::optional<Project::Type>& type,
+                            const std::optional<QString>& name)
 {
-  if (project == nullptr) {
-    return true;  // nullptr is the wild card: match any interval
+  if (type.has_value() && *type != project.type()) {
+    return false;
   }
-
-  if (&interval.project() == project) {
-    return true;  // actual match!
+  if (name.has_value() && *name != project.name()) {
+    return false;
   }
-
-  if (!project->name().isEmpty()) {
-    return false;  // no way to match if name is given.
-  }
-
-  // "name" wild card if project name is empty match any interval with matching project type.
-  return project->type() == interval.project().type();
+  return true;
 }
 
 }  // namespace
@@ -109,33 +102,6 @@ Qt::ItemFlags IntervalModel::flags(const QModelIndex& index) const
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-// bool IntervalModel::setData(const QModelIndex& index, const QVariant& value, const int role)
-// {
-//   if (role != Qt::EditRole) {
-//     return false;
-//   }
-//
-//   auto& interval = m_intervals.at(index.row());
-//   const auto emit_data_changed = [left = index.siblingAtColumn(0), right = index.siblingAtColumn(columnCount({}) - 1),
-//                                   this]() { Q_EMIT dataChanged(left, right); };
-//   switch (index.column()) {
-//   case begin_column:
-//     interval->set_begin(value.toDateTime());
-//     emit_data_changed();
-//     return true;
-//   case end_column:
-//     interval->set_end(value.toDateTime());
-//     emit_data_changed();
-//     return true;
-//   case project_column:
-//     // TODO set_project(interval, value.toString());
-//     emit_data_changed();
-//     return true;
-//   default:
-//     return false;
-//   }
-// }
-
 void IntervalModel::new_interval(const Project& project)
 {
   auto interval = std::make_unique<Interval>(project);
@@ -149,6 +115,7 @@ void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
   beginInsertRows({}, row, row);
   m_intervals.emplace_back(std::move(interval));
   endInsertRows();
+  Q_EMIT data_changed();
 }
 
 void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> intervals)
@@ -163,14 +130,6 @@ std::vector<Interval*> IntervalModel::intervals() const
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
   return std::vector(view.begin(), view.end());
 }
-
-// void IntervalModel::set_project(Interval& interval, QString project)
-// {
-//   if (!m_projects.contains(project)) {
-//     m_projects.append(project);
-//   }
-//   interval.set_project(std::move(project));
-// }
 
 QVariant IntervalModel::background_data(const QModelIndex& index) const
 {
@@ -200,13 +159,13 @@ QVariant IntervalModel::background_data(const QModelIndex& index) const
   }
 }
 
-std::chrono::minutes IntervalModel::minutes(const Period& period, const Project* const project) const
+std::chrono::minutes IntervalModel::minutes(const Period& period, const std::optional<Project::Type>& type,
+                                            const std::optional<QString>& name) const
 {
-  return {};
-  // using std::chrono_literals::operator""min;
-  // const auto accumulate_minutes_in_period = [period, &project](const std::chrono::minutes accu,
-  //                                                              const Interval& interval) {
-  //   return accu + (is_match ? period.minutes_overlap(interval) : 0min);
-  // };
-  // return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
+  using std::chrono_literals::operator""min;
+  const auto accumulate_minutes_in_period = [period, &type, &name](const std::chrono::minutes accu,
+                                                                   const auto& interval) {
+    return accu + (is_match(interval->project(), type, name) ? period.minutes_overlap(*interval) : 0min);
+  };
+  return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
 }

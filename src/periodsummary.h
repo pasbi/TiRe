@@ -20,7 +20,7 @@ public:
 
   void set_period_type(Period::Type type);
   void set_date(const QDate& date);
-  void set_model(IntervalModel& model);
+  void set_model(IntervalModel& interval_model);
 
 private:
   void recalculate();
@@ -28,7 +28,7 @@ private:
   Period::Type m_type = Period::Type::Day;
   Period m_current_period;
   IntervalModel* m_interval_model = nullptr;
-  void clear();
+  void clear() const;
   class ProxyModel;
   std::unique_ptr<ProxyModel> m_proxy_model;
 };

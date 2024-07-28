@@ -21,7 +21,7 @@ namespace
 
 }  // namespace
 
-class PeriodSummary::ProxyModel : public QSortFilterProxyModel
+class PeriodSummary::ProxyModel final : public QSortFilterProxyModel
 {
 public:
   using QSortFilterProxyModel::QSortFilterProxyModel;
@@ -32,20 +32,21 @@ public:
     setSourceModel(model);
   }
 
-  void set_period(Period period)
+  void set_period(const Period& period)
   {
-    m_period = std::move(period);
+    m_period = period;
     invalidate();
   }
 
 protected:
-  [[nodiscard]] bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const override
+  [[nodiscard]] bool filterAcceptsRow(const int source_row, const QModelIndex& source_parent) const override
   {
     if (m_interval_model == nullptr) {
       return false;
     }
     const auto* const interval = m_interval_model->intervals().at(source_row);
-    return m_period.contains(interval->begin().date(), interval->end().date());
+    return m_period.contains(interval->begin().date(),
+                             (interval->end().isValid() ? interval->end() : interval->begin()).date());
   }
 
 private:
@@ -86,14 +87,11 @@ void PeriodSummary::set_model(IntervalModel& interval_model)
   m_interval_model = &interval_model;
   recalculate();
   if (m_interval_model != nullptr) {
-    connect(m_interval_model, &IntervalModel::dataChanged, this, &PeriodSummary::recalculate);
-    connect(m_interval_model, &IntervalModel::modelReset, this, &PeriodSummary::recalculate);
-    connect(m_interval_model, &IntervalModel::rowsInserted, this, &PeriodSummary::recalculate);
-    connect(m_interval_model, &IntervalModel::rowsRemoved, this, &PeriodSummary::recalculate);
+    connect(m_interval_model, &IntervalModel::data_changed, this, &PeriodSummary::recalculate);
   }
 }
 
-void PeriodSummary::clear()
+void PeriodSummary::clear() const
 {
   m_ui->lb_holiday->setText("-");
   m_ui->lb_total->setText("-");
@@ -111,6 +109,9 @@ void PeriodSummary::recalculate()
     return;
   }
 
-  // m_ui->lb_total->setText(format_minutes(m_interval_model->minutes_worked(m_current_period)));
+  m_ui->lb_total->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Work)));
+  m_ui->lb_holiday->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Holiday)));
+  m_ui->lb_sick->setText(format_minutes(m_interval_model->minutes(m_current_period, Project::Type::Sick)));
+
   update();
 }

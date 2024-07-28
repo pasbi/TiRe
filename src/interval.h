@@ -3,7 +3,6 @@
 #include <QDateTime>
 #include <compare>
 #include <nlohmann/adl_serializer.hpp>
-#include <nlohmann/json_fwd.hpp>
 
 class Project;
 

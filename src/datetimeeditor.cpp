@@ -19,11 +19,21 @@ QDateTime DateTimeEditor::date_time() const
 
 void DateTimeEditor::set_time(const QTime& time)
 {
+  if (!time.isValid()) {
+    set_time(QTime::currentTime());
+    return;
+  }
+
   m_ui->sp_h->setValue(time.hour());
   m_ui->sp_m->setValue(time.minute());
 }
 
 void DateTimeEditor::set_date(const QDate& date)
 {
+  if (!date.isValid()) {
+    set_date(QDate::currentDate());
+    return;
+  }
+
   m_ui->calendarWidget->setSelectedDate(date);
 }

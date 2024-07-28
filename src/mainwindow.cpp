@@ -126,12 +126,17 @@ void MainWindow::save_as()
 void MainWindow::edit_date_time(const QModelIndex& index) const
 {
   DateTimeEditor e;
-  auto& model = m_time_sheet->interval_model();
-  const auto old_date_time = model.data(index, Qt::EditRole).toDateTime();
+  auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
+  const auto old_date_time = index.column() == IntervalModel::begin_column ? interval.begin() : interval.end();
   e.set_date(old_date_time.date());
   e.set_time(old_date_time.time());
   if (e.exec() == QDialog::Accepted) {
-    model.setData(index, e.date_time(), Qt::EditRole);
+    if (index.column() == IntervalModel::begin_column) {
+      interval.set_begin(e.date_time());
+    } else {
+      interval.set_end(e.date_time());
+    }
+    Q_EMIT m_time_sheet->interval_model().data_changed();
   }
 }
 
@@ -141,10 +146,7 @@ void MainWindow::edit_project(const QModelIndex& index) const
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
-    if (const auto* const project = e.current_project(); project != nullptr) {
-      interval->set_project(*project);
-      // TODO emit data changed?
-    }
-    spdlog::error("Failed to create project.");
+    interval->set_project(e.current_project());
+    Q_EMIT m_time_sheet->interval_model().data_changed();
   }
 }

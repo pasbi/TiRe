@@ -9,6 +9,7 @@ class Period;
 
 class IntervalModel final : public QAbstractTableModel
 {
+  Q_OBJECT
 public:
   explicit IntervalModel(std::deque<std::unique_ptr<Interval>> intervals);
   explicit IntervalModel() = default;
@@ -25,13 +26,18 @@ public:
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
   // bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
-  [[nodiscard]] std::chrono::minutes minutes(const Period& period, const Project* project = nullptr) const;
+  [[nodiscard]] std::chrono::minutes minutes(const Period& period,
+                                             const std::optional<Project::Type>& type = std::nullopt,
+                                             const std::optional<QString>& name = std::nullopt) const;
 
   void new_interval(const Project& project);
   void add_interval(std::unique_ptr<Interval> interval);
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
   [[nodiscard]] std::vector<Interval*> intervals() const;
+
+Q_SIGNALS:
+  void data_changed();
 
 private:
   std::deque<std::unique_ptr<Interval>> m_intervals;

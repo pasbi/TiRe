@@ -6,41 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>234</width>
-    <height>104</height>
+    <width>251</width>
+    <height>71</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>ProjectEditor</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
-    <widget class="QComboBox" name="cb_type">
-     <property name="editable">
-      <bool>false</bool>
-     </property>
-     <item>
-      <property name="text">
-       <string>None</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Work</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Holiday</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Sick</string>
-      </property>
-     </item>
-    </widget>
-   </item>
    <item>
     <widget class="QComboBox" name="cb_name">
      <property name="editable">

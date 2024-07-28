@@ -1,5 +1,4 @@
 #include "projectmodel.h"
-
 #include "exceptions.h"
 #include "project.h"
 #include <ranges>
@@ -49,4 +48,17 @@ Project& ProjectModel::add_project(std::unique_ptr<Project> project)
 const Project& ProjectModel::empty_project() const noexcept
 {
   return m_empty_project;
+}
+
+const Project& ProjectModel::project(const std::size_t index) const
+{
+  return *m_projects.at(index);
+}
+
+std::size_t ProjectModel::index_of(const Project& project) const
+{
+  if (const auto it = std::ranges::find(m_projects, &project, &std::unique_ptr<Project>::get); it != m_projects.end()) {
+    return std::distance(m_projects.begin(), it);
+  }
+  throw RuntimeError("Cannot find unexpected project.");
 }
