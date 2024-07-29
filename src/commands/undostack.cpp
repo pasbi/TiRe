@@ -1,5 +1,5 @@
-#include "undostack.h"
-#include "command.h"
+#include "commands/undostack.h"
+#include "commands/command.h"
 
 const QUndoStack& UndoStack::impl() const noexcept
 {

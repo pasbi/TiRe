@@ -1,4 +1,4 @@
-#include "addremoveintervalcommand.h"
+#include "commands/addremoveintervalcommand.h"
 #include "intervalmodel.h"
 
 AddRemoveIntervalCommand::AddRemoveIntervalCommand(IntervalModel& interval_model, std::unique_ptr<Interval> interval)

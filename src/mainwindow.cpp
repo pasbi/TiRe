@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
-#include "addremoveintervalcommand.h"
+#include "commands/addremoveintervalcommand.h"
+#include "commands/undostack.h"
 #include "datetimeeditor.h"
 #include "exceptions.h"
 #include "intervalmodel.h"
@@ -10,7 +11,6 @@
 #include "serialization.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
-#include "undostack.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <fmt/chrono.h>
