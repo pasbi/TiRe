@@ -26,6 +26,7 @@ public:
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
   [[nodiscard]] QModelIndex index(const Interval& interval) const;
   using QAbstractTableModel::index;
+  Interval& remove_const(const Interval& interval) const;
 
   [[nodiscard]] std::chrono::minutes minutes(const std::optional<Period>& period = std::nullopt,
                                              const std::optional<Project::Type>& type = std::nullopt,

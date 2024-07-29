@@ -122,6 +122,11 @@ QModelIndex IntervalModel::index(const Interval& interval) const
   return index(::find(m_intervals, interval).row, column, {});
 }
 
+Interval& IntervalModel::remove_const(const Interval& interval) const
+{
+  return **::find(m_intervals, interval).iterator;
+}
+
 void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());

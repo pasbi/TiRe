@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-
 #include "commands/addremoveintervalcommand.h"
 #include "commands/modifycommand.h"
 #include "commands/undostack.h"
@@ -28,15 +27,20 @@ constexpr auto extension = ".ts";
   return QObject::tr("Time Sheets (*%1)").arg(extension);
 }
 
-template<typename Value, typename Swapper> std::unique_ptr<Command>
-make_modify_interval_command(IntervalModel& interval_model, Interval& interval, Value other_value, Swapper swapper)
+template<typename IntervalT, typename Value, typename Swapper> std::unique_ptr<Command>
+make_modify_interval_command(IntervalModel& interval_model, IntervalT& interval, Value other_value, Swapper swapper)
 {
-  const auto signal = [&interval_model, &interval]() {
-    const auto index = interval_model.index(interval);
-    Q_EMIT interval_model.dataChanged(index, index);
-    Q_EMIT interval_model.data_changed();
-  };
-  return make_modify_command(interval, std::move(other_value), std::move(swapper), std::move(signal));
+  if constexpr (std::is_const_v<IntervalT>) {
+    return make_modify_interval_command(interval_model, interval_model.remove_const(interval), std::move(other_value),
+                                        std::move(swapper));
+  } else {
+    const auto signal = [&interval_model, &interval]() {
+      const auto index = interval_model.index(interval);
+      Q_EMIT interval_model.dataChanged(index, index);
+      Q_EMIT interval_model.data_changed();
+    };
+    return make_modify_command(interval, std::move(other_value), std::move(swapper), std::move(signal));
+  }
 }
 
 }  // namespace
@@ -208,7 +212,14 @@ void MainWindow::split_selected_intervals() const
   // TODO
   // e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {
-    m_time_sheet->interval_model().split_interval(*interval, e.date_time());
+    m_undo_stack->impl().beginMacro(tr("Split Interval"));
+    auto new_interval = std::make_unique<Interval>(interval->project());
+    new_interval->swap_begin(e.date_time());
+    new_interval->swap_end(interval->end());
+    m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
+    m_undo_stack->push(
+        make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.date_time(), &Interval::swap_end));
+    m_undo_stack->impl().endMacro();  // TODO RAII macro
   }
 }
 
