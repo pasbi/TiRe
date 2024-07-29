@@ -12,7 +12,7 @@ public:
   friend std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept;
 
   explicit Interval(const Project& project);
-  void set_project(const Project& project) noexcept;
+  const Project* swap_project(const Project* project) noexcept;
   [[nodiscard]] const Project& project() const noexcept;
   QDateTime swap_begin(QDateTime begin);
   QDateTime swap_end(QDateTime end);

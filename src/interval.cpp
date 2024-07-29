@@ -8,9 +8,10 @@ Interval::Interval(const Project& project) : m_project(&project)
 {
 }
 
-void Interval::set_project(const Project& project) noexcept
+const Project* Interval::swap_project(const Project* project) noexcept
 {
-  m_project = &project;
+  std::swap(project, m_project);
+  return project;
 }
 
 [[nodiscard]] const Project& Interval::project() const noexcept

@@ -240,7 +240,8 @@ void MainWindow::edit_project(const QModelIndex& index) const
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
-    interval->set_project(e.current_project());
-    Q_EMIT m_time_sheet->interval_model().data_changed();
+    auto command = new ModifyIntervalCommand(m_time_sheet->interval_model(), *interval, &e.current_project(),
+                                             &Interval::swap_project);
+    m_undo_stack->push(std::unique_ptr<Command>(command));
   }
 }
