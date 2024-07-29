@@ -29,11 +29,9 @@ public:
                                              const std::optional<Project::Type>& type = std::nullopt,
                                              const std::optional<QString>& name = std::nullopt) const;
 
-  void new_interval(const Project& project);
   void add_interval(std::unique_ptr<Interval> interval);
+  std::unique_ptr<Interval> extract_interval(const Interval& interval);
   void split_interval(const Interval& interval, const QDateTime& split_point);
-  void delete_intervals(const std::set<const Interval*>& intervals);
-  void delete_interval(const Interval& interval);
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
   [[nodiscard]] std::vector<Interval*> intervals() const;

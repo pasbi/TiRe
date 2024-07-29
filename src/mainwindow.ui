@@ -67,7 +67,13 @@
     <addaction name="actionPrevious"/>
     <addaction name="actionToday"/>
    </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+   </widget>
    <addaction name="menu_File"/>
+   <addaction name="menu_Edit"/>
    <addaction name="menuIntervals"/>
    <addaction name="menuView"/>
    <addaction name="menuNavigation"/>

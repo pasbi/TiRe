@@ -102,13 +102,6 @@ Qt::ItemFlags IntervalModel::flags(const QModelIndex& index) const
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-void IntervalModel::new_interval(const Project& project)
-{
-  auto interval = std::make_unique<Interval>(project);
-  interval->set_begin(QDateTime::currentDateTime());
-  add_interval(std::move(interval));
-}
-
 void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());
@@ -131,20 +124,15 @@ void IntervalModel::split_interval(const Interval& interval, const QDateTime& sp
   right_interval->set_begin(split_point);
 }
 
-void IntervalModel::delete_intervals(const std::set<const Interval*>& intervals)
-{
-  for (const auto* const interval : intervals) {
-    delete_interval(*interval);
-  }
-}
-
-void IntervalModel::delete_interval(const Interval& interval)
+std::unique_ptr<Interval> IntervalModel::extract_interval(const Interval& interval)
 {
   const auto it = std::ranges::find(m_intervals, &interval, &std::unique_ptr<Interval>::get);
   const int row = static_cast<int>(std::distance(m_intervals.begin(), it));
   beginRemoveRows({}, row, row);
+  auto extracted_interval = std::move(*it);
   m_intervals.erase(it);
   endRemoveRows();
+  return extracted_interval;
 }
 
 void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> intervals)

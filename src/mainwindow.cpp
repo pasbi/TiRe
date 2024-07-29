@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+
+#include "addremoveintervalcommand.h"
 #include "datetimeeditor.h"
 #include "exceptions.h"
 #include "intervalmodel.h"
@@ -8,6 +10,7 @@
 #include "serialization.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
+#include "undostack.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <fmt/chrono.h>
@@ -31,6 +34,7 @@ MainWindow::MainWindow(QWidget* parent)
   , m_ui(std::make_unique<Ui::MainWindow>())
   , m_time_sheet(std::make_unique<TimeSheet>())
   , m_view_action_group(this)
+  , m_undo_stack(std::make_unique<UndoStack>())
 {
   m_ui->setupUi(this);
   connect(m_ui->period_summary, &PeriodSummary::double_clicked, this, [this](const QModelIndex& index) {
@@ -47,8 +51,11 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
 
-  connect(m_ui->action_Add_Interval, &QAction::triggered, this,
-          [this]() { m_time_sheet->interval_model().new_interval(m_time_sheet->project_model().empty_project()); });
+  connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
+    auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
+    interval->set_begin(QDateTime::currentDateTime());
+    m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(interval)));
+  });
 
   const auto init_view_action = [this](QAction* action, const Period::Type type) {
     m_view_action_group.addAction(action);
@@ -66,6 +73,13 @@ MainWindow::MainWindow(QWidget* parent)
 
   set_time_sheet(std::make_unique<TimeSheet>());
   m_ui->period_summary->set_date(QDate::currentDate());
+
+  auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
+  m_ui->menu_Edit->addAction(undo_action);
+  undo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+  auto* const redo_action = m_undo_stack->impl().createRedoAction(this);
+  redo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
+  m_ui->menu_Edit->addAction(redo_action);
 }
 
 MainWindow::~MainWindow() = default;
@@ -145,8 +159,11 @@ void MainWindow::save_as()
 
 void MainWindow::delete_selected_intervals() const
 {
-  const auto selection = m_ui->period_summary->selected_intervals();
-  m_time_sheet->interval_model().delete_intervals(selection);
+  m_undo_stack->impl().beginMacro(tr("Delete selected intervals"));
+  for (const auto* const interval : m_ui->period_summary->selected_intervals()) {
+    m_undo_stack->push(std::make_unique<RemoveIntervalCommand>(m_time_sheet->interval_model(), *interval));
+  }
+  m_undo_stack->impl().endMacro();
 }
 
 void MainWindow::split_selected_intervals() const

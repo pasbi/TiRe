@@ -35,6 +35,12 @@ qt_add_executable(tire main.cpp
         timesheet.h
         plan.cpp
         plan.h
+        addremoveintervalcommand.cpp
+        addremoveintervalcommand.h
+        undostack.cpp
+        undostack.h
+        command.cpp
+        command.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)

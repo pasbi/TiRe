@@ -8,6 +8,7 @@
 #include <memory>
 
 class TimeSheet;
+class UndoStack;
 
 namespace Ui
 {
@@ -40,4 +41,5 @@ private:
   void edit_date_time(const QModelIndex& index) const;
   void edit_project(const QModelIndex& index) const;
   void set_period_type(Period::Type type);
+  std::unique_ptr<UndoStack> m_undo_stack;
 };
