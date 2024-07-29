@@ -28,6 +28,17 @@ constexpr auto extension = ".ts";
   return QObject::tr("Time Sheets (*%1)").arg(extension);
 }
 
+template<typename Value, typename Swapper> std::unique_ptr<Command>
+make_modify_interval_command(IntervalModel& interval_model, Interval& interval, Value other_value, Swapper swapper)
+{
+  const auto signal = [&interval_model, &interval]() {
+    const auto index = interval_model.index(interval);
+    Q_EMIT interval_model.dataChanged(index, index);
+    Q_EMIT interval_model.data_changed();
+  };
+  return make_modify_command(interval, std::move(other_value), std::move(swapper), std::move(signal));
+}
+
 }  // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -223,13 +234,12 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
   if (e.exec() == QDialog::Accepted) {
     std::unique_ptr<Command> command;
     if (index.column() == IntervalModel::begin_column) {
-      command.reset(
-          new ModifyIntervalCommand(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_begin));
+      m_undo_stack->push(
+          make_modify_interval_command(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_begin));
     } else {
-      command.reset(
-          new ModifyIntervalCommand(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_end));
+      m_undo_stack->push(
+          make_modify_interval_command(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_end));
     }
-    m_undo_stack->push(std::move(command));
     Q_EMIT m_time_sheet->interval_model().data_changed();
   }
 }
@@ -240,8 +250,7 @@ void MainWindow::edit_project(const QModelIndex& index) const
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
-    auto command = new ModifyIntervalCommand(m_time_sheet->interval_model(), *interval, &e.current_project(),
-                                             &Interval::swap_project);
-    m_undo_stack->push(std::unique_ptr<Command>(command));
+    m_undo_stack->push(make_modify_interval_command(m_time_sheet->interval_model(), *interval, &e.current_project(),
+                                                    &Interval::swap_project));
   }
 }
