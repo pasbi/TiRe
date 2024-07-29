@@ -39,9 +39,12 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <addaction name="action_New_time_sheet"/>
     <addaction name="action_Load"/>
+    <addaction name="separator"/>
     <addaction name="action_Save_As"/>
     <addaction name="action_Save"/>
+    <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuIntervals">
@@ -185,6 +188,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Space</string>
+   </property>
+  </action>
+  <action name="action_New_time_sheet">
+   <property name="text">
+    <string>&amp;New time sheet</string>
    </property>
   </action>
  </widget>

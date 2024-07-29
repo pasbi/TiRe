@@ -67,6 +67,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
+  connect(m_ui->action_New_time_sheet, &QAction::triggered, this, &MainWindow::new_time_sheet);
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
@@ -88,10 +89,6 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->actionPrevious, &QAction::triggered, m_ui->period_summary, &PeriodSummary::prev);
   connect(m_ui->actionToday, &QAction::triggered, m_ui->period_summary, &PeriodSummary::today);
 
-  set_time_sheet(std::make_unique<TimeSheet>());
-  set_filename({});
-  m_ui->period_summary->set_date(QDate::currentDate());
-
   auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
   m_ui->menu_Edit->addAction(undo_action);
   undo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
@@ -101,6 +98,8 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(&m_undo_stack->impl(), &QUndoStack::cleanChanged, this,
           [this](const bool clean) { setWindowModified(!clean); });
+
+  new_time_sheet();
 }
 
 MainWindow::~MainWindow() = default;
@@ -291,4 +290,15 @@ void MainWindow::edit_project(const QModelIndex& index) const
     m_undo_stack->push(make_modify_interval_command(m_time_sheet->interval_model(), *interval, &e.current_project(),
                                                     &Interval::swap_project));
   }
+}
+
+bool MainWindow::new_time_sheet()
+{
+  if (!can_close()) {
+    return false;
+  }
+  set_time_sheet(std::make_unique<TimeSheet>());
+  set_filename({});
+  m_ui->period_summary->set_date(QDate::currentDate());
+  return true;
 }

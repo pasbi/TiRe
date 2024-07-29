@@ -29,6 +29,7 @@ public:
   bool load(std::filesystem::path filename);
   bool save();
   bool save_as();
+  bool new_time_sheet();
 
 protected:
   void closeEvent(QCloseEvent* event) override;
