@@ -14,8 +14,8 @@ public:
   explicit Interval(const Project& project);
   void set_project(const Project& project) noexcept;
   [[nodiscard]] const Project& project() const noexcept;
-  void set_begin(const QDateTime& begin);
-  void set_end(const QDateTime& end);
+  QDateTime swap_begin(QDateTime begin);
+  QDateTime swap_end(QDateTime end);
   [[nodiscard]] const QDateTime& begin() const noexcept;
   [[nodiscard]] const QDateTime& end() const noexcept;
   [[nodiscard]] QString duration_text() const;

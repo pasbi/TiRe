@@ -8,6 +8,20 @@
 namespace
 {
 
+template<typename Intervals> [[nodiscard]] auto find(Intervals&& intervals, const Interval& interval)
+{
+  const auto it = std::ranges::find(intervals, &interval, &std::unique_ptr<Interval>::get);
+  struct Info
+  {
+    int row;
+    decltype(it) iterator;
+  };
+  return Info{
+      .row = static_cast<int>(std::distance(intervals.begin(), it)),
+      .iterator = it,
+  };
+}
+
 [[nodiscard]] QString format_date(const QDate& begin, const QDate& end)
 {
   static constexpr auto format = "ddd, dd.";
@@ -102,6 +116,12 @@ Qt::ItemFlags IntervalModel::flags(const QModelIndex& index) const
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
+QModelIndex IntervalModel::index(const Interval& interval) const
+{
+  static constexpr auto column = 0;
+  return index(::find(m_intervals, interval).row, column, {});
+}
+
 void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());
@@ -113,24 +133,23 @@ void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
 
 void IntervalModel::split_interval(const Interval& interval, const QDateTime& split_point)
 {
-  const auto it = std::ranges::find(m_intervals, &interval, &std::unique_ptr<Interval>::get);
-  const auto row = static_cast<int>(std::distance(m_intervals.begin(), it));
-  auto& left_interval = **it;
-  beginInsertRows({}, row, row);
-  const auto& right_interval = *m_intervals.emplace(std::next(it), std::make_unique<Interval>(interval.project()));
+  const auto location = ::find(m_intervals, interval);
+  auto& left_interval = **location.iterator;
+  beginInsertRows({}, location.row, location.row);
+  const auto& right_interval =
+      *m_intervals.emplace(std::next(location.iterator), std::make_unique<Interval>(interval.project()));
   endInsertRows();
-  right_interval->set_end(left_interval.end());
-  left_interval.set_end(split_point);
-  right_interval->set_begin(split_point);
+  right_interval->swap_end(left_interval.end());
+  left_interval.swap_end(split_point);
+  right_interval->swap_begin(split_point);
 }
 
 std::unique_ptr<Interval> IntervalModel::extract_interval(const Interval& interval)
 {
-  const auto it = std::ranges::find(m_intervals, &interval, &std::unique_ptr<Interval>::get);
-  const int row = static_cast<int>(std::distance(m_intervals.begin(), it));
-  beginRemoveRows({}, row, row);
-  auto extracted_interval = std::move(*it);
-  m_intervals.erase(it);
+  const auto location = ::find(m_intervals, interval);
+  beginRemoveRows({}, location.row, location.row);
+  auto extracted_interval = std::move(*location.iterator);
+  m_intervals.erase(location.iterator);
   endRemoveRows();
   return extracted_interval;
 }

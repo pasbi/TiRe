@@ -59,8 +59,8 @@ using ProjectIndexMap = std::map<const Project*, int>;
     try {
       const Project& project = *projects.at(v.at(project_key));
       auto& interval = *intervals.emplace_back(std::make_unique<Interval>(project));
-      interval.set_begin(v.at(begin_key));
-      interval.set_end(v.at(end_key));
+      interval.swap_begin(v.at(begin_key));
+      interval.swap_end(v.at(end_key));
     } catch (const std::out_of_range&) {
       throw DeserializationError("Failed to restore project reference.");
     }

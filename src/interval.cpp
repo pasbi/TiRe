@@ -18,14 +18,16 @@ void Interval::set_project(const Project& project) noexcept
   return *m_project;
 }
 
-void Interval::set_begin(const QDateTime& begin)
+QDateTime Interval::swap_begin(QDateTime begin)
 {
-  m_begin = begin;
+  swap(begin, m_begin);
+  return begin;
 }
 
-void Interval::set_end(const QDateTime& end)
+QDateTime Interval::swap_end(QDateTime end)
 {
-  m_end = end;
+  swap(end, m_end);
+  return end;
 }
 
 [[nodiscard]] const QDateTime& Interval::begin() const noexcept

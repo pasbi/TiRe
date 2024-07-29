@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include "commands/addremoveintervalcommand.h"
+#include "commands/modifycommand.h"
 #include "commands/undostack.h"
 #include "datetimeeditor.h"
 #include "exceptions.h"
@@ -53,7 +54,7 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
-    interval->set_begin(QDateTime::currentDateTime());
+    interval->swap_begin(QDateTime::currentDateTime());
     m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(interval)));
   });
 
@@ -220,11 +221,15 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
   e.set_date(old_date_time.date());
   e.set_time(old_date_time.time());
   if (e.exec() == QDialog::Accepted) {
+    std::unique_ptr<Command> command;
     if (index.column() == IntervalModel::begin_column) {
-      interval.set_begin(e.date_time());
+      command.reset(
+          new ModifyIntervalCommand(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_begin));
     } else {
-      interval.set_end(e.date_time());
+      command.reset(
+          new ModifyIntervalCommand(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_end));
     }
+    m_undo_stack->push(std::move(command));
     Q_EMIT m_time_sheet->interval_model().data_changed();
   }
 }

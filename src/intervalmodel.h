@@ -24,6 +24,8 @@ public:
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
+  [[nodiscard]] QModelIndex index(const Interval& interval) const;
+  using QAbstractTableModel::index;
 
   [[nodiscard]] std::chrono::minutes minutes(const std::optional<Period>& period = std::nullopt,
                                              const std::optional<Project::Type>& type = std::nullopt,
@@ -35,14 +37,12 @@ public:
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
   [[nodiscard]] std::vector<Interval*> intervals() const;
-  [[nodiscard]] const Interval* interval(const std::size_t index) const;
+  [[nodiscard]] const Interval* interval(std::size_t index) const;
 
 Q_SIGNALS:
   void data_changed();
 
 private:
   std::deque<std::unique_ptr<Interval>> m_intervals;
-
-  // void set_project(Interval& interval, QString project);
   [[nodiscard]] QVariant background_data(const QModelIndex& index) const;
 };
