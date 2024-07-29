@@ -25,10 +25,13 @@ public:
   void set_time_sheet(std::unique_ptr<TimeSheet> time_sheet);
   void set_filename(std::filesystem::path filename);
 
-  void load();
-  void load(std::filesystem::path filename);
-  void save();
-  void save_as();
+  bool load();
+  bool load(std::filesystem::path filename);
+  bool save();
+  bool save_as();
+
+protected:
+  void closeEvent(QCloseEvent* event) override;
 
 private:
   std::unique_ptr<Ui::MainWindow> m_ui;
@@ -44,4 +47,6 @@ private:
   void set_period_type(Period::Type type);
   std::unique_ptr<UndoStack> m_undo_stack;
   void update_window_title();
+
+  [[nodiscard]] bool can_close();
 };

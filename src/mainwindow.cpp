@@ -11,6 +11,7 @@
 #include "serialization.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
+#include <QCloseEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <fmt/chrono.h>
@@ -128,20 +129,36 @@ void MainWindow::update_window_title()
   setWindowTitle(tr("%1[*] — %2").arg(filename_part, QApplication::applicationDisplayName()));
 }
 
-void MainWindow::load()
+bool MainWindow::can_close()
+{
+  if (m_undo_stack->impl().isClean()) {
+    return true;
+  }
+
+  const auto answer = QMessageBox::question(this, QApplication::applicationDisplayName(),
+                                            tr("Do you want to save pending changes before close?"),
+                                            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Abort);
+  return answer == QMessageBox::Discard || (answer == QMessageBox::Save && save());
+}
+
+bool MainWindow::load()
 {
   const auto last_load_dir = QDir::home().path();  // TODO
   const auto q_filename =
       QFileDialog::getOpenFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
   if (q_filename.isEmpty()) {
-    return;
+    return false;
   }
 
-  load(static_cast<std::filesystem::path>(q_filename.toStdString()));
+  return load(static_cast<std::filesystem::path>(q_filename.toStdString()));
 }
 
-void MainWindow::load(std::filesystem::path filename)
+bool MainWindow::load(std::filesystem::path filename)
 {
+  if (!can_close()) {
+    return false;
+  }
+
   try {
     std::ifstream ifs(filename);
     if (!ifs) {
@@ -152,6 +169,7 @@ void MainWindow::load(std::filesystem::path filename)
     ifs >> data;
     set_time_sheet(::deserialize(data));
     set_filename(std::move(filename));
+    return true;
   } catch (const DeserializationError& e) {
     QMessageBox::critical(
         this, QApplication::applicationDisplayName(),
@@ -161,34 +179,43 @@ void MainWindow::load(std::filesystem::path filename)
         this, QApplication::applicationDisplayName(),
         tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));
   }
+  return false;
 }
 
-void MainWindow::save()
+bool MainWindow::save()
 {
   if (m_filename.empty()) {
-    save_as();
+    return save_as();
   }
 
   std::ofstream ofs(m_filename);
   if (!ofs) {
     QMessageBox::critical(this, QApplication::applicationDisplayName(),
                           tr("Failed to open '%1' for writing.").arg(QString::fromStdString(m_filename.string())));
+    return false;
   }
   ofs << ::serialize(*m_time_sheet);
+  return true;
 }
 
-void MainWindow::save_as()
+bool MainWindow::save_as()
 {
   const auto last_load_dir = QDir::home().path();  // TODO
   const auto q_filename =
       QFileDialog::getSaveFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
 
   if (q_filename.isEmpty()) {
-    return;
+    return false;
   }
   set_filename(static_cast<std::filesystem::path>(q_filename.toStdString()));
   save();
   m_undo_stack->impl().setClean();
+  return true;
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+  can_close() ? event->accept() : event->ignore();
 }
 
 void MainWindow::delete_selected_intervals() const
