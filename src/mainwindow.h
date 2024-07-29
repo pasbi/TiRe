@@ -23,6 +23,7 @@ public:
   explicit MainWindow(QWidget* parent = nullptr);
   ~MainWindow() override;
   void set_time_sheet(std::unique_ptr<TimeSheet> time_sheet);
+  void set_filename(std::filesystem::path filename);
 
   void load();
   void load(std::filesystem::path filename);
@@ -42,4 +43,5 @@ private:
   void edit_project(const QModelIndex& index) const;
   void set_period_type(Period::Type type);
   std::unique_ptr<UndoStack> m_undo_stack;
+  void update_window_title();
 };

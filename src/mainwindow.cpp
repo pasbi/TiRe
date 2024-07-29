@@ -72,6 +72,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->actionToday, &QAction::triggered, m_ui->period_summary, &PeriodSummary::today);
 
   set_time_sheet(std::make_unique<TimeSheet>());
+  set_filename({});
   m_ui->period_summary->set_date(QDate::currentDate());
 
   auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
@@ -80,6 +81,9 @@ MainWindow::MainWindow(QWidget* parent)
   auto* const redo_action = m_undo_stack->impl().createRedoAction(this);
   redo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
   m_ui->menu_Edit->addAction(redo_action);
+
+  connect(&m_undo_stack->impl(), &QUndoStack::cleanChanged, this,
+          [this](const bool clean) { setWindowModified(!clean); });
 }
 
 MainWindow::~MainWindow() = default;
@@ -88,11 +92,24 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
   m_time_sheet = std::move(time_sheet);
   m_ui->period_summary->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
+  m_undo_stack->impl().clear();
+}
+
+void MainWindow::set_filename(std::filesystem::path filename)
+{
+  m_filename = std::move(filename);
+  update_window_title();
 }
 
 void MainWindow::set_period_type(const Period::Type type)
 {
   m_ui->period_summary->set_period_type(type);
+}
+
+void MainWindow::update_window_title()
+{
+  const auto filename_part = m_filename.empty() ? tr("Untitled") : QString::fromStdString(m_filename.string());
+  setWindowTitle(tr("%1[*] — %2").arg(filename_part, QApplication::applicationDisplayName()));
 }
 
 void MainWindow::load()
@@ -118,7 +135,7 @@ void MainWindow::load(std::filesystem::path filename)
     nlohmann::json data;
     ifs >> data;
     set_time_sheet(::deserialize(data));
-    m_filename = std::move(filename);
+    set_filename(std::move(filename));
   } catch (const DeserializationError& e) {
     QMessageBox::critical(
         this, QApplication::applicationDisplayName(),
@@ -153,8 +170,9 @@ void MainWindow::save_as()
   if (q_filename.isEmpty()) {
     return;
   }
-  m_filename = static_cast<std::filesystem::path>(q_filename.toStdString());
+  set_filename(static_cast<std::filesystem::path>(q_filename.toStdString()));
   save();
+  m_undo_stack->impl().setClean();
 }
 
 void MainWindow::delete_selected_intervals() const
