@@ -219,11 +219,10 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::delete_selected_intervals() const
 {
-  m_undo_stack->impl().beginMacro(tr("Delete selected intervals"));
+  const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
   for (const auto* const interval : m_ui->period_summary->selected_intervals()) {
     m_undo_stack->push(std::make_unique<RemoveIntervalCommand>(m_time_sheet->interval_model(), *interval));
   }
-  m_undo_stack->impl().endMacro();
 }
 
 void MainWindow::split_selected_intervals() const
@@ -238,14 +237,13 @@ void MainWindow::split_selected_intervals() const
   // TODO
   // e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {
-    m_undo_stack->impl().beginMacro(tr("Split Interval"));
+    const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
     auto new_interval = std::make_unique<Interval>(interval->project());
     new_interval->swap_begin(e.date_time());
     new_interval->swap_end(interval->end());
     m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
     m_undo_stack->push(
         make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.date_time(), &Interval::swap_end));
-    m_undo_stack->impl().endMacro();  // TODO RAII macro
   }
 }
 
