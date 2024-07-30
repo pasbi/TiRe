@@ -27,7 +27,7 @@ ProjectEditor::ProjectEditor(ProjectModel& project_model, QWidget* parent)
       {
         return;
       }
-      const auto& project = m_project_model.add_project(create_project());
+      const auto& project = m_project_model.add(create_project());
       update_project_list();
       set_project(project);
     }

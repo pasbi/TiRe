@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "commands/addremoveintervalcommand.h"
+#include "commands/addremovecommand.h"
 #include "commands/modifycommand.h"
 #include "commands/undostack.h"
 #include "datetimeeditor.h"
@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
     interval->swap_begin(QDateTime::currentDateTime());
-    m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(interval)));
+    m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(interval)));
   });
   connect(m_ui->action_Switch_Task, &QAction::triggered, this, &MainWindow::switch_task);
   connect(m_ui->actionEnd_Task, &QAction::triggered, this, &MainWindow::end_task);
@@ -169,7 +169,7 @@ void MainWindow::switch_task()
   const auto timestamp = QDateTime::currentDateTime();
   auto new_interval = std::make_unique<Interval>(d.current_project());
   new_interval->swap_begin(timestamp);
-  auto add_interval_command = std::make_unique<AddIntervalCommand>(interval_model, std::move(new_interval));
+  auto add_interval_command = make<AddCommand>(interval_model, std::move(new_interval));
   const auto macro = m_undo_stack->start_macro(add_interval_command->text());
   if (!open_intervals.empty()) {
     m_undo_stack->push(
@@ -278,7 +278,7 @@ void MainWindow::delete_selected_intervals() const
 {
   const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
   for (const auto* const interval : m_ui->period_summary->selected_intervals()) {
-    m_undo_stack->push(std::make_unique<RemoveIntervalCommand>(m_time_sheet->interval_model(), *interval));
+    m_undo_stack->push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
   }
 }
 
@@ -298,7 +298,7 @@ void MainWindow::split_selected_intervals() const
     auto new_interval = std::make_unique<Interval>(interval->project());
     new_interval->swap_begin(e.date_time());
     new_interval->swap_end(interval->end());
-    m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
+    m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
     m_undo_stack->push(
         make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.date_time(), &Interval::swap_end));
   }

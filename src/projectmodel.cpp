@@ -18,9 +18,9 @@ namespace
 }  // namespace
 
 ProjectModel::ProjectModel()
-  : m_empty_project(add_project(std::make_unique<Project>(Project::Type::Empty, QString{})))
-  , m_holiday_project(add_project(std::make_unique<Project>(Project::Type::Holiday, QString{})))
-  , m_sick_project(add_project(std::make_unique<Project>(Project::Type::Sick, QString{})))
+  : m_empty_project(add(std::make_unique<Project>(Project::Type::Empty, QString{})))
+  , m_holiday_project(add(std::make_unique<Project>(Project::Type::Holiday, QString{})))
+  , m_sick_project(add(std::make_unique<Project>(Project::Type::Sick, QString{})))
 {
 }
 
@@ -40,9 +40,17 @@ std::vector<Project*> ProjectModel::projects() const
   return std::vector(view.begin(), view.end());
 }
 
-Project& ProjectModel::add_project(std::unique_ptr<Project> project)
+Project& ProjectModel::add(std::unique_ptr<Project> project)
 {
   return *m_projects.emplace_back(std::move(project));
+}
+
+std::unique_ptr<Project> ProjectModel::extract(const Project& project)
+{
+  const auto it = std::ranges::find(m_projects, &project, &std::unique_ptr<Project>::get);
+  auto extracted_project = std::move(*it);
+  m_projects.erase(it);
+  return extracted_project;
 }
 
 const Project& ProjectModel::empty_project() const noexcept

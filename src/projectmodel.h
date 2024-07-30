@@ -13,7 +13,8 @@ public:
   ~ProjectModel();
 
   [[nodiscard]] std::vector<Project*> projects() const;
-  Project& add_project(std::unique_ptr<Project> project);
+  Project& add(std::unique_ptr<Project> project);
+  std::unique_ptr<Project> extract(const Project& project);
   [[nodiscard]] const Project& empty_project() const noexcept;
   [[nodiscard]] const Project& project(std::size_t index) const;
   [[nodiscard]] std::size_t index_of(const Project& project) const;

@@ -1,6 +1,5 @@
 target_sources(tire PUBLIC
-        addremoveintervalcommand.cpp
-        addremoveintervalcommand.h
+        addremovecommand.h
         command.h
         modifycommand.h
         undostack.cpp

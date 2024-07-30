@@ -32,8 +32,8 @@ public:
                                              const std::optional<Project::Type>& type = std::nullopt,
                                              const std::optional<QString>& name = std::nullopt) const;
 
-  void add_interval(std::unique_ptr<Interval> interval);
-  std::unique_ptr<Interval> extract_interval(const Interval& interval);
+  void add(std::unique_ptr<Interval> interval);
+  std::unique_ptr<Interval> extract(const Interval& interval);
   void split_interval(const Interval& interval, const QDateTime& split_point);
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);

@@ -127,7 +127,7 @@ Interval& IntervalModel::remove_const(const Interval& interval) const
   return **::find(m_intervals, interval).iterator;
 }
 
-void IntervalModel::add_interval(std::unique_ptr<Interval> interval)
+void IntervalModel::add(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());
   beginInsertRows({}, row, row);
@@ -149,7 +149,7 @@ void IntervalModel::split_interval(const Interval& interval, const QDateTime& sp
   right_interval->swap_begin(split_point);
 }
 
-std::unique_ptr<Interval> IntervalModel::extract_interval(const Interval& interval)
+std::unique_ptr<Interval> IntervalModel::extract(const Interval& interval)
 {
   const auto location = ::find(m_intervals, interval);
   beginRemoveRows({}, location.row, location.row);
