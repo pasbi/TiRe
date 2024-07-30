@@ -19,8 +19,8 @@ public:
   static constexpr auto begin_column = 2;
   static constexpr auto end_column = 3;
   static constexpr auto duration_column = 4;
-  [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
-  [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
+  [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
+  [[nodiscard]] int columnCount(const QModelIndex& parent = {}) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
