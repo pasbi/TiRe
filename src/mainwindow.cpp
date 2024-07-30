@@ -44,6 +44,12 @@ make_modify_interval_command(IntervalModel& interval_model, IntervalT& interval,
   }
 }
 
+auto find_open_intervals(const std::vector<Interval*>& intervals)
+{
+  auto view = intervals | std::views::filter([](const auto* const interval) { return !interval->end().isValid(); });
+  return std::vector(view.begin(), view.end());
+}
+
 }  // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -74,6 +80,8 @@ MainWindow::MainWindow(QWidget* parent)
     interval->swap_begin(QDateTime::currentDateTime());
     m_undo_stack->push(std::make_unique<AddIntervalCommand>(m_time_sheet->interval_model(), std::move(interval)));
   });
+  connect(m_ui->action_Switch_Task, &QAction::triggered, this, &MainWindow::switch_task);
+  connect(m_ui->actionEnd_Task, &QAction::triggered, this, &MainWindow::end_task);
 
   const auto init_view_action = [this](QAction* action, const Period::Type type) {
     m_view_action_group.addAction(action);
@@ -122,6 +130,52 @@ void MainWindow::set_filename(std::filesystem::path filename)
 void MainWindow::set_period_type(const Period::Type type)
 {
   m_ui->period_summary->set_period_type(type);
+}
+
+void MainWindow::end_task()
+{
+  auto& interval_model = m_time_sheet->interval_model();
+  const auto open_intervals = ::find_open_intervals(interval_model.intervals());
+  if (const auto n = open_intervals.size(); n != 1) {
+    QMessageBox::warning(
+        this, QApplication::applicationDisplayName(),
+        tr("This function can only be called if there is exactly one open interval. Currently open intervals: %1")
+            .arg(n),
+        QMessageBox::Ok);
+    return;
+  }
+  m_undo_stack->push(make_modify_interval_command(interval_model, *open_intervals.front(), QDateTime::currentDateTime(),
+                                                  &Interval::swap_end));
+}
+
+void MainWindow::switch_task()
+{
+  auto& interval_model = m_time_sheet->interval_model();
+  const auto open_intervals = ::find_open_intervals(interval_model.intervals());
+  if (const auto n = open_intervals.size(); n > 1) {
+    QMessageBox::warning(
+        this, QApplication::applicationDisplayName(),
+        tr("This function can only be called if there is at most one open interval. Currently open intervals: %1")
+            .arg(n),
+        QMessageBox::Ok);
+    return;
+  }
+
+  ProjectEditor d(m_time_sheet->project_model());
+  if (d.exec() == QDialog::Rejected) {
+    return;
+  }
+
+  const auto timestamp = QDateTime::currentDateTime();
+  auto new_interval = std::make_unique<Interval>(d.current_project());
+  new_interval->swap_begin(timestamp);
+  auto add_interval_command = std::make_unique<AddIntervalCommand>(interval_model, std::move(new_interval));
+  const auto macro = m_undo_stack->start_macro(add_interval_command->text());
+  if (!open_intervals.empty()) {
+    m_undo_stack->push(
+        make_modify_interval_command(interval_model, *open_intervals.front(), timestamp, &Interval::swap_end));
+  }
+  m_undo_stack->push(std::move(add_interval_command));
 }
 
 void MainWindow::update_window_title()

@@ -52,6 +52,8 @@
      <string>&amp;Intervals</string>
     </property>
     <addaction name="action_Add_Interval"/>
+    <addaction name="action_Switch_Task"/>
+    <addaction name="actionEnd_Task"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -193,6 +195,22 @@
   <action name="action_New_time_sheet">
    <property name="text">
     <string>&amp;New time sheet</string>
+   </property>
+  </action>
+  <action name="action_Switch_Task">
+   <property name="text">
+    <string>&amp;Switch Task ...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
+  </action>
+  <action name="actionEnd_Task">
+   <property name="text">
+    <string>&amp;End Task ...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>

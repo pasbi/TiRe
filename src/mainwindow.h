@@ -47,6 +47,8 @@ private:
   void edit_date_time(const QModelIndex& index) const;
   void edit_project(const QModelIndex& index) const;
   void set_period_type(Period::Type type);
+  void end_task();
+  void switch_task();
   std::unique_ptr<UndoStack> m_undo_stack;
   void update_window_title();
 

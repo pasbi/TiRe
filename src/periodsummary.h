@@ -25,7 +25,7 @@ public:
   void set_date(const QDate& date);
   void set_model(IntervalModel& interval_model, const Plan& plan);
   const Interval* current_interval();
-  std::set<const Interval*> selected_intervals() const;
+  [[nodiscard]] std::set<const Interval*> selected_intervals() const;
 
   void next();
   void prev();
