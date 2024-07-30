@@ -161,7 +161,7 @@ void MainWindow::switch_task()
     return;
   }
 
-  ProjectEditor d(m_time_sheet->project_model());
+  ProjectEditor d(*m_undo_stack, m_time_sheet->project_model());
   if (d.exec() == QDialog::Rejected) {
     return;
   }
@@ -347,7 +347,7 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
 
 void MainWindow::edit_project(const QModelIndex& index) const
 {
-  ProjectEditor e(m_time_sheet->project_model());
+  ProjectEditor e(*m_undo_stack, m_time_sheet->project_model());
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   e.set_project(interval->project());
   if (e.exec() == QDialog::Accepted) {
