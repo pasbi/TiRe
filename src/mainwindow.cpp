@@ -99,6 +99,8 @@ MainWindow::MainWindow(QWidget* parent)
   connect(&m_undo_stack->impl(), &QUndoStack::cleanChanged, this,
           [this](const bool clean) { setWindowModified(!clean); });
 
+  init_context_menu_actions();
+
   new_time_sheet();
 }
 
@@ -248,15 +250,24 @@ void MainWindow::split_selected_intervals() const
   }
 }
 
+void MainWindow::init_context_menu_actions()
+{
+  const auto add_action = [this](const QString& label, const QKeySequence& shortcut, auto slot) {
+    auto& action = *m_context_menu_actions.emplace_back(std::make_unique<QAction>(label));
+    addAction(&action);
+    action.setShortcut(shortcut);
+    connect(&action, &QAction::triggered, this, slot);
+  };
+  add_action(tr("Delete"), QKeySequence(Qt::Key_Delete), &MainWindow::delete_selected_intervals);
+  add_action(tr("Split"), Qt::CTRL | Qt::Key_Comma, &MainWindow::split_selected_intervals);
+}
+
 void MainWindow::show_table_context_menu(const QPoint& pos)
 {
   QMenu menu;
-  const auto add_action = [this, &menu](const QString& label, auto slot) {
-    const auto* const action = menu.addAction(label);
-    connect(action, &QAction::triggered, this, slot);
-  };
-  add_action(tr("Delete"), &MainWindow::delete_selected_intervals);
-  add_action(tr("Split"), &MainWindow::split_selected_intervals);
+  for (const auto& action : m_context_menu_actions) {
+    menu.addAction(action.get());
+  }
   menu.exec(pos);
 }
 
