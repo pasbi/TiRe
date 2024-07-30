@@ -194,6 +194,7 @@ bool MainWindow::save()
     return false;
   }
   ofs << ::serialize(*m_time_sheet);
+  m_undo_stack->impl().setClean();
   return true;
 }
 
