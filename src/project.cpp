@@ -9,6 +9,7 @@ namespace
 
 constexpr auto name_key = "name";
 constexpr auto type_key = "type";
+constexpr auto color_key = "color";
 
 [[nodiscard]] QString type_label(const Project::Type type)
 {
@@ -40,11 +41,15 @@ constexpr auto type_key = "type";
 
 }  // namespace
 
-Project::Project(const nlohmann::json& data) : m_type(::label_type(data.at(type_key))), m_name(data.at(name_key))
+Project::Project(const nlohmann::json& data)
+  : m_type(::label_type(data.at(type_key)))
+  , m_name(data.at(name_key))
+  , m_color(QColor::fromString(data.value(color_key, QString{})))
 {
 }
 
-Project::Project(const Type type, QString name) : m_type(type), m_name(std::move(name))
+Project::Project(const Type type, QString name, const QColor& color)
+  : m_type(type), m_name(std::move(name)), m_color(color)
 {
 }
 
@@ -63,6 +68,7 @@ nlohmann::json Project::to_json() const
   return {
       {name_key, m_name},
       {type_key, ::type_label(m_type)},
+      {color_key, m_color.name()},
   };
 }
 QString Project::label() const
@@ -76,6 +82,16 @@ QString Project::label() const
   default:
     return ::type_label(m_type);
   }
+}
+
+const QColor& Project::color() const noexcept
+{
+  return m_color;
+}
+
+void Project::set_color(const QColor& color) noexcept
+{
+  m_color = color;
 }
 
 fmt::formatter<Project>::format_return_type fmt::formatter<Project>::format(const Project& p, fmt::format_context& ctx)

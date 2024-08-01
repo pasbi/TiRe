@@ -65,11 +65,15 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
     return {};
   }
 
+  const auto& interval = m_intervals.at(index.row());
   if (role == Qt::BackgroundRole) {
-    return background_data(index);
+    return interval->project().color();
+  }
+  if (role == Qt::ForegroundRole) {
+    const auto background_is_bright = interval->project().color().lightnessF() > 0.5;
+    return QColor(background_is_bright ? Qt::black : Qt::white);
   }
 
-  const auto& interval = m_intervals.at(index.row());
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
     case project_column:
@@ -175,34 +179,6 @@ std::vector<Interval*> IntervalModel::intervals() const
 const Interval* IntervalModel::interval(const std::size_t index) const
 {
   return m_intervals.at(index).get();
-}
-
-QVariant IntervalModel::background_data(const QModelIndex& index) const
-{
-  if (!index.isValid()) {
-    return {};
-  }
-
-  switch (m_intervals.at(index.row())->begin().date().dayOfWeek()) {
-  case 0:
-    return QColor{0xFF808080};
-  case Qt::Monday:
-    return QColor{0xFF54DFDA};
-  case Qt::Tuesday:
-    return QColor{0xFF4FE056};
-  case Qt::Wednesday:
-    return QColor{0xFF606BE0};
-  case Qt::Thursday:
-    return QColor{0xFFE0DE4F}.darker();
-  case Qt::Friday:
-    return QColor{0xFFC255DF};
-  case Qt::Saturday:
-    return QColor{0xFFE0B156}.darker();
-  case Qt::Sunday:
-    return QColor{0xFFC25144};
-  default:
-    return {};
-  }
 }
 
 std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,

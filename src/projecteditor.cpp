@@ -36,7 +36,7 @@ const Project& ProjectEditor::current_project() const
 
 std::unique_ptr<Project> ProjectEditor::create_project() const
 {
-  return std::make_unique<Project>(Project::Type::Work, m_ui->cb_name->currentText());
+  return std::make_unique<Project>(Project::Type::Work, m_ui->cb_name->currentText(), m_project_model.generate_color());
 }
 
 void ProjectEditor::update_enabledness() const

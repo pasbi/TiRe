@@ -18,6 +18,7 @@ public:
   [[nodiscard]] const Project& empty_project() const noexcept;
   [[nodiscard]] const Project& project(std::size_t index) const;
   [[nodiscard]] std::size_t index_of(const Project& project) const;
+  [[nodiscard]] QColor generate_color() const;
 
 private:
   std::vector<std::unique_ptr<Project>> m_projects;
