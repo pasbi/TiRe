@@ -160,6 +160,7 @@ std::unique_ptr<Interval> IntervalModel::extract(const Interval& interval)
   auto extracted_interval = std::move(*location.iterator);
   m_intervals.erase(location.iterator);
   endRemoveRows();
+  Q_EMIT data_changed();
   return extracted_interval;
 }
 

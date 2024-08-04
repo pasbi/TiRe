@@ -4,6 +4,8 @@ qt_add_executable(tire main.cpp
         datetimeeditor.ui
         exceptions.h
         fmt.h
+        ganttview.cpp
+        ganttview.h
         interval.cpp
         interval.h
         intervalmodel.cpp

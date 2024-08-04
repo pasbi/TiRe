@@ -118,6 +118,7 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
   m_time_sheet = std::move(time_sheet);
   m_ui->period_summary->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
+  m_ui->ganttview->set_model(&m_time_sheet->interval_model());
   m_undo_stack->impl().clear();
 }
 

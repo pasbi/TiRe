@@ -21,7 +21,7 @@
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
       <widget class="PeriodSummary" name="period_summary" native="true"/>
-      <widget class="QTableView" name="tableView"/>
+      <widget class="GanttView" name="ganttview" native="true"/>
      </widget>
     </item>
    </layout>
@@ -219,6 +219,12 @@
    <class>PeriodSummary</class>
    <extends>QWidget</extends>
    <header>periodsummary.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>GanttView</class>
+   <extends>QWidget</extends>
+   <header>ganttview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
