@@ -1,6 +1,7 @@
 #include "interval.h"
 #include "exceptions.h"
 #include "json.h"
+#include "period.h"
 
 #include <nlohmann/json.hpp>
 
@@ -65,6 +66,11 @@ std::chrono::minutes Interval::duration() const
   const auto end = this->end().isValid() ? this->end() : QDateTime::currentDateTime();
   using std::chrono_literals::operator""ms;
   return std::chrono::duration_cast<std::chrono::minutes>(begin().msecsTo(end) * 1ms);
+}
+
+Period Interval::period() const
+{
+  return Period{m_begin.date(), m_end.date()};
 }
 
 std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept

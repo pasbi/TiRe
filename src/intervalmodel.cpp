@@ -175,6 +175,14 @@ std::vector<Interval*> IntervalModel::intervals() const
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
   return std::vector(view.begin(), view.end());
 }
+std::vector<Interval*> IntervalModel::intervals(const Period& period) const
+{
+  std::vector<Interval> intervals;
+  auto view = m_intervals
+              | std::views::filter([&period](const auto& interval) { return period.contains(interval->period()); })
+              | std::views::transform(&std::unique_ptr<Interval>::get);
+  return std::vector(view.begin(), view.end());
+}
 
 const Interval* IntervalModel::interval(const std::size_t index) const
 {

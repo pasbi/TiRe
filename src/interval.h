@@ -5,6 +5,7 @@
 #include <nlohmann/adl_serializer.hpp>
 
 class Project;
+class Period;
 
 class Interval
 {
@@ -20,6 +21,7 @@ public:
   [[nodiscard]] const QDateTime& end() const noexcept;
   [[nodiscard]] QString duration_text() const;
   std::chrono::minutes duration() const;
+  Period period() const;
 
 private:
   const Project* m_project;

@@ -47,8 +47,9 @@ protected:
       return false;
     }
     const auto* const interval = m_interval_model->intervals().at(source_row);
-    return m_period.contains(interval->begin().date(),
-                             (interval->end().isValid() ? interval->end() : interval->begin()).date());
+    const Period period(interval->begin().date(),
+                        (interval->end().isValid() ? interval->end() : interval->begin()).date());
+    return m_period.contains(period);
   }
 
 private:

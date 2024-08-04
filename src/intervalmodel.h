@@ -38,6 +38,7 @@ public:
 
   void set_intervals(std::deque<std::unique_ptr<Interval>> intervals);
   [[nodiscard]] std::vector<Interval*> intervals() const;
+  [[nodiscard]] std::vector<Interval*> intervals(const Period& period) const;
   [[nodiscard]] const Interval* interval(std::size_t index) const;
 
 Q_SIGNALS:

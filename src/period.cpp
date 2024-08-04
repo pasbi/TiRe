@@ -62,6 +62,10 @@ Period::Period(const QDate& date, const Type type)
 {
 }
 
+Period::Period(const QDate& begin, const QDate& end) : m_begin(begin), m_end(end), m_type(Type::Custom)
+{
+}
+
 const QDate& Period::begin() const noexcept
 {
   return m_begin;
@@ -111,9 +115,9 @@ QString Period::label() const
   return {};
 }
 
-bool Period::contains(const QDate& begin, const QDate& end) const noexcept
+bool Period::contains(const Period& period) const noexcept
 {
-  return std::max(begin, m_begin) <= std::min(end, m_end);
+  return std::max(m_begin, period.m_begin) <= std::min(m_end, period.m_end);
 }
 
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
@@ -125,4 +129,9 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(
                                                                                 fmt::format_context& ctx)
 {
   return fmt::format_to(ctx.out(), "{}", ::type_label(t));
+}
+
+int Period::days() const noexcept
+{
+  return m_begin.daysTo(m_end);
 }

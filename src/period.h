@@ -8,15 +8,17 @@ class Interval;
 class Period
 {
 public:
-  enum class Type { Year, Month, Week, Day };
+  enum class Type { Year, Month, Week, Day, Custom };
   explicit Period(const QDate& date, Type type);
+  explicit Period(const QDate& begin, const QDate& end);
   explicit Period() = default;
   [[nodiscard]] const QDate& begin() const noexcept;
   [[nodiscard]] const QDate& end() const noexcept;
   [[nodiscard]] Type type() const noexcept;
   [[nodiscard]] std::chrono::minutes overlap(const Interval& interval) const noexcept;
   [[nodiscard]] QString label() const;
-  [[nodiscard]] bool contains(const QDate& begin, const QDate& end) const noexcept;
+  [[nodiscard]] bool contains(const Period& period) const noexcept;
+  [[nodiscard]] int days() const noexcept;
 
 private:
   QDate m_begin;
