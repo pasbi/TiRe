@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>PeriodSummary</class>
- <widget class="QWidget" name="PeriodSummary">
+ <class>PeriodDetailView</class>
+ <widget class="QWidget" name="PeriodDetailView">
   <property name="geometry">
    <rect>
     <x>0</x>

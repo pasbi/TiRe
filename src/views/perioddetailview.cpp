@@ -1,7 +1,7 @@
-#include "periodsummary.h"
+#include "views/perioddetailview.h"
 #include "intervalmodel.h"
 #include "plan.h"
-#include "ui_periodsummary.h"
+#include "ui_perioddetailview.h"
 #include "views/abstractperiodproxymodel.h"
 #include <spdlog/spdlog.h>
 
@@ -41,22 +41,21 @@ protected:
 
 }  // namespace
 
-
-PeriodSummary::PeriodSummary(QWidget* parent)
-  : AbstractPeriodView(std::make_unique<::ProxyModel>(), parent), m_ui(std::make_unique<Ui::PeriodSummary>())
+PeriodDetailView::PeriodDetailView(QWidget* parent)
+  : AbstractPeriodView(std::make_unique<::ProxyModel>(), parent), m_ui(std::make_unique<Ui::PeriodDetailView>())
 {
   m_ui->setupUi(this);
   connect(m_ui->tableView, &QAbstractItemView::doubleClicked, this,
           [this](const QModelIndex& index) { Q_EMIT double_clicked(proxy_model()->mapToSource(index)); });
   m_ui->tableView->setModel(proxy_model());
 
-  connect(this, &PeriodSummary::period_changed, this,
+  connect(this, &PeriodDetailView::period_changed, this,
           [this]() { m_ui->lb_current_period->setText(current_period().label()); });
 }
 
-PeriodSummary::~PeriodSummary() = default;
+PeriodDetailView::~PeriodDetailView() = default;
 
-const Interval* PeriodSummary::current_interval() const
+const Interval* PeriodDetailView::current_interval() const
 {
   if (const auto index = m_ui->tableView->currentIndex(); index.isValid()) {
     const auto row = proxy_model()->mapToSource(index).row();
@@ -75,7 +74,7 @@ std::set<const Interval*> PeriodDetailView::selected_intervals() const
   return selection;
 }
 
-void PeriodSummary::clear() const
+void PeriodDetailView::clear() const
 {
   m_ui->lb_holiday->setText("-");
   m_ui->lb_total->setText("-");
@@ -85,7 +84,7 @@ void PeriodSummary::clear() const
   m_ui->lb_sick->setText("-");
 }
 
-void PeriodSummary::invalidate()
+void PeriodDetailView::invalidate()
 {
   if (interval_model() == nullptr) {
     clear();

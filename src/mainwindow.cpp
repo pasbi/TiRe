@@ -60,16 +60,16 @@ MainWindow::MainWindow(QWidget* parent)
   , m_undo_stack(std::make_unique<UndoStack>())
 {
   m_ui->setupUi(this);
-  connect(m_ui->period_summary, &PeriodSummary::double_clicked, this, [this](const QModelIndex& index) {
+  connect(m_ui->period_detail_view, &PeriodDetailView::double_clicked, this, [this](const QModelIndex& index) {
     if (index.column() == IntervalModel::begin_column || index.column() == IntervalModel::end_column) {
       edit_date_time(index);
     } else if (index.column() == IntervalModel::project_column) {
       edit_project(index);
     }
   });
-  m_ui->period_summary->setContextMenuPolicy(Qt::CustomContextMenu);
-  connect(m_ui->period_summary, &QWidget::customContextMenuRequested, this,
-          [this](const QPoint& pos) { show_table_context_menu(m_ui->period_summary->mapToGlobal(pos)); });
+  m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(m_ui->period_detail_view, &QWidget::customContextMenuRequested, this,
+          [this](const QPoint& pos) { show_table_context_menu(m_ui->period_detail_view->mapToGlobal(pos)); });
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
@@ -93,9 +93,9 @@ MainWindow::MainWindow(QWidget* parent)
   init_view_action(m_ui->actionDay, Period::Type::Day);
   m_ui->actionDay->trigger();
 
-  connect(m_ui->actionNext, &QAction::triggered, m_ui->period_summary, &PeriodSummary::next);
-  connect(m_ui->actionPrevious, &QAction::triggered, m_ui->period_summary, &PeriodSummary::prev);
-  connect(m_ui->actionToday, &QAction::triggered, m_ui->period_summary, &PeriodSummary::today);
+  connect(m_ui->actionNext, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::next);
+  connect(m_ui->actionPrevious, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::prev);
+  connect(m_ui->actionToday, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::today);
 
   auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
   m_ui->menu_Edit->addAction(undo_action);
@@ -117,7 +117,7 @@ MainWindow::~MainWindow() = default;
 void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
   m_time_sheet = std::move(time_sheet);
-  m_ui->period_summary->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
+  m_ui->period_detail_view->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
   m_ui->ganttview->set_model(&m_time_sheet->interval_model());
   m_undo_stack->impl().clear();
 }
@@ -130,7 +130,7 @@ void MainWindow::set_filename(std::filesystem::path filename)
 
 void MainWindow::set_period_type(const Period::Type type)
 {
-  m_ui->period_summary->set_period_type(type);
+  m_ui->period_detail_view->set_period_type(type);
 }
 
 void MainWindow::end_task()
@@ -278,14 +278,14 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::delete_selected_intervals() const
 {
   const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
-  for (const auto* const interval : m_ui->period_summary->selected_intervals()) {
+  for (const auto* const interval : m_ui->period_detail_view->selected_intervals()) {
     m_undo_stack->push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
   }
 }
 
 void MainWindow::split_selected_intervals() const
 {
-  const auto* const interval = m_ui->period_summary->current_interval();
+  const auto* const interval = m_ui->period_detail_view->current_interval();
   if (interval == nullptr) {
     return;
   }
@@ -364,6 +364,6 @@ bool MainWindow::new_time_sheet()
   }
   set_time_sheet(std::make_unique<TimeSheet>());
   set_filename({});
-  m_ui->period_summary->set_date(QDate::currentDate());
+  m_ui->period_detail_view->set_date(QDate::currentDate());
   return true;
 }

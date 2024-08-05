@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>794</width>
-    <height>516</height>
+    <width>969</width>
+    <height>506</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,8 +20,62 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="PeriodSummary" name="period_summary" native="true"/>
-      <widget class="GanttView" name="ganttview" native="true"/>
+      <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tab_3">
+        <attribute name="title">
+         <string>Gantt</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="GanttView" name="ganttview" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_4">
+        <attribute name="title">
+         <string>Summary</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QTableView" name="summary_view"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -31,7 +85,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>794</width>
+     <width>969</width>
      <height>22</height>
     </rect>
    </property>
@@ -216,9 +270,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>PeriodSummary</class>
+   <class>PeriodDetailView</class>
    <extends>QWidget</extends>
-   <header>periodsummary.h</header>
+   <header>views/perioddetailview.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

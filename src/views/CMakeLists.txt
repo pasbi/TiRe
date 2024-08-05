@@ -1,9 +1,9 @@
 target_sources(tire PUBLIC
         abstractperiodview.cpp
         abstractperiodview.h
-        periodsummary.cpp
-        periodsummary.h
-        periodsummary.ui
+        perioddetailview.cpp
+        perioddetailview.h
+        perioddetailview.ui
         abstractperiodproxymodel.cpp
         abstractperiodproxymodel.h
 )
