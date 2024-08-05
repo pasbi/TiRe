@@ -2,40 +2,23 @@
 #include "intervalmodel.h"
 #include "plan.h"
 #include "tableview.h"
-#include "views/abstractperiodproxymodel.h"
+#include "views/detailperiodproxymodel.h"
 #include <QHBoxLayout>
 #include <spdlog/spdlog.h>
 
-namespace
-{
-
-class ProxyModel final : public AbstractPeriodProxyModel
-{
-public:
-  using AbstractPeriodProxyModel::AbstractPeriodProxyModel;
-
-protected:
-  [[nodiscard]] bool filterAcceptsRow(const int source_row, const QModelIndex& source_parent) const override
-  {
-    if (interval_model() == nullptr) {
-      return false;
-    }
-    const auto* const interval = interval_model()->intervals().at(source_row);
-    const Period period(interval->begin().date(),
-                        (interval->end().isValid() ? interval->end() : interval->begin()).date());
-    return current_period().contains(period);
-  }
-};
-
-}  // namespace
-
 PeriodDetailView::PeriodDetailView(QWidget* parent)
-  : AbstractPeriodView(std::make_unique<::ProxyModel>(), parent), m_table_view(::setup_ui_with_single_table_view(this))
+  : AbstractPeriodView(parent)
+  , m_table_view(::setup_ui_with_single_table_view(this))
+  , m_proxy_model(std::make_unique<DetailPeriodProxyModel>())
 
 {
   connect(&m_table_view, &QAbstractItemView::doubleClicked, this,
-          [this](const QModelIndex& index) { Q_EMIT double_clicked(proxy_model()->mapToSource(index)); });
-  m_table_view.setModel(proxy_model());
+          [this](const QModelIndex& index) { Q_EMIT double_clicked(m_proxy_model->mapToSource(index)); });
+  connect(this, &PeriodDetailView::period_changed, this, [this]() { m_proxy_model->set_period(current_period()); });
+  connect(this, &PeriodDetailView::period_changed, this,
+          [this]() { m_proxy_model->set_source_model(interval_model()); });
+
+  m_table_view.setModel(m_proxy_model.get());
 }
 
 PeriodDetailView::~PeriodDetailView() = default;
@@ -43,7 +26,7 @@ PeriodDetailView::~PeriodDetailView() = default;
 const Interval* PeriodDetailView::current_interval() const
 {
   if (const auto index = m_table_view.currentIndex(); index.isValid()) {
-    const auto row = proxy_model()->mapToSource(index).row();
+    const auto row = m_proxy_model->mapToSource(index).row();
     return interval_model()->interval(row);
   }
   return nullptr;
@@ -53,7 +36,7 @@ std::set<const Interval*> PeriodDetailView::selected_intervals() const
 {
   std::set<const Interval*> selection;
   for (const auto& index : m_table_view.selectionModel()->selectedRows()) {
-    const auto row = proxy_model()->mapToSource(index).row();
+    const auto row = m_proxy_model->mapToSource(index).row();
     selection.insert(interval_model()->interval(row));
   }
   return selection;

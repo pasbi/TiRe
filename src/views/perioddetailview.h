@@ -22,4 +22,5 @@ Q_SIGNALS:
 
 private:
   QTableView& m_table_view;
+  std::unique_ptr<DetailPeriodProxyModel> m_proxy_model;
 };

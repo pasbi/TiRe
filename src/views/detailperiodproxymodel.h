@@ -1,11 +1,11 @@
 #pragma once
-#include "period.h"
 
+#include "period.h"
 #include <QSortFilterProxyModel>
 
 class IntervalModel;
 
-class AbstractPeriodProxyModel : public QSortFilterProxyModel
+class DetailPeriodProxyModel : public QSortFilterProxyModel
 {
 public:
   void set_source_model(IntervalModel* const model);
@@ -14,6 +14,7 @@ public:
 protected:
   [[nodiscard]] const IntervalModel* interval_model() const noexcept;
   [[nodiscard]] const Period& current_period() const noexcept;
+  [[nodiscard]] bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const override;
 
 private:
   const IntervalModel* m_interval_model = nullptr;

@@ -4,6 +4,7 @@
 #include <QWidget>
 
 class AbstractPeriodProxyModel;
+class DetailPeriodProxyModel;
 class IntervalModel;
 class Plan;
 class TimeSheet;
@@ -12,10 +13,9 @@ class AbstractPeriodView : public QWidget
 {
   Q_OBJECT
 protected:
-  explicit AbstractPeriodView(std::unique_ptr<AbstractPeriodProxyModel> proxy_model, QWidget* parent = nullptr);
+  explicit AbstractPeriodView(QWidget* parent = nullptr);
   ~AbstractPeriodView() override;
-  [[nodiscard]] const IntervalModel* interval_model() const noexcept;
-  [[nodiscard]] AbstractPeriodProxyModel* proxy_model() const noexcept;
+  [[nodiscard]] IntervalModel* interval_model() const noexcept;
 
 public:
   void set_period_type(Period::Type type);
@@ -33,11 +33,11 @@ public:
 
 Q_SIGNALS:
   void period_changed();
+  void interval_model_changed();
 
 private:
   Period::Type m_type = Period::Type::Day;
   Period m_current_period;
   IntervalModel* m_interval_model = nullptr;
-  const Plan* m_plan;
-  std::unique_ptr<AbstractPeriodProxyModel> m_proxy_model;
+  const Plan* m_plan = nullptr;
 };

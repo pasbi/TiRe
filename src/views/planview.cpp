@@ -3,7 +3,7 @@
 #include "intervalmodel.h"
 #include "plan.h"
 #include "ui_planview.h"
-#include "views/abstractperiodproxymodel.h"
+#include "views/detailperiodproxymodel.h"
 
 namespace
 {
@@ -23,7 +23,7 @@ namespace
 
 }  // namespace
 
-PlanView::PlanView(QWidget* parent) : AbstractPeriodView({}, parent), m_ui(std::make_unique<Ui::PlanView>())
+PlanView::PlanView(QWidget* parent) : AbstractPeriodView(parent), m_ui(std::make_unique<Ui::PlanView>())
 {
   m_ui->setupUi(this);
 }
