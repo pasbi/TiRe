@@ -1,5 +1,6 @@
 #include "views/abstractperiodview.h"
 #include "intervalmodel.h"
+#include "timesheet.h"
 #include "views/abstractperiodproxymodel.h"
 
 AbstractPeriodView::AbstractPeriodView(std::unique_ptr<AbstractPeriodProxyModel> proxy_model, QWidget* parent)
@@ -15,24 +16,32 @@ void AbstractPeriodView::set_period_type(const Period::Type type)
   set_date(QDate::currentDate());
 }
 
-void AbstractPeriodView::set_date(const QDate& date)
+void AbstractPeriodView::set_period(const Period& period)
 {
-  if (const auto new_period = Period(date, m_type); new_period != m_current_period) {
-    m_current_period = new_period;
-  } else {
+  if (period == m_current_period) {
     return;
   }
 
-  m_proxy_model->set_period(m_current_period);
+  m_current_period = period;
+  if (m_proxy_model != nullptr) {
+    m_proxy_model->set_period(m_current_period);
+  }
   invalidate();
   Q_EMIT period_changed();
 }
 
-void AbstractPeriodView::set_model(IntervalModel& interval_model, const Plan& plan)
+void AbstractPeriodView::set_date(const QDate& date)
 {
-  m_plan = &plan;
-  m_interval_model = &interval_model;
-  m_proxy_model->set_source_model(m_interval_model);
+  set_period(Period(date, m_type));
+}
+
+void AbstractPeriodView::set_model(const TimeSheet& time_sheet)
+{
+  m_interval_model = &time_sheet.interval_model();
+  m_plan = &time_sheet.plan();
+  if (m_proxy_model != nullptr) {
+    m_proxy_model->set_source_model(m_interval_model);
+  }
   invalidate();
   if (m_interval_model != nullptr) {
     connect(m_interval_model, &IntervalModel::data_changed, this, &AbstractPeriodView::invalidate);
@@ -57,6 +66,11 @@ AbstractPeriodProxyModel* AbstractPeriodView::proxy_model() const noexcept
 const Plan* AbstractPeriodView::plan() const noexcept
 {
   return m_plan;
+}
+
+void AbstractPeriodView::set_plan(const Plan* plan) noexcept
+{
+  m_plan = plan;
 }
 
 void AbstractPeriodView::next()

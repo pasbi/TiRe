@@ -110,6 +110,12 @@ MainWindow::MainWindow(QWidget* parent)
   init_context_menu_actions();
 
   new_time_sheet();
+
+  connect(m_ui->period_detail_view, &AbstractPeriodView::period_changed, this, [this]() {
+    const auto period = m_ui->period_detail_view->current_period();
+    m_ui->plan_view->set_period(period);
+    m_ui->statusbar->showMessage(period.label());
+  });
 }
 
 MainWindow::~MainWindow() = default;
@@ -117,7 +123,8 @@ MainWindow::~MainWindow() = default;
 void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
 {
   m_time_sheet = std::move(time_sheet);
-  m_ui->period_detail_view->set_model(m_time_sheet->interval_model(), m_time_sheet->plan());
+  m_ui->period_detail_view->set_model(*m_time_sheet);
+  m_ui->plan_view->set_model(*m_time_sheet);
   m_ui->ganttview->set_model(&m_time_sheet->interval_model());
   m_undo_stack->impl().clear();
 }

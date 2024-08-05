@@ -4,13 +4,9 @@
 #include "views/abstractperiodview.h"
 #include <set>
 
+class QTableView;
 class IntervalModel;
 class Plan;
-
-namespace Ui
-{
-class PeriodDetailView;
-}
 
 class PeriodDetailView final : public AbstractPeriodView
 {
@@ -27,6 +23,6 @@ Q_SIGNALS:
   void double_clicked(const QModelIndex& index);
 
 private:
-  std::unique_ptr<Ui::PeriodDetailView> m_ui;
   void clear() const;
+  QTableView& m_table_view;
 };

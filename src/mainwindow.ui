@@ -14,13 +14,37 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
+        </item>
+        <item>
+         <widget class="PlanView" name="plan_view" native="true"/>
+        </item>
+       </layout>
+      </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
         <number>0</number>
@@ -279,6 +303,12 @@
    <class>GanttView</class>
    <extends>QWidget</extends>
    <header>ganttview.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PlanView</class>
+   <extends>QWidget</extends>
+   <header>views/planview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
