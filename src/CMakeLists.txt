@@ -19,9 +19,6 @@ qt_add_executable(tire main.cpp
         mainwindow.ui
         period.cpp
         period.h
-        periodsummary.cpp
-        periodsummary.h
-        periodsummary.ui
         plan.cpp
         plan.h
         project.cpp
@@ -44,3 +41,4 @@ target_compile_features(tire PUBLIC cxx_std_20)
 target_include_directories(tire PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(commands)
+add_subdirectory(views)

@@ -120,6 +120,12 @@ bool Period::contains(const Period& period) const noexcept
   return std::max(m_begin, period.m_begin) <= std::min(m_end, period.m_end);
 }
 
+std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept
+{
+  static constexpr auto to_tuple = [](const auto& period) { return std::pair(period.begin(), period.end()); };
+  return to_tuple(a) <=> to_tuple(b);
+}
+
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
 {
   return fmt::format_to(ctx.out(), "{}({}, {})", p.type(), p.begin(), p.end());

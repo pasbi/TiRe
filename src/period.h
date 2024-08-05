@@ -24,6 +24,10 @@ private:
   QDate m_begin;
   QDate m_end;
   Type m_type;
+
+  friend std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept;
+  friend bool operator==(const Period&, const Period&) noexcept = default;
+  friend bool operator!=(const Period&, const Period&) noexcept = default;
 };
 
 template<> struct fmt::formatter<Period> : fmt::formatter<std::string>
