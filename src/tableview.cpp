@@ -1,5 +1,7 @@
 #include "tableview.h"
 
+#include <QHBoxLayout>
+
 namespace
 {
 
@@ -103,4 +105,14 @@ void TableView::resizeEvent(QResizeEvent* event)
     setColumnWidth(i, sizes.at(i));
   }
   QTableView::resizeEvent(event);
+}
+
+TableView& setup_ui_with_single_table_view(QWidget* const container)
+{
+  container->setLayout(new QHBoxLayout);
+  container->layout()->setContentsMargins(0, 0, 0, 0);
+  auto table_view = std::make_unique<TableView>();
+  auto& ref = *table_view;
+  container->layout()->addWidget(table_view.release());
+  return ref;
 }

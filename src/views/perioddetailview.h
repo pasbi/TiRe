@@ -5,8 +5,6 @@
 #include <set>
 
 class QTableView;
-class IntervalModel;
-class Plan;
 
 class PeriodDetailView final : public AbstractPeriodView
 {
@@ -23,6 +21,5 @@ Q_SIGNALS:
   void double_clicked(const QModelIndex& index);
 
 private:
-  void clear() const;
   QTableView& m_table_view;
 };

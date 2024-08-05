@@ -27,20 +27,10 @@ protected:
   }
 };
 
-[[nodiscard]] QTableView& setup_ui(QWidget* const container)
-{
-  container->setLayout(new QHBoxLayout);
-  container->layout()->setContentsMargins(0, 0, 0, 0);
-  auto table_view = std::make_unique<TableView>();
-  auto& ref = *table_view;
-  container->layout()->addWidget(table_view.release());
-  return ref;
-}
-
 }  // namespace
 
 PeriodDetailView::PeriodDetailView(QWidget* parent)
-  : AbstractPeriodView(std::make_unique<::ProxyModel>(), parent), m_table_view(::setup_ui(this))
+  : AbstractPeriodView(std::make_unique<::ProxyModel>(), parent), m_table_view(::setup_ui_with_single_table_view(this))
 
 {
   connect(&m_table_view, &QAbstractItemView::doubleClicked, this,
