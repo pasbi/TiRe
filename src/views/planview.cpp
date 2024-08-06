@@ -2,8 +2,8 @@
 
 #include "intervalmodel.h"
 #include "plan.h"
+#include "timesheet.h"
 #include "ui_planview.h"
-#include "views/detailperiodproxymodel.h"
 
 namespace
 {
@@ -42,21 +42,23 @@ void PlanView::clear() const
 
 void PlanView::invalidate()
 {
-  if (interval_model() == nullptr) {
+  if (time_sheet() == nullptr) {
     clear();
     return;
   }
 
-  const auto actual_working_time = interval_model()->minutes(current_period(), Project::Type::Work);
-  const auto planned_working_time = plan()->planned_working_time(current_period().begin(), current_period().end());
+  const auto& interval_model = time_sheet()->interval_model();
+  const auto& plan = time_sheet()->plan();
+  const auto actual_working_time = interval_model.minutes(current_period(), Project::Type::Work);
+  const auto planned_working_time = plan.planned_working_time(current_period().begin(), current_period().end());
   m_ui->lb_total->setText(::format_minutes(actual_working_time));
-  m_ui->lb_holiday->setText(::format_minutes(interval_model()->minutes(current_period(), Project::Type::Holiday)));
-  m_ui->lb_sick->setText(::format_minutes(interval_model()->minutes(current_period(), Project::Type::Sick)));
+  m_ui->lb_holiday->setText(::format_minutes(interval_model.minutes(current_period(), Project::Type::Holiday)));
+  m_ui->lb_sick->setText(::format_minutes(interval_model.minutes(current_period(), Project::Type::Sick)));
   m_ui->lb_planned->setText(::format_minutes(planned_working_time));
   m_ui->lb_overtime->setText(::format_minutes(actual_working_time - planned_working_time));
 
-  const auto total_overtime = plan()->overtime_offset() + interval_model()->minutes({}, Project::Type::Work)
-                              - plan()->planned_working_time({}, QDate::currentDate());
+  const auto total_overtime = plan.overtime_offset() + interval_model.minutes({}, Project::Type::Work)
+                              - plan.planned_working_time({}, QDate::currentDate());
   m_ui->lb_overtime_cum->setText(::format_minutes(total_overtime));
 
   update();

@@ -5,7 +5,7 @@
 
 class IntervalModel;
 
-class DetailPeriodProxyModel : public QSortFilterProxyModel
+class PeriodDetailProxyModel : public QSortFilterProxyModel
 {
 public:
   void set_source_model(IntervalModel* const model);

@@ -1,29 +1,29 @@
-#include "views/detailperiodproxymodel.h"
+#include "views/perioddetailproxymodel.h"
 #include "intervalmodel.h"
 
-void DetailPeriodProxyModel::set_source_model(IntervalModel* const model)
+void PeriodDetailProxyModel::set_source_model(IntervalModel* const model)
 {
   m_interval_model = model;
   setSourceModel(model);
 }
 
-void DetailPeriodProxyModel::set_period(const Period& period)
+void PeriodDetailProxyModel::set_period(const Period& period)
 {
   m_period = period;
   invalidate();
 }
 
-const IntervalModel* DetailPeriodProxyModel::interval_model() const noexcept
+const IntervalModel* PeriodDetailProxyModel::interval_model() const noexcept
 {
   return m_interval_model;
 }
 
-const Period& DetailPeriodProxyModel::current_period() const noexcept
+const Period& PeriodDetailProxyModel::current_period() const noexcept
 {
   return m_period;
 }
 
-bool DetailPeriodProxyModel::filterAcceptsRow(const int source_row, const QModelIndex& source_parent) const
+bool PeriodDetailProxyModel::filterAcceptsRow(const int source_row, const QModelIndex& source_parent) const
 {
   if (interval_model() == nullptr) {
     return false;

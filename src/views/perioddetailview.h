@@ -4,6 +4,7 @@
 #include "views/abstractperiodview.h"
 #include <set>
 
+class PeriodDetailProxyModel;
 class QTableView;
 
 class PeriodDetailView final : public AbstractPeriodView
@@ -22,5 +23,5 @@ Q_SIGNALS:
 
 private:
   QTableView& m_table_view;
-  std::unique_ptr<DetailPeriodProxyModel> m_proxy_model;
+  std::unique_ptr<PeriodDetailProxyModel> m_proxy_model;
 };
