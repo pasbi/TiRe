@@ -1,4 +1,6 @@
 #include "ganttview.h"
+
+#include "colorutil.h"
 #include "interval.h"
 #include "period.h"
 #include <QDateTime>
@@ -98,23 +100,15 @@ void GanttView::draw_grid(QPainter& painter) const
 {
   const PainterSaver _(painter);
   using std::chrono_literals::operator""h;
-  painter.setPen(interpolate_base(0.1));
+  const auto text_color = palette().text().color();
+  painter.setPen(::mix_base(0.1, text_color));
   for (auto hour = 0h; hour <= 24h; ++hour) {
     const auto x = pos_x(QTime{static_cast<int>(hour / 1h), 0});
     painter.drawLine(QPointF{x, 0.0}, QPointF{x, static_cast<double>(height())});
   }
-  painter.setPen(interpolate_base(0.9));
+  painter.setPen(::mix_base(0.9, text_color));
   for (auto day = 0; day <= m_period.days(); ++day) {
     const auto y = pos_y(m_period.begin().addDays(day));
     painter.drawLine(QPointF{0.0, y}, QPointF{static_cast<double>(width()), y});
   }
-}
-
-QColor GanttView::interpolate_base(const double t) const noexcept
-{
-  const auto a = palette().base().color();
-  const auto b = palette().text().color();
-
-  return QColor(std::lerp(a.red(), b.red(), t), std::lerp(a.green(), b.green(), t), std::lerp(a.blue(), b.blue(), t),
-                std::lerp(a.alpha(), b.alpha(), t));
 }

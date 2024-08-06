@@ -43,13 +43,13 @@ enum class Rim { Begin, End };
     if (const auto begin = QDate{date.year(), date.month(), 1}; rim == Rim::Begin) {
       return begin;
     } else {
-      return begin.addDays(date.daysInMonth());
+      return begin.addDays(date.daysInMonth() - 1);
     }
   case Year:
     if (const auto begin = QDate{date.year(), 1, 1}; rim == Rim::Begin) {
       return begin;
     } else {
-      return begin.addDays(date.daysInYear());
+      return begin.addDays(date.daysInYear() - 1);
     }
   }
   return {};
@@ -118,6 +118,11 @@ QString Period::label() const
 bool Period::contains(const Period& period) const noexcept
 {
   return std::max(m_begin, period.m_begin) <= std::min(m_end, period.m_end);
+}
+
+bool Period::contains(const QDate& date) const noexcept
+{
+  return m_begin <= date && date <= m_end;
 }
 
 std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept

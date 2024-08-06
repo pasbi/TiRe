@@ -34,6 +34,8 @@ qt_add_executable(tire main.cpp
         tableview.h
         timesheet.cpp
         timesheet.h
+        colorutil.cpp
+        colorutil.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)

@@ -5,6 +5,10 @@ target_sources(tire PUBLIC
         perioddetailproxymodel.h
         perioddetailview.cpp
         perioddetailview.h
+        periodsummarymodel.cpp
+        periodsummarymodel.h
+        periodsummaryview.cpp
+        periodsummaryview.h
         planview.cpp
         planview.h
         planview.ui

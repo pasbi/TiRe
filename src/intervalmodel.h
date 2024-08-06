@@ -5,7 +5,6 @@
 #include "project.h"
 #include <QAbstractTableModel>
 #include <deque>
-#include <set>
 
 class IntervalModel final : public QAbstractTableModel
 {

@@ -1,7 +1,8 @@
 #include "intervalmodel.h"
+
+#include "colorutil.h"
 #include "period.h"
 #include <QColor>
-#include <complex>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -70,8 +71,7 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
     return interval->project().color();
   }
   if (role == Qt::ForegroundRole) {
-    const auto background_is_bright = interval->project().color().lightnessF() > 0.5;
-    return QColor(background_is_bright ? Qt::black : Qt::white);
+    return ::contrast_color(interval->project().color());
   }
 
   if (role == Qt::DisplayRole) {
@@ -179,9 +179,10 @@ std::vector<Interval*> IntervalModel::intervals() const
 std::vector<Interval*> IntervalModel::intervals(const Period& period) const
 {
   std::vector<Interval> intervals;
-  auto view = m_intervals
-              | std::views::filter([&period](const auto& interval) { return period.contains(interval->period()); })
-              | std::views::transform(&std::unique_ptr<Interval>::get);
+  auto view =
+      m_intervals
+      | std::views::filter([&period](const auto& interval) { return period.contains(interval->begin().date()); })
+      | std::views::transform(&std::unique_ptr<Interval>::get);
   return std::vector(view.begin(), view.end());
 }
 

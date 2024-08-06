@@ -18,6 +18,7 @@ public:
   [[nodiscard]] std::chrono::minutes overlap(const Interval& interval) const noexcept;
   [[nodiscard]] QString label() const;
   [[nodiscard]] bool contains(const Period& period) const noexcept;
+  [[nodiscard]] bool contains(const QDate& date) const noexcept;
   [[nodiscard]] int days() const noexcept;
 
 private:

@@ -95,7 +95,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QTableView" name="summary_view"/>
+          <widget class="PeriodSummaryView" name="period_summary_view" native="true"/>
          </item>
         </layout>
        </widget>
@@ -309,6 +309,12 @@
    <class>PlanView</class>
    <extends>QWidget</extends>
    <header>views/planview.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PeriodSummaryView</class>
+   <extends>QWidget</extends>
+   <header>views/periodsummaryview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
