@@ -1,6 +1,7 @@
 #include "tableview.h"
-
 #include <QHBoxLayout>
+#include <QHeaderView>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -88,22 +89,43 @@ private:
 
 }  // namespace
 
-void TableView::resizeEvent(QResizeEvent* event)
+TableView::TableView(QWidget* parent) : QTableView(parent)
+{
+  horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+}
+
+void TableView::setModel(QAbstractItemModel* model)
+{
+  connect(model, &QAbstractItemModel::modelReset, this, &TableView::update_column_widths, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::columnsAboutToBeInserted, this, &TableView::update_column_widths,
+          Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::columnsAboutToBeRemoved, this, &TableView::update_column_widths,
+          Qt::QueuedConnection);
+  QTableView::setModel(model);
+}
+
+void TableView::update_column_widths()
 {
   if (model() == nullptr) {
     return;
   }
+  QAbstractScrollArea::updateGeometry();
   const auto column_count = model()->columnCount();
   std::vector<int> size_hints;
   for (int i = 0; i < column_count; ++i) {
     size_hints.emplace_back(sizeHintForColumn(i));
   }
 
-  const SizesCalculator sc(viewport()->width(), size_hints);
+  const SizesCalculator sc(maximumViewportSize().width(), size_hints);
   const auto sizes = sc.sizes();
   for (int i = 0; i < static_cast<int>(sizes.size()); ++i) {
     setColumnWidth(i, sizes.at(i));
   }
+}
+
+void TableView::resizeEvent(QResizeEvent* event)
+{
+  update_column_widths();
   QTableView::resizeEvent(event);
 }
 
