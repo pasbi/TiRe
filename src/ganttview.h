@@ -22,6 +22,7 @@ private:
   [[nodiscard]] double day_height() const;
   [[nodiscard]] std::vector<QRectF> rects(const Interval& interval) const;
   void draw_grid(QPainter& painter) const;
+  [[nodiscard]] QRectF rect(const QDate& date, const QTime& begin, const QTime& end) const;
 
   [[nodiscard]] QColor interpolate_base(const double t) const noexcept;
 };

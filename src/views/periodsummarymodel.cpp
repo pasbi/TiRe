@@ -4,8 +4,6 @@
 #include "intervalmodel.h"
 #include "projectmodel.h"
 #include "timesheet.h"
-
-#include <fmt/chrono.h>
 #include <qpalette.h>
 
 namespace
@@ -36,7 +34,7 @@ int PeriodSummaryModel::rowCount(const QModelIndex& parent) const
     return 0;
   }
 
-  return m_time_sheet->project_model().projects().size();
+  return static_cast<int>(m_time_sheet->project_model().projects().size());
 }
 
 int PeriodSummaryModel::columnCount(const QModelIndex& parent) const
@@ -72,10 +70,7 @@ QVariant PeriodSummaryModel::data(const QModelIndex& index, int role) const
     if (get(*project, date) > 0min) {
       return project->color();
     }
-    if (const auto d = date.dayOfWeek(); d == Qt::Sunday || d == Qt::Saturday) {
-      return ::mix_base(0.2, Qt::red);
-    }
-    return QVariant{};
+    return ::background(date);
   case Qt::ForegroundRole:
     return get(*project, date) == 0min ? QVariant{} : ::contrast_color(project->color());
   default:

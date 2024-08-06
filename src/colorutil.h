@@ -2,5 +2,8 @@
 
 #include <QColor>
 
-[[nodiscard]] QColor mix_base(const double t, const QColor& other);
+class QDate;
+
+[[nodiscard]] QColor mix_base(double t, const QColor& other);
 [[nodiscard]] QColor contrast_color(const QColor& color);
+[[nodiscard]] QColor background(const QDate& date);

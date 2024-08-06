@@ -53,6 +53,14 @@ void GanttView::paintEvent(QPaintEvent* event)
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
+  for (int day = 0; day < m_period.days(); ++day) {
+    const auto date = m_period.begin().addDays(day);
+    if (const auto d = date.dayOfWeek(); d == Qt::Saturday || d == Qt::Sunday) {
+      const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
+      painter.fillRect(rect, ::background(date));
+    }
+  }
+
   for (const auto* const interval : m_interval_model->intervals()) {
     for (const auto& rect : rects(*interval)) {
       painter.fillRect(rect, interval->project().color());
@@ -85,13 +93,8 @@ std::vector<QRectF> GanttView::rects(const Interval& interval) const
   rects.reserve(day_count);
   for (int day = 0; day <= day_count; ++day) {
     const auto current_day = begin.date().addDays(day);
-    const auto current_begin = std::max(begin, current_day.startOfDay());
-    const auto current_end = std::min(end, current_day.endOfDay());
-    const auto pos_x_begin = pos_x(current_begin.time());
-    const auto pos_x_end = pos_x(current_end.time());
-    const auto pos_y_begin = pos_y(current_day);
-    const auto pos_y_end = pos_y(current_day.addDays(1));
-    rects.emplace_back(QPointF{pos_x_begin, pos_y_begin}, QPointF{pos_x_end, pos_y_end});
+    rects.emplace_back(rect(current_day, std::max(begin, current_day.startOfDay()).time(),
+                            std::min(end, current_day.endOfDay()).time()));
   }
   return rects;
 }
@@ -111,4 +114,13 @@ void GanttView::draw_grid(QPainter& painter) const
     const auto y = pos_y(m_period.begin().addDays(day));
     painter.drawLine(QPointF{0.0, y}, QPointF{static_cast<double>(width()), y});
   }
+}
+
+QRectF GanttView::rect(const QDate& date, const QTime& begin, const QTime& end) const
+{
+  const auto pos_x_begin = pos_x(begin);
+  const auto pos_x_end = pos_x(end);
+  const auto pos_y_begin = pos_y(date);
+  const auto pos_y_end = pos_y(date.addDays(1));
+  return {QPointF{pos_x_begin, pos_y_begin}, QPointF{pos_x_end, pos_y_end}};
 }
