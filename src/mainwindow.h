@@ -31,6 +31,13 @@ public:
   bool save_as();
   bool new_time_sheet();
 
+  void next();
+  void previous();
+  void today();
+  void set_date(const QDate& date);
+  void set_period_type(Period::Type type);
+  void set_period(const Period& period);
+
 protected:
   void closeEvent(QCloseEvent* event) override;
 
@@ -46,7 +53,6 @@ private:
   void show_table_context_menu(const QPoint& pos);
   void edit_date_time(const QModelIndex& index) const;
   void edit_project(const QModelIndex& index) const;
-  void set_period_type(Period::Type type);
   void end_task();
   void switch_task();
   std::unique_ptr<UndoStack> m_undo_stack;
@@ -55,4 +61,5 @@ private:
   std::vector<std::unique_ptr<QAction>> m_context_menu_actions;
 
   [[nodiscard]] bool can_close();
+  Period m_current_period = Period(QDate::currentDate(), Period::Type::Day);
 };

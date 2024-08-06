@@ -1,5 +1,4 @@
 #include "intervalmodel.h"
-
 #include "colorutil.h"
 #include "period.h"
 #include <QColor>

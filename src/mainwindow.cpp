@@ -93,9 +93,9 @@ MainWindow::MainWindow(QWidget* parent)
   init_view_action(m_ui->actionDay, Period::Type::Day);
   m_ui->actionDay->trigger();
 
-  connect(m_ui->actionNext, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::next);
-  connect(m_ui->actionPrevious, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::prev);
-  connect(m_ui->actionToday, &QAction::triggered, m_ui->period_detail_view, &PeriodDetailView::today);
+  connect(m_ui->actionNext, &QAction::triggered, this, &MainWindow::next);
+  connect(m_ui->actionPrevious, &QAction::triggered, this, &MainWindow::previous);
+  connect(m_ui->actionToday, &QAction::triggered, this, &MainWindow::today);
 
   auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
   m_ui->menu_Edit->addAction(undo_action);
@@ -110,13 +110,6 @@ MainWindow::MainWindow(QWidget* parent)
   init_context_menu_actions();
 
   new_time_sheet();
-
-  connect(m_ui->period_detail_view, &AbstractPeriodView::period_changed, this, [this]() {
-    const auto period = m_ui->period_detail_view->current_period();
-    m_ui->plan_view->set_period(period);
-    m_ui->period_summary_view->set_period(period);
-    m_ui->statusbar->showMessage(period.label());
-  });
 }
 
 MainWindow::~MainWindow() = default;
@@ -135,11 +128,6 @@ void MainWindow::set_filename(std::filesystem::path filename)
 {
   m_filename = std::move(filename);
   update_window_title();
-}
-
-void MainWindow::set_period_type(const Period::Type type)
-{
-  m_ui->period_detail_view->set_period_type(type);
 }
 
 void MainWindow::end_task()
@@ -373,6 +361,41 @@ bool MainWindow::new_time_sheet()
   }
   set_time_sheet(std::make_unique<TimeSheet>());
   set_filename({});
-  m_ui->period_detail_view->set_date(QDate::currentDate());
+  set_date(QDate::currentDate());
   return true;
+}
+
+void MainWindow::next()
+{
+  set_date(m_current_period.end().addDays(1));
+}
+
+void MainWindow::previous()
+{
+  set_date(m_current_period.begin().addDays(-1));
+}
+
+void MainWindow::today()
+{
+  set_date(QDate::currentDate());
+}
+
+void MainWindow::set_date(const QDate& date)
+{
+  set_period(Period(date, m_current_period.type()));
+}
+
+void MainWindow::set_period_type(const Period::Type type)
+{
+  set_period(Period(QDate::currentDate(), type));
+}
+
+void MainWindow::set_period(const Period& period)
+{
+  m_current_period = period;
+  m_ui->period_detail_view->set_period(m_current_period);
+  m_ui->plan_view->set_period(m_current_period);
+  m_ui->period_summary_view->set_period(m_current_period);
+  // m_ui->ganttview->set_period(m_current_period);
+  m_ui->statusbar->showMessage(m_current_period.label());
 }

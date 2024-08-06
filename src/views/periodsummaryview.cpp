@@ -10,12 +10,22 @@ PeriodSummaryView::PeriodSummaryView(QWidget* parent)
 {
   m_table_view.setModel(m_model.get());
   m_table_view.setSelectionMode(QAbstractItemView::NoSelection);
-  connect(this, &PeriodSummaryView::interval_model_changed, this, [this]() { m_model->set_source(time_sheet()); });
-  connect(this, &PeriodSummaryView::period_changed, this, [this]() { m_model->set_period(current_period()); });
 }
 
 PeriodSummaryView::~PeriodSummaryView() = default;
 
 void PeriodSummaryView::invalidate()
 {
+}
+
+void PeriodSummaryView::set_model(const TimeSheet* time_sheet)
+{
+  m_model->set_source(time_sheet);
+  AbstractPeriodView::set_model(time_sheet);
+}
+
+void PeriodSummaryView::set_period(const Period& period)
+{
+  m_model->set_period(period);
+  AbstractPeriodView::set_period(period);
 }

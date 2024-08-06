@@ -15,24 +15,13 @@ protected:
   ~AbstractPeriodView() override;
 
 public:
-  void set_period_type(Period::Type type);
-  void set_period(const Period& period);
-  void set_date(const QDate& date);
-  void set_model(const TimeSheet* time_sheet);
+  virtual void set_period(const Period& period);
+  virtual void set_model(const TimeSheet* time_sheet);
   [[nodiscard]] const Period& current_period() noexcept;
   virtual void invalidate() = 0;
   [[nodiscard]] const TimeSheet* time_sheet() const;
 
-  void next();
-  void prev();
-  void today();
-
-Q_SIGNALS:
-  void period_changed();
-  void interval_model_changed();
-
 private:
-  Period::Type m_type = Period::Type::Day;
   Period m_current_period;
   const TimeSheet* m_time_sheet = nullptr;
 };

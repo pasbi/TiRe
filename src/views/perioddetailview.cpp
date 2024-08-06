@@ -16,10 +16,6 @@ PeriodDetailView::PeriodDetailView(QWidget* parent)
 {
   connect(&m_table_view, &QAbstractItemView::doubleClicked, this,
           [this](const QModelIndex& index) { Q_EMIT double_clicked(m_proxy_model->mapToSource(index)); });
-  connect(this, &PeriodDetailView::period_changed, this, [this]() { m_proxy_model->set_period(current_period()); });
-  connect(this, &PeriodDetailView::period_changed, this, [this]() {
-    m_proxy_model->set_source_model(time_sheet() == nullptr ? nullptr : &time_sheet()->interval_model());
-  });
   m_table_view.setModel(m_proxy_model.get());
 }
 
@@ -42,6 +38,18 @@ std::set<const Interval*> PeriodDetailView::selected_intervals() const
     selection.insert(time_sheet()->interval_model().interval(row));
   }
   return selection;
+}
+
+void PeriodDetailView::set_model(const TimeSheet* time_sheet)
+{
+  m_proxy_model->set_source_model(time_sheet == nullptr ? nullptr : &time_sheet->interval_model());
+  AbstractPeriodView::set_model(time_sheet);
+}
+
+void PeriodDetailView::set_period(const Period& period)
+{
+  m_proxy_model->set_period(period);
+  AbstractPeriodView::set_period(period);
 }
 
 void PeriodDetailView::invalidate()
