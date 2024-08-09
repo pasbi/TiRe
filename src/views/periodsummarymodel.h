@@ -7,10 +7,11 @@
 
 class Project;
 class TimeSheet;
-class PeriodSummaryModel : public QAbstractTableModel
+class PeriodSummaryModel final : public QAbstractTableModel
 {
-
 public:
+  explicit PeriodSummaryModel(QObject* parent = nullptr);
+  ~PeriodSummaryModel() override;
   [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
   [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
@@ -18,12 +19,16 @@ public:
 
   void set_source(const TimeSheet* model);
   void set_period(const Period& period);
+  class ExtraRow;
+  [[nodiscard]] std::chrono::minutes get_duration(const QDate& date, const Project* project = nullptr) const;
+  [[nodiscard]] QDate date(int column) const noexcept;
 
 private:
   const TimeSheet* m_time_sheet = nullptr;
-  [[nodiscard]] const Project* project(const int row) const noexcept;
-  [[nodiscard]] QDate date(const int column) const noexcept;
+  [[nodiscard]] const Project* project(int row) const noexcept;
   void update_summary();
-  std::map<std::pair<const Project*, QDate>, std::chrono::minutes> m_minutes;
+  std::map<QDate, std::map<const Project*, std::chrono::minutes>> m_minutes;
   Period m_period;
+
+  std::vector<std::unique_ptr<ExtraRow>> m_extra_rows;
 };
