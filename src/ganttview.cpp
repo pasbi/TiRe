@@ -1,10 +1,11 @@
 #include "ganttview.h"
-
 #include "colorutil.h"
 #include "interval.h"
 #include "period.h"
 #include <QDateTime>
+#include <QHelpEvent>
 #include <QPainter>
+#include <QToolTip>
 
 namespace
 {
@@ -70,10 +71,25 @@ void GanttView::paintEvent(QPaintEvent* event)
   draw_grid(painter);
 }
 
+bool GanttView::event(QEvent* event)
+{
+  if (event->type() == QEvent::ToolTip) {
+    const auto& he = dynamic_cast<const QHelpEvent&>(*event);
+    const auto date_time = QDateTime(date_at(he.y()), time_at(he.x()));
+    QToolTip::showText(he.globalPos(), tr("%1").arg(date_time.toString("dddd, dd.MM. hh:mm")));
+  }
+  return QWidget::event(event);
+}
+
 double GanttView::pos_y(const QDate& date) const
 {
-  return static_cast<double>(m_period.begin().daysTo(date))
-         / static_cast<double>(m_period.begin().daysTo(m_period.end()) + 1) * static_cast<double>(height());
+  return static_cast<double>(m_period.begin().daysTo(date)) / static_cast<double>(m_period.days())
+         * static_cast<double>(height());
+}
+
+QDate GanttView::date_at(const double y) const
+{
+  return m_period.begin().addDays(static_cast<int>(m_period.days() * y / static_cast<double>(height())));
 }
 
 double GanttView::pos_x(const QTime& time) const
@@ -82,6 +98,14 @@ double GanttView::pos_x(const QTime& time) const
   using std::chrono_literals::operator""min;
   return (static_cast<double>(time.hour()) * 1.0h + static_cast<double>(time.minute()) * 1.0min) / 24.0h
          * static_cast<double>(width());
+}
+
+QTime GanttView::time_at(const double x) const
+{
+  using std::chrono_literals::operator""h;
+  using std::chrono_literals::operator""min;
+  const auto total = 24.0h * x / static_cast<double>(width());
+  return {static_cast<int>(total / 60min), static_cast<int>(total / 1min) % 60};
 }
 
 std::vector<QRectF> GanttView::rects(const Interval& interval) const
@@ -110,7 +134,7 @@ void GanttView::draw_grid(QPainter& painter) const
     painter.drawLine(QPointF{x, 0.0}, QPointF{x, static_cast<double>(height())});
   }
   painter.setPen(::mix_base(0.9, text_color));
-  for (auto day = 0; day <= m_period.days(); ++day) {
+  for (auto day = 0; day < m_period.days(); ++day) {
     const auto y = pos_y(m_period.begin().addDays(day));
     painter.drawLine(QPointF{0.0, y}, QPointF{static_cast<double>(width()), y});
   }

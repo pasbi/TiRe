@@ -144,5 +144,5 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(
 
 int Period::days() const noexcept
 {
-  return m_begin.daysTo(m_end);
+  return m_begin.daysTo(m_end) + 1;
 }

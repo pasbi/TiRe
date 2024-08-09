@@ -11,14 +11,16 @@ public:
 
 protected:
   void paintEvent(QPaintEvent* event) override;
+  bool event(QEvent* event) override;
 
 private:
   const IntervalModel* m_interval_model = nullptr;
   Period m_period;
 
   [[nodiscard]] double pos_y(const QDate& date) const;
+  [[nodiscard]] QDate date_at(double y) const;
   [[nodiscard]] double pos_x(const QTime& time) const;
-  [[nodiscard]] QPointF pos(const QDateTime& date_time) const;
+  [[nodiscard]] QTime time_at(double x) const;
   [[nodiscard]] double day_height() const;
   [[nodiscard]] std::vector<QRectF> rects(const Interval& interval) const;
   void draw_grid(QPainter& painter) const;

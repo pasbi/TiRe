@@ -39,14 +39,10 @@ int PeriodSummaryModel::rowCount(const QModelIndex& parent) const
 
 int PeriodSummaryModel::columnCount(const QModelIndex& parent) const
 {
-  if (m_time_sheet == nullptr) {
-    return 0;
-  }
-
-  return m_period.days() + 1;
+  return m_time_sheet == nullptr ? 0 : m_period.days();
 }
 
-QVariant PeriodSummaryModel::data(const QModelIndex& index, int role) const
+QVariant PeriodSummaryModel::data(const QModelIndex& index, const int role) const
 {
   using std::chrono_literals::operator""min;
   if (m_time_sheet == nullptr || !index.isValid()) {
