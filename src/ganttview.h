@@ -1,6 +1,6 @@
 #pragma once
-#include "intervalmodel.h"
 
+#include "intervalmodel.h"
 #include <QWidget>
 
 class GanttView : public QWidget
@@ -11,7 +11,7 @@ public:
 
 protected:
   void paintEvent(QPaintEvent* event) override;
-  bool event(QEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
   const IntervalModel* m_interval_model = nullptr;

@@ -34,6 +34,7 @@ constexpr auto default_gantt_length_days = 30;
 GanttView::GanttView(QWidget* parent)
   : QWidget(parent), m_period(QDate::currentDate().addDays(-default_gantt_length_days), QDate::currentDate())
 {
+  setMouseTracking(true);
 }
 
 void GanttView::set_model(const IntervalModel* interval_model)
@@ -56,10 +57,8 @@ void GanttView::paintEvent(QPaintEvent* event)
 
   for (int day = 0; day < m_period.days(); ++day) {
     const auto date = m_period.begin().addDays(day);
-    if (const auto d = date.dayOfWeek(); d == Qt::Saturday || d == Qt::Sunday) {
-      const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
-      painter.fillRect(rect, ::background(date));
-    }
+    const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
+    painter.fillRect(rect, ::background(date));
   }
 
   for (const auto* const interval : m_interval_model->intervals()) {
@@ -71,14 +70,10 @@ void GanttView::paintEvent(QPaintEvent* event)
   draw_grid(painter);
 }
 
-bool GanttView::event(QEvent* event)
+void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
-  if (event->type() == QEvent::ToolTip) {
-    const auto& he = dynamic_cast<const QHelpEvent&>(*event);
-    const auto date_time = QDateTime(date_at(he.y()), time_at(he.x()));
-    QToolTip::showText(he.globalPos(), tr("%1").arg(date_time.toString("dddd, dd.MM. hh:mm")));
-  }
-  return QWidget::event(event);
+  const auto date_time = QDateTime(date_at(event->position().y()), time_at(event->position().x()));
+  QToolTip::showText(event->globalPosition().toPoint(), tr("%1").arg(date_time.toString("dddd, dd.MM. hh:mm")));
 }
 
 double GanttView::pos_y(const QDate& date) const
