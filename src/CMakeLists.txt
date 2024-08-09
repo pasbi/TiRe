@@ -12,8 +12,6 @@ qt_add_executable(tire main.cpp
         intervalmodel.h
         json.cpp
         json.h
-        leadingzerosspinbox.cpp
-        leadingzerosspinbox.h
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
@@ -36,6 +34,8 @@ qt_add_executable(tire main.cpp
         timesheet.h
         colorutil.cpp
         colorutil.h
+        timeedit.cpp
+        timeedit.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt)
