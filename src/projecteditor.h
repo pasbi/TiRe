@@ -24,6 +24,9 @@ public:
   [[nodiscard]] const Project& current_project() const;
   [[nodiscard]] std::unique_ptr<Project> create_project() const;
 
+protected:
+  void showEvent(QShowEvent* event) override;
+
 private:
   std::unique_ptr<Ui::ProjectEditor> m_ui;
   UndoStack& m_undo_stack;
