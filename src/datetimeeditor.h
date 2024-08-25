@@ -17,8 +17,9 @@ public:
   ~DateTimeEditor() override;
 
   [[nodiscard]] QDateTime date_time() const;
-  void set_time(const QTime& time);
-  void set_date(const QDate& date);
+  void set_date_time(const QDateTime& date_time) const;
+  void set_minimum_date_time(const QDateTime& date_time) const;
+  void set_maximum_date_time(const QDateTime& date_time) const;
 
 private:
   std::unique_ptr<Ui::DateTimeEditor> m_ui;

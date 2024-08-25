@@ -30,6 +30,8 @@ public:
   [[nodiscard]] bool contains(const Period& period) const noexcept;
   [[nodiscard]] bool contains(const QDate& date) const noexcept;
   [[nodiscard]] int days() const noexcept;
+  [[nodiscard]] QDate clamp(const QDate& date) const noexcept;
+  [[nodiscard]] QDateTime clamp(const QDateTime& date_time) const noexcept;
 
 private:
   QDate m_begin;

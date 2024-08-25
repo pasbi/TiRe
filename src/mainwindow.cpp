@@ -79,7 +79,9 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
-    interval->swap_begin(QDateTime::currentDateTime());
+    const auto timestamp = m_current_period.clamp(QDateTime::currentDateTime());
+    fmt::print("Timestamp: {}, period: {}", timestamp, m_current_period);
+    interval->swap_begin(timestamp);
     m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(interval)));
   });
   connect(m_ui->action_Switch_Task, &QAction::triggered, this, &MainWindow::switch_task);
@@ -289,10 +291,10 @@ void MainWindow::split_selected_intervals() const
     return;
   }
   DateTimeEditor e;
-  e.set_date(interval->begin().date());
-  e.set_time(interval->begin().time());
-  // TODO
-  // e.set_range(interval.begin(), interval.end());
+  e.set_minimum_date_time(interval->begin());
+  e.set_maximum_date_time(interval->end());
+  e.set_date_time(interval->begin());
+
   if (e.exec() == QDialog::Accepted) {
     const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
     auto new_interval = std::make_unique<Interval>(interval->project());
@@ -329,9 +331,13 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
 {
   DateTimeEditor e;
   auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
-  const auto old_date_time = index.column() == IntervalModel::begin_column ? interval.begin() : interval.end();
-  e.set_date(old_date_time.date());
-  e.set_time(old_date_time.time());
+  if (index.column() == IntervalModel::begin_column) {
+    e.set_maximum_date_time(interval.end());
+    e.set_date_time(interval.begin());
+  } else {
+    e.set_minimum_date_time(interval.begin());
+    e.set_date_time(interval.end());
+  }
   if (e.exec() == QDialog::Accepted) {
     std::unique_ptr<Command> command;
     if (index.column() == IntervalModel::begin_column) {

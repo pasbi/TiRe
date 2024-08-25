@@ -146,3 +146,18 @@ int Period::days() const noexcept
 {
   return m_begin.daysTo(m_end) + 1;
 }
+
+QDate Period::clamp(const QDate& date) const noexcept
+{
+  if (!date.isValid()) {
+    return date;
+  }
+
+  return std::clamp(date, begin(), end());
+}
+
+QDateTime Period::clamp(const QDateTime& date_time) const noexcept
+{
+  const auto date = clamp(date_time.date());
+  return QDateTime(date, date_time.time());
+}
