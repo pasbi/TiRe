@@ -42,6 +42,8 @@ PeriodDetailView::PeriodDetailView(QWidget* parent)
   m_table_view.setSelectionBehavior(QAbstractItemView::SelectRows);
   m_table_view.setSelectionMode(QAbstractItemView::SingleSelection);
   m_table_view.setItemDelegate(m_item_delegate.get());
+  m_table_view.setSortingEnabled(true);
+  m_table_view.sortByColumn(IntervalModel::begin_column, Qt::AscendingOrder);
   connect(m_table_view.selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex& index) {
     const auto source_index = m_proxy_model->mapToSource(index);
     if (!source_index.isValid()) {

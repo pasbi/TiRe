@@ -97,7 +97,12 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
     case begin_column:
       return interval->begin();
     case end_column:
+      [[fallthrough]];
+    case date_column:
       return interval->end();
+    case duration_column:
+      using std::chrono_literals::operator""min;
+      return static_cast<int>(interval->duration() / 1min);
     default:
       return {};
     }

@@ -1,6 +1,11 @@
 #include "views/perioddetailproxymodel.h"
 #include "intervalmodel.h"
 
+PeriodDetailProxyModel::PeriodDetailProxyModel(QObject* parent) : QSortFilterProxyModel(parent)
+{
+  setSortRole(Qt::EditRole);
+}
+
 void PeriodDetailProxyModel::set_source_model(IntervalModel* const model)
 {
   m_interval_model = model;
