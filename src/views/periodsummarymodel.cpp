@@ -5,6 +5,25 @@
 #include "timesheet.h"
 #include <QPalette>
 
+class PeriodSummaryModel::Row
+{
+public:
+  explicit Row(const PeriodSummaryModel& model) : m_model(model)
+  {
+  }
+
+  virtual ~Row() = default;
+  [[nodiscard]] virtual QVariant header_data(int role) = 0;
+  [[nodiscard]] virtual QVariant data(int section, int role) = 0;
+  [[nodiscard]] const PeriodSummaryModel& model() const noexcept
+  {
+    return m_model;
+  }
+
+private:
+  const PeriodSummaryModel& m_model;
+};
+
 namespace
 {
 
@@ -25,22 +44,56 @@ namespace
       .arg(minutes / 1h, field_width, base, fill_char)
       .arg((minutes / 1min) % (1h / 1min), field_width, base, fill_char);
 };
-}  // namespace
 
-class PeriodSummaryModel::ExtraRow
+class ProjectRow final : public PeriodSummaryModel::Row
 {
 public:
-  virtual ~ExtraRow() = default;
-  [[nodiscard]] virtual QVariant header_data(int role) = 0;
-  [[nodiscard]] virtual QVariant data(int section, int role) = 0;
-};
-
-class TotalExtraRow final : public PeriodSummaryModel::ExtraRow
-{
-public:
-  TotalExtraRow(const PeriodSummaryModel& model) : m_model(model)
+  ProjectRow(const Project& project, const PeriodSummaryModel& model) : Row(model), m_project(project)
   {
   }
+
+  [[nodiscard]] QVariant header_data(const int role) override
+  {
+    switch (role) {
+    case Qt::DisplayRole:
+      return m_project.label();
+    case Qt::BackgroundRole:
+      return m_project.color();
+    case Qt::ForegroundRole:
+      return ::contrast_color(m_project.color());
+    default:
+      return {};
+    }
+  }
+
+  [[nodiscard]] QVariant data(const int section, const int role) override
+  {
+    const auto date = model().date(section);
+    const auto duration = model().get_duration(date, &m_project);
+    using std::chrono_literals::operator""min;
+    switch (role) {
+    case Qt::DisplayRole:
+      return ::format_minutes(duration);
+    case Qt::BackgroundRole:
+      if (duration > 0min) {
+        return m_project.color();
+      }
+      return ::background(date);
+    case Qt::ForegroundRole:
+      return duration == 0min ? QVariant{} : ::contrast_color(m_project.color());
+    default:
+      return {};
+    }
+  }
+
+private:
+  const Project& m_project;
+};
+
+class TotalExtraRow final : public PeriodSummaryModel::Row
+{
+public:
+  using Row::Row;
 
   [[nodiscard]] QVariant header_data(const int role) override
   {
@@ -53,41 +106,50 @@ public:
   [[nodiscard]] QVariant data(const int section, const int role) override
   {
     if (role == Qt::DisplayRole) {
-      return ::format_minutes(m_model.get_duration(m_model.date(section)));
+      return ::format_minutes(model().get_duration(model().date(section)));
     }
     return {};
   }
-
-private:
-  const PeriodSummaryModel& m_model;
 };
 
-namespace
+[[nodiscard]] auto make_rows(const PeriodSummaryModel& period_summary_model)
 {
+  auto rows = std::vector<std::unique_ptr<PeriodSummaryModel::Row>>();
+  const auto* const project_model = period_summary_model.project_model();
+  if (project_model == nullptr) {
+    return rows;
+  }
 
-auto make_extra_rows(const PeriodSummaryModel& period_summary_model)
-{
-  auto rows = std::vector<std::unique_ptr<PeriodSummaryModel::ExtraRow>>();
+  auto projects = project_model->projects();
+  std::ranges::sort(projects, [project_model](const auto& a, const auto& b) {
+    if (const auto special_compare = project_model->is_special_project(a) <=> project_model->is_special_project(b);
+        special_compare != std::strong_ordering::equal)
+    {
+      return special_compare == std::strong_ordering::greater;
+    }
+    return a->label() < b->label();
+  });
+
+  rows.reserve(projects.size() + 1);
   rows.emplace_back(std::make_unique<TotalExtraRow>(period_summary_model));
+  for (const auto& project : projects) {
+    rows.emplace_back(std::make_unique<ProjectRow>(*project, period_summary_model));
+  }
   return rows;
 }
 
 }  // namespace
 
-PeriodSummaryModel::PeriodSummaryModel(QObject* parent)
-  : QAbstractTableModel(parent), m_extra_rows(::make_extra_rows(*this))
+PeriodSummaryModel::PeriodSummaryModel(QObject* parent) : QAbstractTableModel(parent)
 {
+  invalidate();
 }
 
 PeriodSummaryModel::~PeriodSummaryModel() = default;
 
 int PeriodSummaryModel::rowCount(const QModelIndex& parent) const
 {
-  if (m_time_sheet == nullptr) {
-    return 0;
-  }
-
-  return static_cast<int>(m_time_sheet->project_model().projects().size() + m_extra_rows.size());
+  return static_cast<int>(m_rows.size());
 }
 
 int PeriodSummaryModel::columnCount(const QModelIndex& parent) const
@@ -97,30 +159,10 @@ int PeriodSummaryModel::columnCount(const QModelIndex& parent) const
 
 QVariant PeriodSummaryModel::data(const QModelIndex& index, const int role) const
 {
-  using std::chrono_literals::operator""min;
-  if (m_time_sheet == nullptr || !index.isValid()) {
+  if (m_rows.empty() || !index.isValid()) {
     return {};
   }
-
-  const auto date = this->date(index.column());
-  if (index.row() < m_extra_rows.size()) {
-    return m_extra_rows.at(index.row())->data(index.column(), role);
-  }
-
-  const auto* const project = this->project(index.row() - static_cast<int>(m_extra_rows.size()));
-  switch (role) {
-  case Qt::DisplayRole:
-    return ::format_minutes(get_duration(date, project));
-  case Qt::BackgroundRole:
-    if (get_duration(date, project) > 0min) {
-      return project->color();
-    }
-    return ::background(date);
-  case Qt::ForegroundRole:
-    return get_duration(date, project) == 0min ? QVariant{} : ::contrast_color(project->color());
-  default:
-    return {};
-  }
+  return m_rows.at(index.row())->data(index.column(), role);
 }
 
 QVariant PeriodSummaryModel::headerData(const int section, const Qt::Orientation orientation, const int role) const
@@ -149,20 +191,7 @@ QVariant PeriodSummaryModel::headerData(const int section, const Qt::Orientation
     return date(section).toString(date_format);
   }
   if (orientation == Qt::Vertical) {
-    if (section < m_extra_rows.size()) {
-      return m_extra_rows.at(section)->header_data(role);
-    }
-    const auto& project = *this->project(section - m_extra_rows.size());
-    switch (role) {
-    case Qt::DisplayRole:
-      return project.label();
-    case Qt::BackgroundRole:
-      return project.color();
-    case Qt::ForegroundRole:
-      return ::contrast_color(project.color());
-    default:
-      return {};
-    }
+    return m_rows.at(section)->header_data(role);
   }
   return {};
 }
@@ -171,6 +200,10 @@ void PeriodSummaryModel::set_source(const TimeSheet* model)
 {
   beginResetModel();
   m_time_sheet = model;
+  if (m_time_sheet != nullptr) {
+    connect(&m_time_sheet->project_model(), &ProjectModel::projects_changed, this, &PeriodSummaryModel::invalidate);
+  }
+  invalidate();
   update_summary();
   endResetModel();
 }
@@ -183,17 +216,32 @@ void PeriodSummaryModel::set_period(const Period& period)
   endResetModel();
 }
 
-const Project* PeriodSummaryModel::project(const int row) const noexcept
+std::vector<Project*> PeriodSummaryModel::projects() const
+{
+  if (m_time_sheet == nullptr) {
+    return {};
+  }
+  return m_time_sheet->project_model().projects();
+}
+
+ProjectModel* PeriodSummaryModel::project_model() const noexcept
 {
   if (m_time_sheet == nullptr) {
     return nullptr;
   }
-  return m_time_sheet->project_model().projects().at(row);
+  return &m_time_sheet->project_model();
 }
 
 QDate PeriodSummaryModel::date(const int column) const noexcept
 {
   return m_period.begin().addDays(column);
+}
+
+void PeriodSummaryModel::invalidate()
+{
+  beginResetModel();
+  m_rows = ::make_rows(*this);
+  endResetModel();
 }
 
 void PeriodSummaryModel::update_summary()

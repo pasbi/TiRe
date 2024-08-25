@@ -79,7 +79,9 @@ Project& ProjectModel::add(std::unique_ptr<Project> project)
     project->set_color(generate_color());
     spdlog::info("Project {} has not color. Assigning {}.", project->label(), project->color().name());
   }
-  return *m_projects.emplace_back(std::move(project));
+  auto& ref = *m_projects.emplace_back(std::move(project));
+  Q_EMIT projects_changed();
+  return ref;
 }
 
 std::unique_ptr<Project> ProjectModel::extract(const Project& project)
@@ -87,12 +89,18 @@ std::unique_ptr<Project> ProjectModel::extract(const Project& project)
   const auto it = std::ranges::find(m_projects, &project, &std::unique_ptr<Project>::get);
   auto extracted_project = std::move(*it);
   m_projects.erase(it);
+  Q_EMIT projects_changed();
   return extracted_project;
 }
 
 const Project& ProjectModel::empty_project() const noexcept
 {
   return m_empty_project;
+}
+
+bool ProjectModel::is_special_project(const Project* const project) const noexcept
+{
+  return project == &m_empty_project || project == &m_holiday_project || project == &m_sick_project;
 }
 
 const Project& ProjectModel::project(const std::size_t index) const

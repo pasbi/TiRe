@@ -19,16 +19,18 @@ public:
 
   void set_source(const TimeSheet* model);
   void set_period(const Period& period);
-  class ExtraRow;
+  class Row;
   [[nodiscard]] std::chrono::minutes get_duration(const QDate& date, const Project* project = nullptr) const;
   [[nodiscard]] QDate date(int column) const noexcept;
+  void invalidate();
+  [[nodiscard]] std::vector<Project*> projects() const;
+  [[nodiscard]] ProjectModel* project_model() const noexcept;
 
 private:
   const TimeSheet* m_time_sheet = nullptr;
-  [[nodiscard]] const Project* project(int row) const noexcept;
   void update_summary();
   std::map<QDate, std::map<const Project*, std::chrono::minutes>> m_minutes;
   Period m_period;
 
-  std::vector<std::unique_ptr<ExtraRow>> m_extra_rows;
+  std::vector<std::unique_ptr<Row>> m_rows;
 };
