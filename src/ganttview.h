@@ -8,6 +8,7 @@ class GanttView : public QWidget
 public:
   explicit GanttView(QWidget* parent = nullptr);
   void set_model(const IntervalModel* interval_model);
+  void set_current_interval(const Interval* interval);
 
 protected:
   void paintEvent(QPaintEvent* event) override;
@@ -15,6 +16,7 @@ protected:
 
 private:
   const IntervalModel* m_interval_model = nullptr;
+  const Interval* m_current_interval = nullptr;
   Period m_period;
 
   [[nodiscard]] double pos_y(const QDate& date) const;

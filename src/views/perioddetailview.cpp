@@ -42,6 +42,15 @@ PeriodDetailView::PeriodDetailView(QWidget* parent)
   m_table_view.setSelectionBehavior(QAbstractItemView::SelectRows);
   m_table_view.setSelectionMode(QAbstractItemView::SingleSelection);
   m_table_view.setItemDelegate(m_item_delegate.get());
+  connect(m_table_view.selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex& index) {
+    const auto source_index = m_proxy_model->mapToSource(index);
+    if (!source_index.isValid()) {
+      Q_EMIT current_interval_changed(nullptr);
+      return;
+    }
+    const auto* const interval = time_sheet()->interval_model().interval(source_index.row());
+    Q_EMIT current_interval_changed(interval);
+  });
 }
 
 PeriodDetailView::~PeriodDetailView() = default;

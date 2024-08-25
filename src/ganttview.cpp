@@ -46,6 +46,12 @@ void GanttView::set_model(const IntervalModel* interval_model)
   update();
 }
 
+void GanttView::set_current_interval(const Interval* interval)
+{
+  m_current_interval = interval;
+  update();
+}
+
 void GanttView::paintEvent(QPaintEvent* event)
 {
   if (m_interval_model == nullptr) {
@@ -68,6 +74,16 @@ void GanttView::paintEvent(QPaintEvent* event)
   }
 
   draw_grid(painter);
+  if (m_current_interval != nullptr) {
+    auto pen = painter.pen();
+    pen.setWidthF(2.0);
+    pen.setCosmetic(true);
+    pen.setColor(Qt::black);
+    painter.setPen(pen);
+    for (const auto& rect : rects(*m_current_interval)) {
+      painter.drawRect(rect);
+    }
+  }
 }
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)

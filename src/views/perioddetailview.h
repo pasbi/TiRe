@@ -23,6 +23,7 @@ public:
 
 Q_SIGNALS:
   void double_clicked(const QModelIndex& index);
+  void current_interval_changed(const Interval* interval);
 
 private:
   QTableView& m_table_view;
