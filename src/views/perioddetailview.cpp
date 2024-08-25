@@ -17,6 +17,8 @@ PeriodDetailView::PeriodDetailView(QWidget* parent)
   connect(&m_table_view, &QAbstractItemView::doubleClicked, this,
           [this](const QModelIndex& index) { Q_EMIT double_clicked(m_proxy_model->mapToSource(index)); });
   m_table_view.setModel(m_proxy_model.get());
+  m_table_view.setSelectionBehavior(QAbstractItemView::SelectRows);
+  m_table_view.setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
 PeriodDetailView::~PeriodDetailView() = default;
