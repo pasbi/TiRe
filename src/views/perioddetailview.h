@@ -4,6 +4,7 @@
 #include "views/abstractperiodview.h"
 #include <set>
 
+class QAbstractItemDelegate;
 class PeriodDetailProxyModel;
 class QTableView;
 
@@ -26,4 +27,5 @@ Q_SIGNALS:
 private:
   QTableView& m_table_view;
   std::unique_ptr<PeriodDetailProxyModel> m_proxy_model;
+  std::unique_ptr<QAbstractItemDelegate> m_item_delegate;
 };
