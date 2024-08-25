@@ -10,6 +10,7 @@
 #include "projectmodel.h"
 #include "serialization.h"
 #include "timerangeeditor.h"
+#include "timerangeslider.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
 #include <QCloseEvent>
@@ -291,19 +292,18 @@ void MainWindow::split_selected_intervals() const
   if (interval == nullptr) {
     return;
   }
-  DateTimeEditor e;
-  e.set_minimum_date_time(interval->begin());
-  e.set_maximum_date_time(interval->end());
-  e.set_date_time(interval->begin());
+  TimeRangeEditor e;
+  e.set_split(true);
+  e.set_range(interval->begin(), interval->end());
 
   if (e.exec() == QDialog::Accepted) {
     const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
     auto new_interval = std::make_unique<Interval>(interval->project());
-    new_interval->swap_begin(e.date_time());
+    new_interval->swap_begin(e.mid());
     new_interval->swap_end(interval->end());
     m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
     m_undo_stack->push(
-        make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.date_time(), &Interval::swap_end));
+        make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.mid(), &Interval::swap_end));
   }
 }
 

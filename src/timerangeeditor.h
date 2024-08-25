@@ -16,6 +16,8 @@ public:
   void set_range(const QDateTime& begin, const QDateTime& end);
   [[nodiscard]] QDateTime begin() const noexcept;
   [[nodiscard]] QDateTime end() const noexcept;
+  [[nodiscard]] QDateTime mid() const noexcept;
+  void set_split(bool split) const;
 
 private:
   std::unique_ptr<Ui::TimeRangeEditor> m_ui;

@@ -34,14 +34,19 @@ TimeRangeSlider::TimeRangeSlider(QWidget* parent) : QWidget(parent)
 void TimeRangeSlider::mousePressEvent(QMouseEvent* event)
 {
   const auto time = ::to_time(static_cast<int>(from_pixel(event->pos().x())));
-  if (event->modifiers() == Qt::ControlModifier) {
+  if (m_split) {
     m_active = true;
-    set_begin(time);
-    set_end(time);
-  } else if (event->button() == Qt::LeftButton) {
-    set_begin(time);
-  } else if (event->button() == Qt::RightButton) {
-    set_end(time);
+    set_mid(time);
+  } else {
+    if (event->modifiers() == Qt::ControlModifier) {
+      m_active = true;
+      set_begin(time);
+      set_end(time);
+    } else if (event->button() == Qt::LeftButton) {
+      set_begin(time);
+    } else if (event->button() == Qt::RightButton) {
+      set_end(time);
+    }
   }
   update();
 }
@@ -49,28 +54,33 @@ void TimeRangeSlider::mousePressEvent(QMouseEvent* event)
 void TimeRangeSlider::mouseMoveEvent(QMouseEvent* event)
 {
   static constexpr auto format = [](const QTime& time) { return time.toString("hh:mm"); };
-  if (m_active) {
-    set_end(::to_time(from_pixel(event->pos().x())));
+  const auto time = ::to_time(static_cast<int>(from_pixel(event->pos().x())));
+
+  if (!m_split && m_active) {
+    set_end(time);
     QToolTip::showText(event->globalPosition().toPoint(), tr("%1 - %2").arg(format(begin()), format(end())));
   } else {
-    const auto x = from_pixel(event->pos().x());
-    const auto time = ::to_time(static_cast<int>(x));
+    if (m_active) {
+      set_mid(time);
+    }
     QToolTip::showText(event->globalPosition().toPoint(), tr("%1").arg(format(time)));
   }
+
   update();
 }
 
 void TimeRangeSlider::mouseReleaseEvent(QMouseEvent* event)
 {
-  if (m_active) {
-    set_end(::to_time(from_pixel(event->pos().x())));
-    m_active = false;
+  const auto time = ::to_time(static_cast<int>(from_pixel(event->pos().x())));
+  if (!m_split && m_active) {
+    set_end(time);
     update();
   }
+  m_active = false;
   if (m_begin > m_end) {
     const auto tmp = m_end;
-    set_end(::to_time(m_begin));
-    set_begin(::to_time(tmp));
+    set_end(::to_time(static_cast<int>(m_begin)));
+    set_begin(::to_time(static_cast<int>(tmp)));
   }
 }
 
@@ -100,6 +110,13 @@ void TimeRangeSlider::paintEvent(QPaintEvent* event)
       draw_minute_tick(painter, i, mid_y);
     }
   }
+
+  if (m_split) {
+    const auto dy = height() * 0.6;
+    pen.setWidthF(3.0);
+    painter.setPen(pen);
+    draw_vertical_line(painter, to_pixel(m_mid), mid_y + dy, mid_y - dy);
+  }
 }
 
 QTime TimeRangeSlider::begin() const
@@ -128,9 +145,18 @@ void TimeRangeSlider::set_end(const QTime& end)
   }
 }
 
-void TimeRangeSlider::set_allow_begin_after_end(const bool allow)
+void TimeRangeSlider::set_split(const bool split)
 {
-  m_allow_begin_after_end = allow;
+  m_split = split;
+  update();
+}
+
+void TimeRangeSlider::set_mid(const QTime& mid)
+{
+  if (const auto minutes = ::to_minutes(mid); minutes != m_split) {
+    m_mid = std::clamp(static_cast<double>(minutes), m_begin, m_end);
+    Q_EMIT mid_changed(::to_time(static_cast<int>(m_mid)));
+  }
 }
 
 double TimeRangeSlider::to_pixel(const double value) const
