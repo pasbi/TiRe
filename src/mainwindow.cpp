@@ -9,6 +9,7 @@
 #include "projecteditor.h"
 #include "projectmodel.h"
 #include "serialization.h"
+#include "timerangeeditor.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
 #include <QCloseEvent>
@@ -329,24 +330,15 @@ void MainWindow::show_table_context_menu(const QPoint& pos)
 
 void MainWindow::edit_date_time(const QModelIndex& index) const
 {
-  DateTimeEditor e;
+  TimeRangeEditor e;
   auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
-  if (index.column() == IntervalModel::begin_column) {
-    e.set_maximum_date_time(interval.end());
-    e.set_date_time(interval.begin());
-  } else {
-    e.set_minimum_date_time(interval.begin());
-    e.set_date_time(interval.end());
-  }
+  e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {
-    std::unique_ptr<Command> command;
-    if (index.column() == IntervalModel::begin_column) {
-      m_undo_stack->push(
-          make_modify_interval_command(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_begin));
-    } else {
-      m_undo_stack->push(
-          make_modify_interval_command(m_time_sheet->interval_model(), interval, e.date_time(), &Interval::swap_end));
-    }
+    const auto macro = m_undo_stack->start_macro(tr("Change interval"));
+    m_undo_stack->push(
+        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.begin(), &Interval::swap_begin));
+    m_undo_stack->push(
+        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.end(), &Interval::swap_end));
     Q_EMIT m_time_sheet->interval_model().data_changed();
   }
 }

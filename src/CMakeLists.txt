@@ -34,6 +34,9 @@ qt_add_executable(tire main.cpp
         timesheet.h
         timerangeslider.cpp
         timerangeslider.h
+        timerangeeditor.cpp
+        timerangeeditor.h
+        timerangeeditor.ui
         colorutil.cpp
         colorutil.h
         timeedit.cpp
