@@ -5,6 +5,16 @@
 
 class Interval;
 
+/**
+ * @class Period period.h "period.h"
+ * @brief A Period represents a time range with well-defined begin and end date.
+ * At first glance, it resembles the Interval, however, its purpose is very different.
+ * - In contrast to an Interval, a Period cannot be serialized.
+ * - The Period usually reflects a common time range (e.g., last week, yesterday, etc.).
+ * - The Period has a precision of a day, while Interval is precise up to a minute.
+ * - The Period must have both begin and end, the interval may not have an end if it is ongoing.
+ * @see Interval
+ */
 class Period
 {
 public:
@@ -24,7 +34,7 @@ public:
 private:
   QDate m_begin;
   QDate m_end;
-  Type m_type;
+  Type m_type = Type::Custom;
 
   friend std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept;
   friend bool operator==(const Period&, const Period&) noexcept = default;
