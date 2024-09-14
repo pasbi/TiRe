@@ -137,7 +137,7 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const 
 }
 
 fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(const Period::Type& t,
-                                                                                fmt::format_context& ctx)
+                                                                                fmt::format_context& ctx) const
 {
   return fmt::format_to(ctx.out(), "{}", ::type_label(t));
 }

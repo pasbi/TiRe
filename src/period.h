@@ -52,5 +52,5 @@ template<> struct fmt::formatter<Period> : fmt::formatter<std::string>
 template<> struct fmt::formatter<Period::Type> : fmt::formatter<std::string>
 {
   using format_return_type = decltype(std::declval<format_context>().out());
-  [[nodiscard]] format_return_type format(const Period::Type& t, fmt::format_context& ctx);
+  [[nodiscard]] format_return_type format(const Period::Type& t, fmt::format_context& ctx) const;
 };
