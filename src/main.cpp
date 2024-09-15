@@ -1,30 +1,14 @@
+#include "application.h"
 #include "mainwindow.h"
 #include <QApplication>
-#include <QCommandLineParser>
-
-namespace
-{
-
-constexpr auto timesheet_filename_option_name = "timesheet-filename";
-
-[[nodiscard]] auto command_line_args()
-{
-  auto clp = std::make_unique<QCommandLineParser>();
-  clp->addPositionalArgument(timesheet_filename_option_name, "Path to the time sheet (JSON).", "FILENAME");
-  clp->process(*QApplication::instance());
-  return clp;
-}
-
-}  // namespace
 
 int main(int argc, char** argv)
 {
-  QApplication app(argc, argv);
+  Application app(argc, argv);
 
   MainWindow w;
-  const auto clp = command_line_args();
-  if (const auto& args = clp->positionalArguments(); !args.empty()) {
-    w.load(static_cast<std::filesystem::path>(args.front().toStdString()));
+  if (const auto& filename = Application::timesheet_filename(); !filename.empty()) {
+    w.load(filename);
   }
   w.show();
   QApplication::exec();

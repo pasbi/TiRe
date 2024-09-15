@@ -1,4 +1,6 @@
 qt_add_executable(tire main.cpp
+        application.cpp
+        application.h
         datetimeeditor.cpp
         datetimeeditor.h
         datetimeeditor.ui
