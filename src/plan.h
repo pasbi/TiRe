@@ -1,4 +1,5 @@
 #pragma once
+#include "application.h"
 #include "json.h"
 
 #include <QDate>
@@ -18,7 +19,7 @@ public:
   [[nodiscard]] const std::chrono::minutes& overtime_offset() const noexcept;
 
 private:
-  QDate m_start = QDate::currentDate();
+  QDate m_start = Application::current_date_time().date();
   std::chrono::minutes m_overtime_offset{0};
   std::map<QDate, std::chrono::minutes> m_planned_working_time = {};
 };

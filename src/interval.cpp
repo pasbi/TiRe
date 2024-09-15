@@ -1,4 +1,5 @@
 #include "interval.h"
+#include "application.h"
 #include "exceptions.h"
 #include "json.h"
 #include "period.h"
@@ -47,7 +48,7 @@ QString Interval::duration_text() const
   if (m_begin.isNull()) {
     return {};
   }
-  const auto duration = (m_end.isNull() ? QDateTime::currentDateTime() : m_end) - m_begin;
+  const auto duration = (m_end.isNull() ? Application::current_date_time() : m_end) - m_begin;
   using std::chrono_literals::operator""min;
   const auto duration_min = duration / 1min;
   const auto minutes = duration_min % 60;
@@ -63,7 +64,7 @@ QString Interval::duration_text() const
 
 std::chrono::minutes Interval::duration() const
 {
-  const auto end = this->end().isValid() ? this->end() : QDateTime::currentDateTime();
+  const auto end = this->end().isValid() ? this->end() : Application::current_date_time();
   using std::chrono_literals::operator""ms;
   return std::chrono::duration_cast<std::chrono::minutes>(begin().msecsTo(end) * 1ms);
 }

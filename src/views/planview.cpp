@@ -1,5 +1,6 @@
 #include "views/planview.h"
 
+#include "application.h"
 #include "intervalmodel.h"
 #include "plan.h"
 #include "timesheet.h"
@@ -60,7 +61,7 @@ void PlanView::invalidate()
   m_ui->lb_overtime->setText(::format_minutes(actual_working_time - planned_working_time + actual_leave_time));
 
   const auto total_overtime = plan.overtime_offset() + interval_model.minutes({}, Project::Type::Work)
-                              - plan.planned_working_time({}, QDate::currentDate());
+                              - plan.planned_working_time({}, Application::current_date_time().date());
   m_ui->lb_overtime_cum->setText(::format_minutes(total_overtime));
 
   update();

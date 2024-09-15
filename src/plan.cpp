@@ -42,17 +42,18 @@ std::chrono::minutes Plan::planned_working_time(const QDate& begin, const QDate&
 {
   using std::chrono_literals::operator""min;
   auto duration = 0min;
-  // TODO clamping at `QDate::currentDate` make the `Planned` label for future periods display wrong values.
+  // TODO clamping at the current date makes the `Planned` label for future periods display wrong values.
   // Planned should show the planned time until today (e.g., 16h for this week on a Tuesday), analgously, Overtime
   // should display the overtime until today (not -8h on a Thursday if you've worked for 8h each Mon-Thu but you're
   // missing Friday because that'd be only tomorrow).
   // So I think the way it is implemented right now is what we want.
   // We should, however, not display such "wrong" values, e.g., by hiding them in future periods.
-  const auto actual_begin = std::clamp(begin.isValid() ? begin : m_start, m_start, QDate::currentDate());
+  const auto actual_begin =
+      std::clamp(begin.isValid() ? begin : m_start, m_start, Application::current_date_time().date());
   if (end < m_start) {
     return duration;
   }
-  const auto actual_end = std::clamp(end, m_start, QDate::currentDate());
+  const auto actual_end = std::clamp(end, m_start, Application::current_date_time().date());
 
   const auto day_count = actual_begin.daysTo(actual_end) + 1;
   for (qint64 day = 0; day < day_count; ++day) {

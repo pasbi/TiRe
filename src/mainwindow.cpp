@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "application.h"
 #include "commands/addremovecommand.h"
 #include "commands/modifycommand.h"
 #include "commands/undostack.h"
@@ -81,7 +82,7 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
-    const auto timestamp = m_current_period.clamp(QDateTime::currentDateTime());
+    const auto timestamp = m_current_period.clamp(Application::current_date_time());
     fmt::print("Timestamp: {}, period: {}", timestamp, m_current_period);
     interval->swap_begin(timestamp);
     m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(interval)));
@@ -148,8 +149,8 @@ void MainWindow::end_task()
         QMessageBox::Ok);
     return;
   }
-  m_undo_stack->push(make_modify_interval_command(interval_model, *open_intervals.front(), QDateTime::currentDateTime(),
-                                                  &Interval::swap_end));
+  m_undo_stack->push(make_modify_interval_command(interval_model, *open_intervals.front(),
+                                                  Application::current_date_time(), &Interval::swap_end));
 }
 
 void MainWindow::switch_task()
@@ -170,7 +171,7 @@ void MainWindow::switch_task()
     return;
   }
 
-  const auto timestamp = QDateTime::currentDateTime();
+  const auto timestamp = Application::current_date_time();
   auto new_interval = std::make_unique<Interval>(d.current_project());
   new_interval->swap_begin(timestamp);
   auto add_interval_command = make<AddCommand>(interval_model, std::move(new_interval));
@@ -361,7 +362,7 @@ bool MainWindow::new_time_sheet()
   }
   set_time_sheet(std::make_unique<TimeSheet>());
   set_filename({});
-  set_date(QDate::currentDate());
+  set_date(Application::current_date_time().date());
   return true;
 }
 
@@ -377,7 +378,7 @@ void MainWindow::previous()
 
 void MainWindow::today()
 {
-  set_date(QDate::currentDate());
+  set_date(Application::current_date_time().date());
 }
 
 void MainWindow::set_date(const QDate& date)
@@ -387,7 +388,7 @@ void MainWindow::set_date(const QDate& date)
 
 void MainWindow::set_period_type(const Period::Type type)
 {
-  set_period(Period(QDate::currentDate(), type));
+  set_period(Period(Application::current_date_time().date(), type));
 }
 
 void MainWindow::set_period(const Period& period)

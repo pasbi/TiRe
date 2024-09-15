@@ -1,11 +1,12 @@
 #include "datetimeeditor.h"
+#include "application.h"
 #include "ui_datetimeeditor.h"
 #include <QDateTime>
 
 DateTimeEditor::DateTimeEditor(QWidget* parent) : QDialog(parent), m_ui(std::make_unique<Ui::DateTimeEditor>())
 {
   m_ui->setupUi(this);
-  connect(m_ui->pb_now, &QPushButton::clicked, this, [this]() { set_date_time(QDateTime::currentDateTime()); });
+  connect(m_ui->pb_now, &QPushButton::clicked, this, [this]() { set_date_time(Application::current_date_time()); });
   connect(m_ui->timeEdit, &QTimeEdit::timeChanged, m_ui->time_edit, &TimeEdit::set_time);
   connect(m_ui->time_edit, &TimeEdit::time_changed, m_ui->timeEdit, &QTimeEdit::setTime);
 }

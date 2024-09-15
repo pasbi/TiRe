@@ -1,5 +1,6 @@
 #pragma once
 
+#include "application.h"
 #include "intervalmodel.h"
 #include "period.h"
 #include <QActionGroup>
@@ -61,5 +62,5 @@ private:
   std::vector<std::unique_ptr<QAction>> m_context_menu_actions;
 
   [[nodiscard]] bool can_close();
-  Period m_current_period = Period(QDate::currentDate(), Period::Type::Day);
+  Period m_current_period = Period(Application::current_date_time().date(), Period::Type::Day);
 };

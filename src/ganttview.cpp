@@ -1,4 +1,5 @@
 #include "ganttview.h"
+#include "application.h"
 #include "colorutil.h"
 #include "interval.h"
 #include "period.h"
@@ -32,7 +33,9 @@ constexpr auto default_gantt_length_days = 30;
 }  // namespace
 
 GanttView::GanttView(QWidget* parent)
-  : QWidget(parent), m_period(QDate::currentDate().addDays(-default_gantt_length_days), QDate::currentDate())
+  : QWidget(parent)
+  , m_period(Application::current_date_time().date().addDays(-default_gantt_length_days),
+             Application::current_date_time().date())
 {
   setMouseTracking(true);
 }
@@ -122,7 +125,7 @@ QTime GanttView::time_at(const double x) const
 std::vector<QRectF> GanttView::rects(const Interval& interval) const
 {
   const auto& begin = interval.begin();
-  const auto end = interval.end().isValid() ? interval.end() : QDateTime::currentDateTime();
+  const auto end = interval.end().isValid() ? interval.end() : Application::current_date_time();
   const auto day_count = begin.date().daysTo(end.date());
   std::vector<QRectF> rects;
   rects.reserve(day_count);
