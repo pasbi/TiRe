@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     env:
-      CONAN_HOME: "${{ GITHUB_WORKSPACE }}/.conan2"
+      CONAN_HOME: "${{ github.workspace }}/.conan2"
   
     runs-on: ${{ matrix.os }}
 
