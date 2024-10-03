@@ -56,6 +56,12 @@ void GanttView::set_current_interval(const Interval* interval)
   update();
 }
 
+void GanttView::select_period(const Period& period)
+{
+  m_selected_period = period;
+  update();
+}
+
 void GanttView::paintEvent(QPaintEvent* event)
 {
   if (m_interval_model == nullptr) {
@@ -67,8 +73,12 @@ void GanttView::paintEvent(QPaintEvent* event)
 
   for (int day = 0; day < m_period.days(); ++day) {
     const auto date = m_period.begin().addDays(day);
+    auto bg_color = ::background(date);
+    if (m_selected_period.contains(date)) {
+      bg_color = bg_color.lighter();
+    }
     const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
-    painter.fillRect(rect, ::background(date));
+    painter.fillRect(rect, bg_color);
   }
 
   for (const auto* const interval : m_interval_model->intervals()) {

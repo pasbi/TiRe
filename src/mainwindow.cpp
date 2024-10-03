@@ -96,6 +96,11 @@ MainWindow::MainWindow(QWidget* parent)
   const auto init_view_action = [this](QAction* action, const Period::Type type) {
     m_view_action_group.addAction(action);
     connect(action, &QAction::triggered, this, [type, this]() { set_period_type(type); });
+    connect(this, &MainWindow::period_changed, this, [type, action](const Period& period) {
+      if (type == period.type()) {
+        action->setChecked(true);
+      }
+    });
   };
   init_view_action(m_ui->actionYear, Period::Type::Year);
   init_view_action(m_ui->actionMonth, Period::Type::Month);
@@ -396,10 +401,13 @@ void MainWindow::set_period_type(const Period::Type type)
 
 void MainWindow::set_period(const Period& period)
 {
+  if (m_current_period != period) {
+    Q_EMIT period_changed(period);
+  }
   m_current_period = period;
   m_ui->period_detail_view->set_period(m_current_period);
   m_ui->plan_view->set_period(m_current_period);
   m_ui->period_summary_view->set_period(m_current_period);
-  // m_ui->ganttview->set_period(m_current_period);
+  m_ui->ganttview->select_period(m_current_period);
   m_ui->statusbar->showMessage(m_current_period.label());
 }
