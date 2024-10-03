@@ -396,7 +396,7 @@ void MainWindow::set_date(const QDate& date)
 
 void MainWindow::set_period_type(const Period::Type type)
 {
-  set_period(Period(Application::current_date_time().date(), type));
+  set_period(Period(m_current_period.begin(), type));
 }
 
 void MainWindow::set_period(const Period& period)
