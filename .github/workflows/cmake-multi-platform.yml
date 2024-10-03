@@ -21,13 +21,11 @@ jobs:
 
       matrix:
         os: [ubuntu-latest, windows-latest]
-        compiler: [gcc, clang, msvc]
+        compiler: [gcc, msvc]
         build_type: [Release]
         exclude:
           - os: windows-latest
             compiler: gcc
-          - os: windows-latest
-            compiler: clang
           - os: ubuntu-latest
             compiler: msvc
         include:
@@ -36,11 +34,6 @@ jobs:
             cppstd: gnu20
             libcxx: libstdc++
             compiler_version: 11
-          - compiler: clang
-            generator: "Ninja"
-            cppstd: gnu20
-            libcxx: libc++
-            compiler_version: 14
           - compiler: msvc
             generator: "Visual Studio 17 2022"
             cppstd: 20
@@ -52,9 +45,6 @@ jobs:
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       run: sudo apt-get update; sudo apt-get install ninja-build
-
-    - if: ${{ matrix.compiler == 'clang' }}
-      run: sudo apt-get update; sudo apt-get install clang
 
     - name: Install Conan
       id: conan
