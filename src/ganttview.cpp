@@ -91,8 +91,13 @@ void GanttView::paintEvent(QPaintEvent* event)
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
-  const auto date_time = QDateTime(date_at(event->position().y()), time_at(event->position().x()));
-  QToolTip::showText(event->globalPosition().toPoint(), tr("%1").arg(date_time.toString("dddd, dd.MM. hh:mm")));
+  QToolTip::showText(event->globalPosition().toPoint(),
+                     tr("%1").arg(datetime_at(event->pos()).toString("dddd, dd.MM. hh:mm")));
+}
+
+void GanttView::mousePressEvent(QMouseEvent* const event)
+{
+  Q_EMIT clicked(datetime_at(event->pos()));
 }
 
 double GanttView::pos_y(const QDate& date) const
@@ -120,6 +125,11 @@ QTime GanttView::time_at(const double x) const
   using std::chrono_literals::operator""min;
   const auto total = 24.0h * x / static_cast<double>(width());
   return {static_cast<int>(total / 60min), static_cast<int>(total / 1min) % 60};
+}
+
+QDateTime GanttView::datetime_at(const QPointF& pos) const
+{
+  return {date_at(pos.y()), time_at(pos.x())};
 }
 
 std::vector<QRectF> GanttView::rects(const Interval& interval) const
