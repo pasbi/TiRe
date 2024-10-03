@@ -43,6 +43,7 @@ GanttView::GanttView(QWidget* parent)
 void GanttView::set_model(const IntervalModel* interval_model)
 {
   m_interval_model = interval_model;
+  m_current_interval = nullptr;
   if (m_interval_model != nullptr) {
     connect(m_interval_model, &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
   }
