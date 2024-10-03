@@ -43,6 +43,7 @@ GanttView::GanttView(QWidget* parent)
 void GanttView::set_model(const IntervalModel* interval_model)
 {
   m_interval_model = interval_model;
+  m_current_interval = nullptr;
   if (m_interval_model != nullptr) {
     connect(m_interval_model, &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
   }
@@ -52,6 +53,12 @@ void GanttView::set_model(const IntervalModel* interval_model)
 void GanttView::set_current_interval(const Interval* interval)
 {
   m_current_interval = interval;
+  update();
+}
+
+void GanttView::select_period(const Period& period)
+{
+  m_selected_period = period;
   update();
 }
 
@@ -66,8 +73,12 @@ void GanttView::paintEvent(QPaintEvent* event)
 
   for (int day = 0; day < m_period.days(); ++day) {
     const auto date = m_period.begin().addDays(day);
+    auto bg_color = ::background(date);
+    if (m_selected_period.contains(date)) {
+      bg_color = bg_color.lighter();
+    }
     const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
-    painter.fillRect(rect, ::background(date));
+    painter.fillRect(rect, bg_color);
   }
 
   for (const auto* const interval : m_interval_model->intervals()) {
@@ -91,8 +102,13 @@ void GanttView::paintEvent(QPaintEvent* event)
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
-  const auto date_time = QDateTime(date_at(event->position().y()), time_at(event->position().x()));
-  QToolTip::showText(event->globalPosition().toPoint(), tr("%1").arg(date_time.toString("dddd, dd.MM. hh:mm")));
+  QToolTip::showText(event->globalPosition().toPoint(),
+                     tr("%1").arg(datetime_at(event->pos()).toString("dddd, dd.MM. hh:mm")));
+}
+
+void GanttView::mousePressEvent(QMouseEvent* const event)
+{
+  Q_EMIT clicked(datetime_at(event->pos()));
 }
 
 double GanttView::pos_y(const QDate& date) const
@@ -120,6 +136,11 @@ QTime GanttView::time_at(const double x) const
   using std::chrono_literals::operator""min;
   const auto total = 24.0h * x / static_cast<double>(width());
   return {static_cast<int>(total / 60min), static_cast<int>(total / 1min) % 60};
+}
+
+QDateTime GanttView::datetime_at(const QPointF& pos) const
+{
+  return {date_at(pos.y()), time_at(pos.x())};
 }
 
 std::vector<QRectF> GanttView::rects(const Interval& interval) const

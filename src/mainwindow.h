@@ -42,6 +42,9 @@ public:
 protected:
   void closeEvent(QCloseEvent* event) override;
 
+Q_SIGNALS:
+  void period_changed(Period period);
+
 private:
   std::unique_ptr<Ui::MainWindow> m_ui;
   std::unique_ptr<TimeSheet> m_time_sheet;

@@ -1,4 +1,5 @@
 #include "plan.h"
+#include "period.h"
 #include <QDate>
 #include <nlohmann/json.hpp>
 
@@ -35,10 +36,10 @@ std::chrono::minutes Plan::planned_working_time(const QDate& date) const noexcep
     return 0min;
   }
   using std::chrono_literals::operator""h;
-  return std::chrono::duration_cast<std::chrono::minutes>(8h);
+  return 8h;
 }
 
-std::chrono::minutes Plan::planned_working_time(const QDate& begin, const QDate& end) const noexcept
+std::chrono::minutes Plan::planned_working_time(const Period& period) const noexcept
 {
   using std::chrono_literals::operator""min;
   auto duration = 0min;
@@ -48,16 +49,14 @@ std::chrono::minutes Plan::planned_working_time(const QDate& begin, const QDate&
   // missing Friday because that'd be only tomorrow).
   // So I think the way it is implemented right now is what we want.
   // We should, however, not display such "wrong" values, e.g., by hiding them in future periods.
-  const auto actual_begin =
-      std::clamp(begin.isValid() ? begin : m_start, m_start, Application::current_date_time().date());
-  if (end < m_start) {
+  if (period.end() < m_start) {
     return duration;
   }
-  const auto actual_end = std::clamp(end, m_start, Application::current_date_time().date());
+  const auto actual_end = std::clamp(period.end(), m_start, Application::current_date_time().date());
 
-  const auto day_count = actual_begin.daysTo(actual_end) + 1;
+  const auto day_count = period.begin().daysTo(actual_end) + 1;
   for (qint64 day = 0; day < day_count; ++day) {
-    duration += planned_working_time(actual_begin.addDays(day));
+    duration += planned_working_time(period.begin().addDays(day));
   }
   return duration;
 }
@@ -65,4 +64,9 @@ std::chrono::minutes Plan::planned_working_time(const QDate& begin, const QDate&
 const std::chrono::minutes& Plan::overtime_offset() const noexcept
 {
   return m_overtime_offset;
+}
+
+const QDate Plan::start() const noexcept
+{
+  return m_start;
 }

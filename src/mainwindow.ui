@@ -36,12 +36,12 @@
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
       <widget class="QWidget" name="layoutWidget">
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
-        </item>
+       <layout class="QHBoxLayout" name="verticalLayout">
         <item>
          <widget class="PlanView" name="plan_view" native="true"/>
+        </item>
+        <item>
+         <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
         </item>
        </layout>
       </widget>

@@ -1,6 +1,7 @@
 #include "views/planview.h"
 
 #include "application.h"
+#include "fmt.h"
 #include "intervalmodel.h"
 #include "plan.h"
 #include "timesheet.h"
@@ -27,18 +28,20 @@ namespace
 PlanView::PlanView(QWidget* parent) : AbstractPeriodView(parent), m_ui(std::make_unique<Ui::PlanView>())
 {
   m_ui->setupUi(this);
+  clear();
 }
 
 PlanView::~PlanView() = default;
 
 void PlanView::clear() const
 {
-  m_ui->lb_holiday->setText("-");
-  m_ui->lb_total->setText("-");
-  m_ui->lb_overtime->setText("-");
-  m_ui->lb_overtime_cum->setText("-");
-  m_ui->lb_planned->setText("-");
-  m_ui->lb_sick->setText("-");
+  for (auto* const lb : {m_ui->lb_holiday, m_ui->lb_total_balance, m_ui->lb_actual_worktime, m_ui->lb_balance_carryover,
+                         m_ui->lb_expected_worktime, m_ui->lb_period, m_ui->lb_period, m_ui->lb_sick,
+                         m_ui->lb_period_balance, m_ui->lb_total_worktime})
+  {
+    lb->setText("-");
+    lb->setTextInteractionFlags(Qt::TextSelectableByKeyboard | Qt::TextSelectableByMouse);
+  }
 }
 
 void PlanView::invalidate()
@@ -51,18 +54,30 @@ void PlanView::invalidate()
   const auto& interval_model = time_sheet()->interval_model();
   const auto& plan = time_sheet()->plan();
   const auto actual_working_time = interval_model.minutes(current_period(), Project::Type::Work);
-  const auto actual_leave_time = interval_model.minutes(current_period(), Project::Type::Holiday)
-                                 + interval_model.minutes(current_period(), Project::Type::Sick);
-  const auto planned_working_time = plan.planned_working_time(current_period().begin(), current_period().end());
-  m_ui->lb_total->setText(::format_minutes(actual_working_time));
-  m_ui->lb_holiday->setText(::format_minutes(interval_model.minutes(current_period(), Project::Type::Holiday)));
-  m_ui->lb_sick->setText(::format_minutes(interval_model.minutes(current_period(), Project::Type::Sick)));
-  m_ui->lb_planned->setText(::format_minutes(planned_working_time));
-  m_ui->lb_overtime->setText(::format_minutes(actual_working_time - planned_working_time + actual_leave_time));
+  const auto sick_time = interval_model.minutes(current_period(), Project::Type::Sick);
+  const auto holiday_time = interval_model.minutes(current_period(), Project::Type::Holiday);
+  const auto total_working_time = plan.planned_working_time(current_period());
+  const auto expected_working_time = total_working_time - sick_time - holiday_time;
+  const auto balance = actual_working_time - expected_working_time;
+  const Period total_period{plan.start(), current_period().end()};
+  const auto total_balance =
+      plan.overtime_offset() + interval_model.minutes(total_period) - plan.planned_working_time(total_period);
+  const auto balance_carryover = total_balance - balance;
 
-  const auto total_overtime = plan.overtime_offset() + interval_model.minutes({}, Project::Type::Work)
-                              - plan.planned_working_time({}, Application::current_date_time().date());
-  m_ui->lb_overtime_cum->setText(::format_minutes(total_overtime));
+  m_ui->lb_period->setText(current_period().label());
+  m_ui->lb_total_worktime->setText(::format_minutes(total_working_time));
+  m_ui->lb_expected_worktime->setText(::format_minutes(expected_working_time));
+  m_ui->lb_sick->setText(::format_minutes(sick_time));
+  m_ui->lb_holiday->setText(::format_minutes(holiday_time));
+  m_ui->lb_actual_worktime->setText(::format_minutes(actual_working_time));
+  m_ui->lb_balance_carryover->setText(::format_minutes(balance_carryover));
+  m_ui->lb_balance_carryover->setToolTip(
+      tr("The balance from before this period (since %1)").arg(plan.start().toString()));
+  m_ui->lb_period_balance->setText(::format_minutes(balance));
+  m_ui->lb_total_balance->setText(::format_minutes(total_balance));
+  m_ui->lb_total_balance->setToolTip(
+      tr("The balance since the beginning of records (including this period, from %1 to %2).")
+          .arg(plan.start().toString(), current_period().end().toString()));
 
   update();
 }
