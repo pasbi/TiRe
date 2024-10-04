@@ -139,7 +139,7 @@ void DateTimeSelector::resizeEvent(QResizeEvent* const event)
   QWidget::resizeEvent(event);
 }
 
-void DateTimeSelector::wheelEvent(QWheelEvent* event)
+void DateTimeSelector::wheelEvent(QWheelEvent* const event)
 {
   using std::chrono_literals::operator""min;
   m_accumulated_wheel_y += event->angleDelta().y();
