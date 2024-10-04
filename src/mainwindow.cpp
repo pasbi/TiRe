@@ -11,6 +11,7 @@
 #include "projectmodel.h"
 #include "serialization.h"
 #include "timerangeeditor.h"
+#include "timerangeeditor2.h"
 #include "timerangeslider.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
@@ -339,7 +340,7 @@ void MainWindow::show_table_context_menu(const QPoint& pos)
 
 void MainWindow::edit_date_time(const QModelIndex& index) const
 {
-  TimeRangeEditor e;
+  TimeRangeEditor2 e;
   auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
   e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {

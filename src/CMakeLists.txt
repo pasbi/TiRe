@@ -43,6 +43,11 @@ qt_add_executable(tire main.cpp
         colorutil.h
         timeedit.cpp
         timeedit.h
+        timerangeeditor2.cpp
+        timerangeeditor2.h
+        timerangeeditor2.ui
+        datetimeselector.cpp
+        datetimeselector.h
 )
 
 target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
