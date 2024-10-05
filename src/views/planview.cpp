@@ -51,20 +51,27 @@ void PlanView::invalidate()
     return;
   }
 
-  const auto& interval_model = time_sheet()->interval_model();
   const auto& plan = time_sheet()->plan();
-  const auto actual_working_time = interval_model.minutes(current_period(), Project::Type::Work);
-  const auto sick_time = interval_model.minutes(current_period(), Project::Type::Sick);
-  const auto holiday_time = interval_model.minutes(current_period(), Project::Type::Holiday);
-  const auto total_working_time = plan.planned_working_time(current_period());
+  const Period current_period(std::max(this->current_period().begin(), plan.start()),
+                              std::min(this->current_period().end(), Application::current_date_time().date()));
+
+  const auto& interval_model = time_sheet()->interval_model();
+  const auto actual_working_time = interval_model.minutes(current_period, Project::Type::Work);
+  const auto sick_time = interval_model.minutes(current_period, Project::Type::Sick);
+  const auto holiday_time = interval_model.minutes(current_period, Project::Type::Holiday);
+  const auto total_working_time = plan.planned_working_time(current_period);
   const auto expected_working_time = total_working_time - sick_time - holiday_time;
   const auto balance = actual_working_time - expected_working_time;
-  const Period total_period{plan.start(), current_period().end()};
+  const Period total_period{plan.start(), current_period.end()};
   const auto total_balance =
       plan.overtime_offset() + interval_model.minutes(total_period) - plan.planned_working_time(total_period);
   const auto balance_carryover = total_balance - balance;
 
-  m_ui->lb_period->setText(current_period().label());
+  m_ui->lb_period->setText([cp = this->current_period(), &current_period] {
+    return cp.label() + (cp.begin() == current_period.begin() && cp.end() == current_period.end() ? "" : "*");
+  }());
+  m_ui->lb_period->setToolTip(
+      tr("From %1 to %2").arg(current_period.begin().toString()).arg(current_period.end().toString()));
   m_ui->lb_total_worktime->setText(::format_minutes(total_working_time));
   m_ui->lb_expected_worktime->setText(::format_minutes(expected_working_time));
   m_ui->lb_sick->setText(::format_minutes(sick_time));
@@ -77,7 +84,7 @@ void PlanView::invalidate()
   m_ui->lb_total_balance->setText(::format_minutes(total_balance));
   m_ui->lb_total_balance->setToolTip(
       tr("The balance since the beginning of records (including this period, from %1 to %2).")
-          .arg(plan.start().toString(), current_period().end().toString()));
+          .arg(plan.start().toString(), current_period.end().toString()));
 
   update();
 }
