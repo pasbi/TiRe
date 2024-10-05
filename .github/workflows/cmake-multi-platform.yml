@@ -1,0 +1,115 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake on multiple platforms
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    env:
+      CONAN_HOME: "${{ github.workspace }}/.conan2"
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        compiler: [gcc, msvc]
+        build_type: [Release]
+        exclude:
+          - os: windows-latest
+            compiler: gcc
+          - os: ubuntu-latest
+            compiler: msvc
+        include:
+          - compiler: gcc
+            generator: "Unix Makefiles"
+            cppstd: gnu20
+            libcxx: libstdc++
+            compiler_version: 11
+          - compiler: msvc
+            generator: "Visual Studio 17 2022"
+            cppstd: 20
+            compiler_runtime: dynamic
+            compiler_version: 194
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: sudo apt-get update; sudo apt-get install ninja-build
+
+    - name: Install Conan
+      id: conan
+      uses: turtlebrowser/get-conan@main
+
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Cache Conan Dependencies
+      id: cache-conan
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CONAN_HOME }}
+        key: conan-cache-${{ runner.os }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: conan-cache-${{ runner.os }}-
+
+    - uses: DamianReeves/write-file-action@master
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      with:
+        path: ${{ env.CONAN_HOME }}/profiles/default
+        contents: |
+          [settings]
+          arch=x86_64
+          build_type=${{ matrix.build_type }}
+          compiler=${{ matrix.compiler }}
+          compiler.cppstd=${{ matrix.cppstd }}
+          compiler.version=${{ matrix.compiler_version }}
+          os=${{ runner.os }}
+          compiler.libcxx=${{ matrix.libcxx }}
+
+          [conf]
+          tools.system.package_manager:mode=install
+          tools.system.package_manager:sudo=True
+        write-mode: append
+
+    - uses: DamianReeves/write-file-action@master
+      if: ${{ matrix.os == 'windows-latest' }}
+      with:
+        path: ${{ env.CONAN_HOME }}/profiles/default
+        contents: |
+          [settings]
+          arch=x86_64
+          build_type=${{ matrix.build_type }}
+          compiler=${{ matrix.compiler }}
+          compiler.cppstd=${{ matrix.cppstd }}
+          compiler.version=${{ matrix.compiler_version }}
+          os=${{ runner.os }}
+          compiler.runtime=${{ matrix.compiler_runtime }}
+        write-mode: append
+
+
+    - name: PrintProfile
+      run: cat ${{ env.CONAN_HOME }}/profiles/default
+
+    - name: list packages
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: dpkg --list
+
+    - name: Install Dependencies
+      run: conan install . --build=missing --output-folder=build
+
+    - name: Build
+      run: |
+        cmake -G "${{ matrix.generator }}" -S . -B build -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        cmake --build build --config ${{ matrix.build_type }} --parallel
+
+    - name: Test
+      run: ctest --build-config ${{ matrix.build_type }} --test-dir build
