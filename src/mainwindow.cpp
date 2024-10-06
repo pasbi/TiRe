@@ -392,7 +392,8 @@ void MainWindow::today()
 
 void MainWindow::set_date(const QDate& date)
 {
-  set_period(Period(date, m_current_period.type()));
+  set_period(Period(date, m_current_period.type())
+                 .constrained(m_time_sheet->plan().start(), Application::current_date_time().date()));
 }
 
 void MainWindow::set_period_type(const Period::Type type)
@@ -402,13 +403,16 @@ void MainWindow::set_period_type(const Period::Type type)
 
 void MainWindow::set_period(const Period& period)
 {
-  if (m_current_period != period) {
-    Q_EMIT period_changed(period);
+  if (m_current_period == period) {
+    return;
   }
-  m_current_period = period;
+
+  m_current_period = period.constrained(m_time_sheet->plan().start(), Application::current_date_time().date());
+
   m_ui->period_detail_view->set_period(m_current_period);
   m_ui->plan_view->set_period(m_current_period);
   m_ui->period_summary_view->set_period(m_current_period);
   m_ui->ganttview->select_period(m_current_period);
   m_ui->statusbar->showMessage(m_current_period.label());
+  Q_EMIT period_changed(m_current_period);
 }
