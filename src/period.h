@@ -33,6 +33,7 @@ public:
   [[nodiscard]] QDate clamp(const QDate& date) const noexcept;
   [[nodiscard]] QDateTime clamp(const QDateTime& date_time) const noexcept;
   [[nodiscard]] Period constrained(const QDate& latest_begin, const QDate& earliest_end) const;
+  [[nodiscard]] std::pair<QDate, QDate> dates() const noexcept;
 
 private:
   QDate m_begin;

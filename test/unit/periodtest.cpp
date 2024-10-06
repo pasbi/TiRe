@@ -41,8 +41,7 @@ TEST_P(PeriodConstrainTestFixture, Constrain)
   const auto& [candidate, expected_constrained_period] = GetParam();
 
   const auto actual_constrained_period = candidate.constrained(::start_date, ::today);
-  ASSERT_EQ(actual_constrained_period.begin(), expected_constrained_period.begin());
-  ASSERT_EQ(actual_constrained_period.end(), expected_constrained_period.end());
+  ASSERT_EQ(actual_constrained_period.dates(), expected_constrained_period.dates());
 }
 
 INSTANTIATE_TEST_CASE_P(PeriodConstrainTests, PeriodConstrainTestFixture,

@@ -127,8 +127,7 @@ bool Period::contains(const QDate& date) const noexcept
 
 std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept
 {
-  static constexpr auto to_tuple = [](const auto& period) { return std::pair(period.begin(), period.end()); };
-  return to_tuple(a) <=> to_tuple(b);
+  return a.dates() <=> b.dates();
 }
 
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
@@ -177,4 +176,9 @@ Period Period::constrained(const QDate& begin, const QDate& end) const
   }
 
   return *this;
+}
+
+std::pair<QDate, QDate> Period::dates() const noexcept
+{
+  return {m_begin, m_end};
 }
