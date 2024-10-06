@@ -195,7 +195,19 @@ void MainWindow::switch_task()
 void MainWindow::update_window_title()
 {
   const auto filename_part = m_filename.empty() ? tr("Untitled") : QString::fromStdString(m_filename.string());
-  setWindowTitle(tr("%1[*] — %2").arg(filename_part, QApplication::applicationDisplayName()));
+  static const auto app_now_hint = [] {
+    if (const auto app_now = Application::current_date_time(); app_now != QDateTime::currentDateTime()) {
+      spdlog::warn("Application now ({}) doesn't match system now ({}). This may be useful for debugging only.",
+                   app_now, QDateTime::currentDateTime());
+      return tr("TODAY=%1").arg(app_now.toString());
+    }
+    return QStringLiteral();
+  }();
+  QStringList title{tr("%1[*] — %2").arg(filename_part, QApplication::applicationDisplayName())};
+  if (!app_now_hint.isEmpty()) {
+    title.append(app_now_hint);
+  }
+  setWindowTitle(title.join(" "));
 }
 
 bool MainWindow::can_close()
