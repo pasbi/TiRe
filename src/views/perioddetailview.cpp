@@ -9,12 +9,15 @@
 #include <QStyledItemDelegate>
 #include <spdlog/spdlog.h>
 
-namespace
-{
-
-class ItemDelegate : public QStyledItemDelegate
+class PeriodDetailView::ItemDelegate : public QStyledItemDelegate
 {
 public:
+  void set_period_type(const Period::Type type)
+  {
+    m_period_type = type;
+  }
+
+protected:
   void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
   {
     auto option_copy = option;
@@ -26,9 +29,25 @@ public:
     }
     QStyledItemDelegate::paint(painter, option_copy, index);
   }
-};
 
-}  // namespace
+  void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
+  {
+    QStyledItemDelegate::initStyleOption(option, index);
+    if (const auto data = index.data(Qt::DisplayRole); data.typeId() == qMetaTypeId<DatePair>()) {
+      const auto& [begin, end] = qvariant_cast<DatePair>(data);
+      using enum Period::Type;
+      const auto format = m_period_type == Custom || m_period_type == Year ? "dd.MM." : "ddd, dd.";
+      if (begin == end) {
+        option->text = begin.toString(format);
+      } else {
+        option->text = begin.toString(format) + " - " + end.toString(format);
+      }
+    }
+  }
+
+private:
+  Period::Type m_period_type = Period::Type::Custom;
+};
 
 PeriodDetailView::PeriodDetailView(QWidget* parent)
   : AbstractPeriodView(parent)
@@ -85,6 +104,7 @@ void PeriodDetailView::set_model(const TimeSheet* time_sheet)
 void PeriodDetailView::set_period(const Period& period)
 {
   m_proxy_model->set_period(period);
+  m_item_delegate->set_period_type(period.type());
   AbstractPeriodView::set_period(period);
 }
 

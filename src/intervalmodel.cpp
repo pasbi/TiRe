@@ -22,15 +22,6 @@ template<typename Intervals> [[nodiscard]] auto find(Intervals&& intervals, cons
   };
 }
 
-[[nodiscard]] QString format_date(const QDate& begin, const QDate& end)
-{
-  static constexpr auto format = "ddd, dd.";
-  if (begin == end) {
-    return begin.toString(format);
-  }
-  return begin.toString(format) + " - " + end.toString(format);
-}
-
 [[nodiscard]] bool is_match(const Project& project, const std::optional<Project::Type>& type,
                             const std::optional<QString>& name)
 {
@@ -82,7 +73,7 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
     case end_column:
       return interval->end().time();
     case date_column:
-      return ::format_date(interval->begin().date(), interval->end().date());
+      return QVariant::fromValue(DatePair{interval->begin().date(), interval->end().date()});
     case duration_column:
       return interval->duration_text();
     default:

@@ -47,3 +47,6 @@ private:
   std::deque<std::unique_ptr<Interval>> m_intervals;
   [[nodiscard]] QVariant background_data(const QModelIndex& index) const;
 };
+
+using DatePair = std::pair<QDate, QDate>;
+Q_DECLARE_METATYPE(DatePair);

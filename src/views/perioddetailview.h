@@ -28,5 +28,6 @@ Q_SIGNALS:
 private:
   QTableView& m_table_view;
   std::unique_ptr<PeriodDetailProxyModel> m_proxy_model;
-  std::unique_ptr<QAbstractItemDelegate> m_item_delegate;
+  class ItemDelegate;
+  std::unique_ptr<ItemDelegate> m_item_delegate;
 };
