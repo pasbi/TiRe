@@ -32,6 +32,7 @@ public:
   [[nodiscard]] int days() const noexcept;
   [[nodiscard]] QDate clamp(const QDate& date) const noexcept;
   [[nodiscard]] QDateTime clamp(const QDateTime& date_time) const noexcept;
+  [[nodiscard]] Period constrained(const QDate& latest_begin, const QDate& earliest_end) const;
 
 private:
   QDate m_begin;

@@ -1,4 +1,4 @@
-target_sources(tire PUBLIC
+target_sources(tire-impl PRIVATE
         abstractperiodview.cpp
         abstractperiodview.h
         perioddetailproxymodel.cpp

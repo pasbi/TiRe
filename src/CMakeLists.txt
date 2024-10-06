@@ -1,4 +1,6 @@
-qt_add_executable(tire main.cpp
+qt_add_executable(tire main.cpp)
+add_library(tire-impl STATIC)
+target_sources(tire-impl PRIVATE
         application.cpp
         application.h
         datetimeeditor.cpp
@@ -50,9 +52,11 @@ qt_add_executable(tire main.cpp
         datetimeselector.h
 )
 
-target_link_libraries(tire PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
+target_link_libraries(tire-impl PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
+target_link_libraries(tire PRIVATE tire-impl)
 target_compile_features(tire PUBLIC cxx_std_20)
-target_include_directories(tire PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_compile_features(tire-impl PUBLIC cxx_std_20)
+target_include_directories(tire-impl PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(commands)
 add_subdirectory(views)

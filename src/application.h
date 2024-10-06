@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QDateTime>
 #include <filesystem>
 #include <memory>
 #include <optional>
 
 class QApplication;
+class QDateTime;
 
 class Application
 {

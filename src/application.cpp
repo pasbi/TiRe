@@ -2,6 +2,7 @@
 #include "fmt.h"
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QDateTime>
 
 std::optional<QDateTime> Application::m_current_date_time = std::nullopt;
 std::filesystem::path Application::m_timesheet_filename = {};

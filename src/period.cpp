@@ -144,7 +144,7 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(
 
 int Period::days() const noexcept
 {
-  return m_begin.daysTo(m_end) + 1;
+  return static_cast<int>(m_begin.daysTo(m_end)) + 1;
 }
 
 QDate Period::clamp(const QDate& date) const noexcept
@@ -159,5 +159,22 @@ QDate Period::clamp(const QDate& date) const noexcept
 QDateTime Period::clamp(const QDateTime& date_time) const noexcept
 {
   const auto date = clamp(date_time.date());
-  return QDateTime(date, date_time.time());
+  return {date, date_time.time()};
+}
+
+Period Period::constrained(const QDate& begin, const QDate& end) const
+{
+  if (m_type == Type::Custom) {
+    return Period{std::min(m_begin, begin), std::max(m_end, end)};
+  }
+
+  if (m_end < begin) {
+    return Period(begin, m_type);
+  }
+
+  if (m_begin > end) {
+    return Period(end, m_type);
+  }
+
+  return *this;
 }

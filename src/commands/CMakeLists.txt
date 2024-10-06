@@ -1,4 +1,4 @@
-target_sources(tire PUBLIC
+target_sources(tire-impl PRIVATE
         addremovecommand.h
         command.h
         modifycommand.h
