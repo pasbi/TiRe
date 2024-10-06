@@ -75,7 +75,7 @@ void GanttView::paintEvent(QPaintEvent* event)
     const auto date = m_period.begin().addDays(day);
     auto bg_color = ::background(date);
     if (m_selected_period.contains(date)) {
-      bg_color = bg_color.lighter();
+      bg_color = ::selected(bg_color);
     }
     const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
     painter.fillRect(rect, bg_color);
@@ -163,12 +163,13 @@ void GanttView::draw_grid(QPainter& painter) const
   const PainterSaver _(painter);
   using std::chrono_literals::operator""h;
   const auto text_color = palette().text().color();
-  painter.setPen(::mix_base(0.1, text_color));
+  const auto base_color = palette().base().color();
+  painter.setPen(::lerp(0.1, text_color, base_color));
   for (auto hour = 0h; hour <= 24h; ++hour) {
     const auto x = pos_x(QTime{static_cast<int>(hour / 1h), 0});
     painter.drawLine(QPointF{x, 0.0}, QPointF{x, static_cast<double>(height())});
   }
-  painter.setPen(::mix_base(0.9, text_color));
+  painter.setPen(::lerp(0.9, text_color, base_color));
   for (auto day = 0; day < m_period.days(); ++day) {
     const auto y = pos_y(m_period.begin().addDays(day));
     painter.drawLine(QPointF{0.0, y}, QPointF{static_cast<double>(width()), y});

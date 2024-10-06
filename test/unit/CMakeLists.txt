@@ -7,4 +7,5 @@ macro(package_add_test SOURCE_FILE)
     gtest_discover_tests(${TESTNAME})
 endmacro()
 
+package_add_test(colortest.cpp)
 package_add_test(periodtest.cpp)

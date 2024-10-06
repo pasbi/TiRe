@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QDate>
 #include <QPointF>
 #include <QString>
@@ -42,5 +43,13 @@ template<> struct fmt::formatter<QPointF> : fmt::formatter<std::string>
   [[nodiscard]] static auto format(const QPointF& p, fmt::format_context& ctx)
   {
     return fmt::format_to(ctx.out(), "[{}, {}]", p.x(), p.y());
+  }
+};
+
+template<> struct fmt::formatter<QColor> : fmt::formatter<std::string>
+{
+  [[nodiscard]] static auto format(const QColor& c, fmt::format_context& ctx)
+  {
+    return fmt::format_to(ctx.out(), "{}", c.name());
   }
 };
