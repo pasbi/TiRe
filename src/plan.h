@@ -17,7 +17,7 @@ public:
   [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date) const noexcept;
   [[nodiscard]] std::chrono::minutes planned_working_time(const Period& period) const noexcept;
   [[nodiscard]] const std::chrono::minutes& overtime_offset() const noexcept;
-  [[nodiscard]] const QDate start() const noexcept;
+  [[nodiscard]] const QDate& start() const noexcept;
 
 private:
   QDate m_start = Application::current_date_time().date();

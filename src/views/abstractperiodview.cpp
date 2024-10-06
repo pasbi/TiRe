@@ -27,7 +27,7 @@ void AbstractPeriodView::set_model(const TimeSheet* const time_sheet)
   }
 }
 
-const Period& AbstractPeriodView::current_period() noexcept
+const Period& AbstractPeriodView::current_period() const noexcept
 {
   return m_current_period;
 }

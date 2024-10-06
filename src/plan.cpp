@@ -44,7 +44,7 @@ std::chrono::minutes Plan::planned_working_time(const Period& period) const noex
   using std::chrono_literals::operator""min;
   auto duration = 0min;
   // TODO clamping at the current date makes the `Planned` label for future periods display wrong values.
-  // Planned should show the planned time until today (e.g., 16h for this week on a Tuesday), analgously, Overtime
+  // Planned should show the planned time until today (e.g., 16h for this week on a Tuesday), analogously, Overtime
   // should display the overtime until today (not -8h on a Thursday if you've worked for 8h each Mon-Thu but you're
   // missing Friday because that'd be only tomorrow).
   // So I think the way it is implemented right now is what we want.
@@ -66,7 +66,7 @@ const std::chrono::minutes& Plan::overtime_offset() const noexcept
   return m_overtime_offset;
 }
 
-const QDate Plan::start() const noexcept
+const QDate& Plan::start() const noexcept
 {
   return m_start;
 }

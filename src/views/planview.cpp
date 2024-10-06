@@ -7,6 +7,8 @@
 #include "timesheet.h"
 #include "ui_planview.h"
 
+int PlanView::m_max_period_text_width = 0;
+
 namespace
 {
 
@@ -67,9 +69,7 @@ void PlanView::invalidate()
       plan.overtime_offset() + interval_model.minutes(total_period) - plan.planned_working_time(total_period);
   const auto balance_carryover = total_balance - balance;
 
-  m_ui->lb_period->setText([cp = this->current_period(), &current_period] {
-    return cp.label() + (cp.begin() == current_period.begin() && cp.end() == current_period.end() ? "" : "*");
-  }());
+  m_ui->lb_period->setText(period_text(current_period));
   m_ui->lb_period->setToolTip(
       tr("From %1 to %2").arg(current_period.begin().toString()).arg(current_period.end().toString()));
   m_ui->lb_total_worktime->setText(::format_minutes(total_working_time));
@@ -87,4 +87,20 @@ void PlanView::invalidate()
           .arg(plan.start().toString(), current_period.end().toString()));
 
   update();
+}
+QSize PlanView::sizeHint() const
+{
+  // The PlanView can only grow.
+  // It's difficult to calculate the maximum required size in advance.
+  // Instead, remember the largest required size until now and don't shrink it.
+  // That should reduce wobbling around when browsing history.
+  auto size_hint = AbstractPeriodView::sizeHint();
+  m_max_period_text_width = std::max(m_max_period_text_width, size_hint.width());
+  size_hint.setWidth(m_max_period_text_width);
+  return size_hint;
+}
+
+QString PlanView::period_text(const Period& period) const
+{
+  return current_period().label() + (current_period().dates() == period.dates() ? "" : "*");
 }
