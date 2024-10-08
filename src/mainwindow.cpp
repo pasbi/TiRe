@@ -85,7 +85,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_New_time_sheet, &QAction::triggered, this, &MainWindow::new_time_sheet);
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
-    auto interval = std::make_unique<Interval>(m_time_sheet->project_model().empty_project());
+    auto interval = std::make_unique<Interval>(nullptr);
     const auto timestamp = m_current_period.clamp(Application::current_date_time());
     fmt::print("Timestamp: {}, period: {}", timestamp, m_current_period);
     interval->swap_begin(timestamp);
@@ -181,7 +181,7 @@ void MainWindow::switch_task()
   }
 
   const auto timestamp = Application::current_date_time();
-  auto new_interval = std::make_unique<Interval>(d.current_project());
+  auto new_interval = std::make_unique<Interval>(&d.current_project());
   new_interval->swap_begin(timestamp);
   auto add_interval_command = make<AddCommand>(interval_model, std::move(new_interval));
   const auto macro = m_undo_stack->start_macro(add_interval_command->text());
@@ -369,7 +369,9 @@ void MainWindow::edit_project(const QModelIndex& index) const
 {
   ProjectEditor e(*m_undo_stack, m_time_sheet->project_model());
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
-  e.set_project(interval->project());
+  if (const auto* const project = interval->project(); project != nullptr) {
+    e.set_project(*project);
+  }
   if (e.exec() == QDialog::Accepted) {
     m_undo_stack->push(make_modify_interval_command(m_time_sheet->interval_model(), *interval, &e.current_project(),
                                                     &Interval::swap_project));

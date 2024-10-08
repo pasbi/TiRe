@@ -36,7 +36,7 @@ const Project& ProjectEditor::current_project() const
 
 std::unique_ptr<Project> ProjectEditor::create_project() const
 {
-  return std::make_unique<Project>(Project::Type::Work, m_ui->cb_name->currentText(), m_project_model.generate_color());
+  return std::make_unique<Project>(m_ui->cb_name->currentText(), m_project_model.generate_color());
 }
 
 void ProjectEditor::showEvent(QShowEvent* event)
@@ -55,7 +55,7 @@ void ProjectEditor::update_project_list() const
   const QSignalBlocker _(m_ui->cb_name);
   m_ui->cb_name->clear();
   for (const auto& project : m_project_model.projects()) {
-    m_ui->cb_name->addItem(project->label());
+    m_ui->cb_name->addItem(project->name());
   }
 }
 

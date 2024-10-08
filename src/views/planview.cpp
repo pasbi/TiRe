@@ -1,5 +1,4 @@
 #include "views/planview.h"
-
 #include "application.h"
 #include "fmt.h"
 #include "intervalmodel.h"
@@ -37,13 +36,28 @@ PlanView::~PlanView() = default;
 
 void PlanView::clear() const
 {
-  for (auto* const lb : {m_ui->lb_holiday, m_ui->lb_total_balance, m_ui->lb_actual_worktime, m_ui->lb_balance_carryover,
-                         m_ui->lb_expected_worktime, m_ui->lb_period, m_ui->lb_period, m_ui->lb_sick,
-                         m_ui->lb_period_balance, m_ui->lb_total_worktime})
+  for (auto* const lb :
+       {m_ui->lb_holiday, m_ui->lb_total_balance, m_ui->lb_actual_worktime, m_ui->lb_balance_carryover,
+        m_ui->lb_expected_worktime, m_ui->lb_period, m_ui->lb_period, m_ui->lb_sick, m_ui->lb_period_balance})
   {
     lb->setText("-");
     lb->setTextInteractionFlags(Qt::TextSelectableByKeyboard | Qt::TextSelectableByMouse);
   }
+}
+
+std::chrono::minutes expected_working_time(const Plan& plan, const IntervalModel& interval_model, const Period& period)
+{
+  using std::chrono_literals::operator""min;
+  auto duration = 0min;
+  const auto actual_end = std::clamp(period.end(), plan.start(), Application::current_date_time().date());
+
+  const auto day_count = period.begin().daysTo(actual_end) + 1;
+  for (qint64 day = 0; day < day_count; ++day) {
+
+    duration +=
+        plan.planned_working_time(period.begin().addDays(day), interval_model.minutes(period.begin().addDays(day)));
+  }
+  return duration;
 }
 
 void PlanView::invalidate()
@@ -57,22 +71,21 @@ void PlanView::invalidate()
   const Period current_period(std::max(this->current_period().begin(), plan.start()),
                               std::min(this->current_period().end(), Application::current_date_time().date()));
 
+  using std::chrono_literals::operator""min;
   const auto& interval_model = time_sheet()->interval_model();
-  const auto actual_working_time = interval_model.minutes(current_period, Project::Type::Work);
-  const auto sick_time = interval_model.minutes(current_period, Project::Type::Sick);
-  const auto holiday_time = interval_model.minutes(current_period, Project::Type::Holiday);
-  const auto total_working_time = plan.planned_working_time(current_period);
-  const auto expected_working_time = total_working_time - sick_time - holiday_time;
+  const auto actual_working_time = interval_model.minutes(current_period);
+  const auto sick_time = 0min;  // TODO interval_model.minutes(current_period, Project::Type::Sick);
+  const auto holiday_time = 0min;  // TODO interval_model.minutes(current_period, Project::Type::Holiday);
+  const auto expected_working_time = ::expected_working_time(plan, interval_model, current_period);
   const auto balance = actual_working_time - expected_working_time;
   const Period total_period{plan.start(), current_period.end()};
-  const auto total_balance =
-      plan.overtime_offset() + interval_model.minutes(total_period) - plan.planned_working_time(total_period);
+  const auto total_balance = plan.overtime_offset() + interval_model.minutes(total_period)
+                             - ::expected_working_time(plan, interval_model, total_period);
   const auto balance_carryover = total_balance - balance;
 
   m_ui->lb_period->setText(period_text(current_period));
   m_ui->lb_period->setToolTip(
       tr("From %1 to %2").arg(current_period.begin().toString()).arg(current_period.end().toString()));
-  m_ui->lb_total_worktime->setText(::format_minutes(total_working_time));
   m_ui->lb_expected_worktime->setText(::format_minutes(expected_working_time));
   m_ui->lb_sick->setText(::format_minutes(sick_time));
   m_ui->lb_holiday->setText(::format_minutes(holiday_time));

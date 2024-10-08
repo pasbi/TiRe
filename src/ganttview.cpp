@@ -83,7 +83,9 @@ void GanttView::paintEvent(QPaintEvent* event)
 
   for (const auto* const interval : m_interval_model->intervals()) {
     for (const auto& rect : rects(*interval)) {
-      painter.fillRect(rect, interval->project().color());
+      if (const auto* const project = interval->project()) {
+        painter.fillRect(rect, project->color());
+      }
     }
   }
 

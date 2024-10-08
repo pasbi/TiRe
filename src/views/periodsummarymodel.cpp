@@ -56,7 +56,7 @@ public:
   {
     switch (role) {
     case Qt::DisplayRole:
-      return m_project.label();
+      return m_project.name();
     case Qt::BackgroundRole:
       return m_project.color();
     case Qt::ForegroundRole:
@@ -121,14 +121,7 @@ public:
   }
 
   auto projects = project_model->projects();
-  std::ranges::sort(projects, [project_model](const auto& a, const auto& b) {
-    if (const auto special_compare = project_model->is_special_project(a) <=> project_model->is_special_project(b);
-        special_compare != std::strong_ordering::equal)
-    {
-      return special_compare == std::strong_ordering::greater;
-    }
-    return a->label() < b->label();
-  });
+  std::ranges::sort(projects, std::ranges::less{}, &Project::name);
 
   rows.reserve(projects.size() + 1);
   rows.emplace_back(std::make_unique<TotalExtraRow>(period_summary_model));
@@ -254,7 +247,7 @@ void PeriodSummaryModel::update_summary()
   for (const auto* interval : m_time_sheet->interval_model().intervals(m_period)) {
     using std::chrono_literals::operator""min;
     auto& duration = m_minutes.try_emplace(interval->begin().date())
-                         .first->second.try_emplace(&interval->project(), 0min)
+                         .first->second.try_emplace(interval->project(), 0min)
                          .first->second;
     duration += interval->duration();
   }

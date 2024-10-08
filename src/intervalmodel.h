@@ -28,7 +28,8 @@ public:
   Interval& remove_const(const Interval& interval) const;
 
   [[nodiscard]] std::chrono::minutes minutes(const std::optional<Period>& period = std::nullopt,
-                                             const std::optional<Project::Type>& type = std::nullopt,
+                                             const std::optional<QString>& name = std::nullopt) const;
+  [[nodiscard]] std::chrono::minutes minutes(const QDate& date,
                                              const std::optional<QString>& name = std::nullopt) const;
 
   void add(std::unique_ptr<Interval> interval);

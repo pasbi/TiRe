@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-Interval::Interval(const Project& project) : m_project(&project)
+Interval::Interval(const Project* project) : m_project(project)
 {
 }
 
@@ -16,9 +16,9 @@ const Project* Interval::swap_project(const Project* project) noexcept
   return project;
 }
 
-[[nodiscard]] const Project& Interval::project() const noexcept
+[[nodiscard]] const Project* Interval::project() const noexcept
 {
-  return *m_project;
+  return m_project;
 }
 
 QDateTime Interval::swap_begin(QDateTime begin)

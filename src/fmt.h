@@ -53,3 +53,12 @@ template<> struct fmt::formatter<QColor> : fmt::formatter<std::string>
     return fmt::format_to(ctx.out(), "{}", c.name());
   }
 };
+
+template<> struct fmt::formatter<std::chrono::minutes> : fmt::formatter<std::string>
+{
+  [[nodiscard]] static auto format(std::chrono::minutes min, fmt::format_context& ctx)
+  {
+    using std::chrono_literals::operator""min;
+    return fmt::format_to(ctx.out(), "{}min", min / 1min);
+  }
+};
