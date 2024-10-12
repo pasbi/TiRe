@@ -7,6 +7,7 @@
 #include <QMainWindow>
 #include <filesystem>
 #include <memory>
+#include <set>
 
 class TimeSheet;
 class UndoStack;
@@ -51,8 +52,8 @@ private:
   std::filesystem::path m_filename;
   QActionGroup m_view_action_group;
 
-  void delete_selected_intervals() const;
-  void split_selected_intervals() const;
+  void delete_intervals(const std::set<const Interval*>& selection) const;
+  void split_interval(const Interval& interval) const;
   void init_context_menu_actions();
   void show_table_context_menu(const QPoint& pos);
   void edit_date_time(const QModelIndex& index) const;

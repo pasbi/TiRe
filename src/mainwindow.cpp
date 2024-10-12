@@ -300,32 +300,28 @@ void MainWindow::closeEvent(QCloseEvent* event)
   can_close() ? event->accept() : event->ignore();
 }
 
-void MainWindow::delete_selected_intervals() const
+void MainWindow::delete_intervals(const std::set<const Interval*>& selection) const
 {
   const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
-  for (const auto* const interval : m_ui->period_detail_view->selected_intervals()) {
+  for (const auto* const interval : selection) {
     m_undo_stack->push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
   }
 }
 
-void MainWindow::split_selected_intervals() const
+void MainWindow::split_interval(const Interval& interval) const
 {
-  const auto* const interval = m_ui->period_detail_view->current_interval();
-  if (interval == nullptr) {
-    return;
-  }
   TimeRangeEditor e;
   e.set_split(true);
-  e.set_range(interval->begin(), interval->end());
+  e.set_range(interval.begin(), interval.end());
 
   if (e.exec() == QDialog::Accepted) {
     const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
-    auto new_interval = std::make_unique<Interval>(interval->project());
+    auto new_interval = std::make_unique<Interval>(interval.project());
     new_interval->swap_begin(e.mid());
-    new_interval->swap_end(interval->end());
+    new_interval->swap_end(interval.end());
     m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
     m_undo_stack->push(
-        make_modify_interval_command(m_time_sheet->interval_model(), *interval, e.mid(), &Interval::swap_end));
+        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.mid(), &Interval::swap_end));
   }
 }
 
@@ -337,8 +333,13 @@ void MainWindow::init_context_menu_actions()
     action.setShortcut(shortcut);
     connect(&action, &QAction::triggered, this, slot);
   };
-  add_action(tr("Delete"), QKeySequence(Qt::Key_Delete), &MainWindow::delete_selected_intervals);
-  add_action(tr("Split"), Qt::CTRL | Qt::Key_Comma, &MainWindow::split_selected_intervals);
+  add_action(tr("Delete"), QKeySequence(Qt::Key_Delete),
+             [this]() { delete_intervals(m_ui->period_detail_view->selected_intervals()); });
+  add_action(tr("Split"), Qt::CTRL | Qt::Key_Comma, [this]() {
+    if (const auto* const interval = m_ui->period_detail_view->current_interval(); interval != nullptr) {
+      split_interval(*interval);
+    }
+  });
 }
 
 void MainWindow::show_table_context_menu(const QPoint& pos)
