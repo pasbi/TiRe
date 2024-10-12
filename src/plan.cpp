@@ -8,17 +8,19 @@ namespace
 {
 constexpr auto start_key = "start";
 constexpr auto overtime_offset_key = "overtime_offset";
-constexpr auto planned_working_time_key = "planed_working_time";
+constexpr auto kinds_key = "kinds";
 }  // namespace
 
-Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime_offset(data.at(overtime_offset_key))
+Plan::Plan(const nlohmann::json& data)
+  : m_start(data.at(start_key))
+  , m_overtime_offset(data.at(overtime_offset_key))
+  , m_kinds(data.contains(kinds_key) ? data.at(kinds_key) : nlohmann::json::array({{m_start, Kind::Normal}}))
 {
-  m_kinds.try_emplace(m_start, Kind::Normal);  // TODO
 }
 
 Plan::Plan()
 {
-  m_kinds.try_emplace(m_start, Kind::Normal);  // TODO
+  m_kinds.try_emplace(m_start, Kind::Normal);
 }
 
 nlohmann::json Plan::to_json() const noexcept
@@ -26,6 +28,7 @@ nlohmann::json Plan::to_json() const noexcept
   return {
       {start_key, m_start},
       {overtime_offset_key, m_overtime_offset},
+      {kinds_key, m_kinds},
   };
 }
 
@@ -48,7 +51,6 @@ std::chrono::minutes Plan::planned_working_time(const QDate& date, const std::ch
     return planned_normal_working_time / 2;
   }
   Q_UNREACHABLE();
-  return 0min;
 }
 
 const std::chrono::minutes& Plan::overtime_offset() const noexcept
@@ -61,7 +63,7 @@ const QDate& Plan::start() const noexcept
   return m_start;
 }
 
-std::map<QDate, Plan::Kind>::const_iterator Plan::find_kind(const QDate& date) const
+Plan::KindMap::const_iterator Plan::find_kind(const QDate& date) const
 {
   if (m_kinds.empty()) {
     throw std::runtime_error("m_kinds is empty.");
@@ -71,7 +73,7 @@ std::map<QDate, Plan::Kind>::const_iterator Plan::find_kind(const QDate& date) c
     return lower_bound;
   }
   if (lower_bound == m_kinds.begin()) {
-    throw std::runtime_error(fmt::format("Date {} predates all records (first: {})", date, m_kinds.begin()->first));
+    m_kinds.end();
   }
   return std::prev(lower_bound);
 }

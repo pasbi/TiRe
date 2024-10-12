@@ -4,6 +4,7 @@
 #include "interval.h"
 #include "intervalmodel.h"
 #include "period.h"
+#include "plan.h"
 #include "timesheet.h"
 
 #include <QDateTime>
@@ -107,8 +108,11 @@ void GanttView::paintEvent(QPaintEvent* event)
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
-  QToolTip::showText(event->globalPosition().toPoint(),
-                     tr("%1").arg(datetime_at(event->pos()).toString("dddd, dd.MM. hh:mm")));
+  const auto date_time = datetime_at(event->pos());
+  const auto kind_of_day = m_time_sheet->plan().find_kind(date_time.date())->second;
+  QToolTip::showText(
+      event->globalPosition().toPoint(),
+      QString::fromStdString(fmt::format("{}: {}", date_time.toString("dddd, dd.MM. hh:mm"), kind_of_day)));
 }
 
 void GanttView::mousePressEvent(QMouseEvent* const event)
