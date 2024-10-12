@@ -11,7 +11,7 @@
 
 class QDate;
 
-class Plan : QAbstractTableModel
+class Plan : public QAbstractTableModel
 {
 public:
   static constexpr auto date_column = 0;
@@ -30,12 +30,16 @@ public:
   [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
   [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+  [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
   struct Entry
   {
     Period period;
     Kind kind;
   };
+
+  void add(std::unique_ptr<Entry> entry);
+  std::unique_ptr<Entry> extract(const Entry& entry);
 
 protected:
   [[nodiscard]] virtual std::chrono::minutes planned_normal_working_time(const QDate& date) const noexcept = 0;
@@ -44,7 +48,7 @@ private:
   QDate m_start = Application::current_date_time().date();
   std::chrono::minutes m_overtime_offset{0};
 
-  std::vector<Entry> m_periods;
+  std::vector<std::unique_ptr<Entry>> m_periods;
 };
 
 class FullTimePlan : public Plan

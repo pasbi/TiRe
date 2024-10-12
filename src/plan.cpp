@@ -16,6 +16,32 @@ constexpr auto period_key = "period";
 constexpr auto kind_key = "kind";
 }  // namespace
 
+namespace nlohmann
+{
+
+template<> struct adl_serializer<std::unique_ptr<Plan::Entry>>
+{
+  static void to_json(json& json_value, const std::unique_ptr<Plan::Entry>& ptr)
+  {
+    if (ptr == nullptr) {
+      json_value = nullptr;
+    } else {
+      json_value = *ptr;
+    }
+  }
+
+  static void from_json(const json& json_value, std::unique_ptr<Plan::Entry>& ptr)
+  {
+    if (json_value.is_null()) {
+      ptr = {};
+    } else {
+      ptr = std::make_unique<Plan::Entry>(static_cast<Plan::Entry>(json_value));
+    }
+  }
+};
+
+}  // namespace nlohmann
+
 Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime_offset(data.at(overtime_offset_key))
 {
   if (data.contains(periods_key)) {
@@ -69,11 +95,11 @@ const QDate& Plan::start() const noexcept
 
 Plan::Kind Plan::find_kind(const QDate& date) const
 {
-  const auto it = std::ranges::find_if(m_periods, [&date](const auto& entry) { return entry.period.contains(date); });
+  const auto it = std::ranges::find_if(m_periods, [&date](const auto& entry) { return entry->period.contains(date); });
   if (it == m_periods.end()) {
     return Kind::Normal;
   }
-  return it->kind;
+  return (*it)->kind;
 }
 
 int Plan::columnCount(const QModelIndex& parent) const
@@ -95,7 +121,7 @@ QVariant Plan::data(const QModelIndex& index, const int role) const
     return {};
   }
 
-  const auto& [period, kind] = m_periods.at(index.row());
+  const auto& [period, kind] = *m_periods.at(index.row());
   switch (index.column()) {
   case date_column:
     return period.label();
@@ -103,6 +129,44 @@ QVariant Plan::data(const QModelIndex& index, const int role) const
     return QString::fromStdString(fmt::format("{}", kind));
   }
   Q_UNREACHABLE();
+}
+
+QVariant Plan::headerData(const int section, const Qt::Orientation orientation, const int role) const
+{
+  if (orientation == Qt::Vertical || role != Qt::DisplayRole) {
+    return {};
+  }
+  switch (section) {
+  case date_column:
+    return tr("Period");
+  case kind_column:
+    return tr("Kind");
+  }
+  Q_UNREACHABLE();
+}
+
+void Plan::add(std::unique_ptr<Entry> entry)
+{
+  const auto row = static_cast<int>(m_periods.size());
+  beginInsertRows({}, row, row);
+  m_periods.emplace_back(std::move(entry));
+  endInsertRows();
+}
+
+std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
+{
+  if (const auto it =
+          std::ranges::find_if(m_periods, [&entry](const auto& candidate) { return candidate.get() == &entry; });
+      it != m_periods.end())
+  {
+    const auto row = std::distance(m_periods.begin(), it);
+    beginRemoveRows({}, row, row);
+    auto ret = std::move(*it);
+    m_periods.erase(it);
+    endRemoveRows();
+    return ret;
+  }
+  return {};
 }
 
 std::chrono::minutes FullTimePlan::planned_normal_working_time(const QDate& date) const noexcept
@@ -124,7 +188,7 @@ void to_json(nlohmann::json& j, const Plan::Entry& value)
 void from_json(const nlohmann::json& j, Plan::Entry& value)
 {
   value.period = j.at(period_key);
-  value.period = j.at(kind_key);
+  value.kind = j.at(kind_key);
 }
 
 void to_json(nlohmann::json& j, const Plan::Kind& value)

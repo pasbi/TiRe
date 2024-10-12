@@ -77,6 +77,15 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->action_Switch_Task, &QAction::triggered, this, &MainWindow::switch_task);
   connect(m_ui->actionEnd_Task, &QAction::triggered, this, &MainWindow::end_task);
 
+  connect(m_ui->actionAdd_Plan_Entry, &QAction::triggered, this, [this]() {
+    m_ui->tabWidget->setCurrentWidget(m_ui->tv_plan->parentWidget());
+    const Period today{Application::current_date_time().date(), Period::Type::Day};
+    Application::undo_stack().push(make<AddCommand>(m_time_sheet->plan(), std::make_unique<Plan::Entry>(Plan::Entry{
+                                                                              .period = today,
+                                                                              .kind = Plan::Kind::Normal,
+                                                                          })));
+  });
+
   const auto init_view_action = [this](QAction* action, const Period::Type type) {
     m_view_action_group.addAction(action);
     connect(action, &QAction::triggered, this, [type, this]() { set_period_type(type); });
@@ -118,6 +127,7 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
   m_ui->plan_view->set_model(m_time_sheet.get());
   m_ui->period_summary_view->set_model(m_time_sheet.get());
   m_ui->ganttview->set_time_sheet(m_time_sheet.get());
+  m_ui->tv_plan->setModel(&m_time_sheet->plan());
   Application::undo_stack().impl().clear();
 }
 
