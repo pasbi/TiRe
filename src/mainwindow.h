@@ -60,7 +60,6 @@ private:
   void edit_project(const QModelIndex& index) const;
   void end_task();
   void switch_task();
-  std::unique_ptr<UndoStack> m_undo_stack;
   void update_window_title();
 
   std::vector<std::unique_ptr<QAction>> m_context_menu_actions;

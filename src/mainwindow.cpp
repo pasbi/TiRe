@@ -15,6 +15,7 @@
 #include "timerangeslider.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
+
 #include <QCloseEvent>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -61,7 +62,6 @@ MainWindow::MainWindow(QWidget* parent)
   , m_ui(std::make_unique<Ui::MainWindow>())
   , m_time_sheet(std::make_unique<TimeSheet>())
   , m_view_action_group(this)
-  , m_undo_stack(std::make_unique<UndoStack>())
 {
   m_ui->setupUi(this);
   connect(m_ui->period_detail_view, &PeriodDetailView::double_clicked, this, [this](const QModelIndex& index) {
@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget* parent)
     const auto timestamp = m_current_period.clamp(Application::current_date_time());
     fmt::print("Timestamp: {}, period: {}", timestamp, m_current_period);
     interval->swap_begin(timestamp);
-    m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(interval)));
+    Application::undo_stack().push(make<AddCommand>(m_time_sheet->interval_model(), std::move(interval)));
   });
   connect(m_ui->action_Switch_Task, &QAction::triggered, this, &MainWindow::switch_task);
   connect(m_ui->actionEnd_Task, &QAction::triggered, this, &MainWindow::end_task);
@@ -113,14 +113,14 @@ MainWindow::MainWindow(QWidget* parent)
   connect(m_ui->actionPrevious, &QAction::triggered, this, &MainWindow::previous);
   connect(m_ui->actionToday, &QAction::triggered, this, &MainWindow::today);
 
-  auto* const undo_action = m_undo_stack->impl().createUndoAction(this);
+  auto* const undo_action = Application::undo_stack().impl().createUndoAction(this);
   m_ui->menu_Edit->addAction(undo_action);
   undo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
-  auto* const redo_action = m_undo_stack->impl().createRedoAction(this);
+  auto* const redo_action = Application::undo_stack().impl().createRedoAction(this);
   redo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
   m_ui->menu_Edit->addAction(redo_action);
 
-  connect(&m_undo_stack->impl(), &QUndoStack::cleanChanged, this,
+  connect(&Application::undo_stack().impl(), &QUndoStack::cleanChanged, this,
           [this](const bool clean) { setWindowModified(!clean); });
 
   init_context_menu_actions();
@@ -137,7 +137,7 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
   m_ui->plan_view->set_model(m_time_sheet.get());
   m_ui->period_summary_view->set_model(m_time_sheet.get());
   m_ui->ganttview->set_time_sheet(m_time_sheet.get());
-  m_undo_stack->impl().clear();
+  Application::undo_stack().impl().clear();
 }
 
 void MainWindow::set_filename(std::filesystem::path filename)
@@ -158,8 +158,8 @@ void MainWindow::end_task()
         QMessageBox::Ok);
     return;
   }
-  m_undo_stack->push(make_modify_interval_command(interval_model, *open_intervals.front(),
-                                                  Application::current_date_time(), &Interval::swap_end));
+  Application::undo_stack().push(make_modify_interval_command(interval_model, *open_intervals.front(),
+                                                              Application::current_date_time(), &Interval::swap_end));
 }
 
 void MainWindow::switch_task()
@@ -175,7 +175,7 @@ void MainWindow::switch_task()
     return;
   }
 
-  ProjectEditor d(*m_undo_stack, m_time_sheet->project_model());
+  ProjectEditor d(m_time_sheet->project_model());
   if (d.exec() == QDialog::Rejected) {
     return;
   }
@@ -184,12 +184,12 @@ void MainWindow::switch_task()
   auto new_interval = std::make_unique<Interval>(&d.current_project());
   new_interval->swap_begin(timestamp);
   auto add_interval_command = make<AddCommand>(interval_model, std::move(new_interval));
-  const auto macro = m_undo_stack->start_macro(add_interval_command->text());
+  const auto macro = Application::undo_stack().start_macro(add_interval_command->text());
   if (!open_intervals.empty()) {
-    m_undo_stack->push(
+    Application::undo_stack().push(
         make_modify_interval_command(interval_model, *open_intervals.front(), timestamp, &Interval::swap_end));
   }
-  m_undo_stack->push(std::move(add_interval_command));
+  Application::undo_stack().push(std::move(add_interval_command));
 }
 
 void MainWindow::update_window_title()
@@ -212,7 +212,7 @@ void MainWindow::update_window_title()
 
 bool MainWindow::can_close()
 {
-  if (m_undo_stack->impl().isClean()) {
+  if (Application::undo_stack().impl().isClean()) {
     return true;
   }
 
@@ -276,7 +276,7 @@ bool MainWindow::save()
     return false;
   }
   ofs << ::serialize(*m_time_sheet);
-  m_undo_stack->impl().setClean();
+  Application::undo_stack().impl().setClean();
   return true;
 }
 
@@ -291,7 +291,7 @@ bool MainWindow::save_as()
   }
   set_filename(static_cast<std::filesystem::path>(q_filename.toStdString()));
   save();
-  m_undo_stack->impl().setClean();
+  Application::undo_stack().impl().setClean();
   return true;
 }
 
@@ -302,9 +302,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::delete_intervals(const std::set<const Interval*>& selection) const
 {
-  const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
+  const auto macro = Application::undo_stack().start_macro(tr("Delete selected intervals"));
   for (const auto* const interval : selection) {
-    m_undo_stack->push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
+    Application::undo_stack().push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
   }
 }
 
@@ -315,12 +315,12 @@ void MainWindow::split_interval(const Interval& interval) const
   e.set_range(interval.begin(), interval.end());
 
   if (e.exec() == QDialog::Accepted) {
-    const auto macro = m_undo_stack->start_macro(tr("Delete selected intervals"));
+    const auto macro = Application::undo_stack().start_macro(tr("Delete selected intervals"));
     auto new_interval = std::make_unique<Interval>(interval.project());
     new_interval->swap_begin(e.mid());
     new_interval->swap_end(interval.end());
-    m_undo_stack->push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
-    m_undo_stack->push(
+    Application::undo_stack().push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
+    Application::undo_stack().push(
         make_modify_interval_command(m_time_sheet->interval_model(), interval, e.mid(), &Interval::swap_end));
   }
 }
@@ -357,10 +357,10 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
   auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
   e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {
-    const auto macro = m_undo_stack->start_macro(tr("Change interval"));
-    m_undo_stack->push(
+    const auto macro = Application::undo_stack().start_macro(tr("Change interval"));
+    Application::undo_stack().push(
         make_modify_interval_command(m_time_sheet->interval_model(), interval, e.begin(), &Interval::swap_begin));
-    m_undo_stack->push(
+    Application::undo_stack().push(
         make_modify_interval_command(m_time_sheet->interval_model(), interval, e.end(), &Interval::swap_end));
     Q_EMIT m_time_sheet->interval_model().data_changed();
   }
@@ -368,14 +368,14 @@ void MainWindow::edit_date_time(const QModelIndex& index) const
 
 void MainWindow::edit_project(const QModelIndex& index) const
 {
-  ProjectEditor e(*m_undo_stack, m_time_sheet->project_model());
+  ProjectEditor e(m_time_sheet->project_model());
   auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
   if (const auto* const project = interval->project(); project != nullptr) {
     e.set_project(*project);
   }
   if (e.exec() == QDialog::Accepted) {
-    m_undo_stack->push(make_modify_interval_command(m_time_sheet->interval_model(), *interval, &e.current_project(),
-                                                    &Interval::swap_project));
+    Application::undo_stack().push(make_modify_interval_command(m_time_sheet->interval_model(), *interval,
+                                                                &e.current_project(), &Interval::swap_project));
   }
 }
 
