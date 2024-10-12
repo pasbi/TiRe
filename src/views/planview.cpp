@@ -117,5 +117,5 @@ QSize PlanView::sizeHint() const
 
 QString PlanView::period_text(const Period& period) const
 {
-  return current_period().label() + (current_period().dates() == period.dates() ? "" : "*");
+  return current_period().label() + (current_period().limits() == period.limits() ? "" : "*");
 }

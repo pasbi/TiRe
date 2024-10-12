@@ -149,7 +149,7 @@ bool Period::contains(const QDate& date) const noexcept
 
 std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept
 {
-  return a.dates() <=> b.dates();
+  return a.limits() <=> b.limits();
 }
 
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
@@ -200,9 +200,19 @@ Period Period::constrained(const QDate& latest_begin, const QDate& earliest_end)
   return *this;
 }
 
-std::pair<QDate, QDate> Period::dates() const noexcept
+std::pair<QDate, QDate> Period::limits() const noexcept
 {
   return {m_begin, m_end};
+}
+
+std::vector<QDate> Period::dates() const
+{
+  std::vector<QDate> days;
+  days.reserve(this->days());
+  for (std::size_t i = 0; i < days.capacity(); ++i) {
+    days.emplace_back(m_begin.addDays(i));
+  }
+  return days;
 }
 
 void to_json(nlohmann::json& j, const Period& value)
