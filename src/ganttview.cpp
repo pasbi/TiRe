@@ -109,7 +109,7 @@ void GanttView::paintEvent(QPaintEvent* event)
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
   const auto date_time = datetime_at(event->pos());
-  const auto kind_of_day = m_time_sheet->plan().find_kind(date_time.date())->second;
+  const auto kind_of_day = m_time_sheet->plan().find_kind(date_time.date());
   QToolTip::showText(
       event->globalPosition().toPoint(),
       QString::fromStdString(fmt::format("{}: {}", date_time.toString("dddd, dd.MM. hh:mm"), kind_of_day)));

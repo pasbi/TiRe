@@ -6,6 +6,7 @@ target_sources(tire-impl PRIVATE
         datetimeeditor.cpp
         datetimeeditor.h
         datetimeeditor.ui
+        enum.h
         exceptions.h
         fmt.h
         ganttview.cpp

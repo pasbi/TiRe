@@ -3,17 +3,19 @@
 #include "application.h"
 #include "fmt.h"
 #include "json.h"
+#include "period.h"
 
+#include <QAbstractTableModel>
 #include <QDate>
 #include <chrono>
-#include <map>
 
-class Period;
 class QDate;
 
-class Plan
+class Plan : QAbstractTableModel
 {
 public:
+  static constexpr auto date_column = 0;
+  static constexpr auto kind_column = 1;
   explicit Plan(const nlohmann::json& data);
   explicit Plan();
   [[nodiscard]] nlohmann::json to_json() const noexcept;
@@ -23,8 +25,17 @@ public:
   [[nodiscard]] const QDate& start() const noexcept;
 
   enum class Kind { Normal, Sick, Holiday, HalfHoliday, Vacation, HalfVacation, HalfVacationHalfHoliday };
-  using KindMap = std::map<QDate, Kind>;
-  [[nodiscard]] KindMap::const_iterator find_kind(const QDate& date) const;
+  [[nodiscard]] Kind find_kind(const QDate& date) const;
+
+  [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
+  [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
+  [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+
+  struct Entry
+  {
+    Period period;
+    Kind kind;
+  };
 
 protected:
   [[nodiscard]] virtual std::chrono::minutes planned_normal_working_time(const QDate& date) const noexcept = 0;
@@ -33,7 +44,7 @@ private:
   QDate m_start = Application::current_date_time().date();
   std::chrono::minutes m_overtime_offset{0};
 
-  KindMap m_kinds;
+  std::vector<Entry> m_periods;
 };
 
 class FullTimePlan : public Plan
@@ -68,6 +79,11 @@ template<> struct fmt::formatter<Plan::Kind> : fmt::formatter<std::string>
       Q_UNREACHABLE();
     }();
     using std::chrono_literals::operator""min;
-    return fmt::format_to(ctx.out(), "{}", str);
+    return format_to(ctx.out(), "{}", str);
   }
 };
+
+void to_json(nlohmann::json& j, const Plan::Entry& value);
+void from_json(const nlohmann::json& j, Plan::Entry& value);
+void to_json(nlohmann::json& j, const Plan::Kind& value);
+void from_json(const nlohmann::json& j, Plan::Kind& value);
