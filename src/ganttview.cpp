@@ -2,7 +2,10 @@
 #include "application.h"
 #include "colorutil.h"
 #include "interval.h"
+#include "intervalmodel.h"
 #include "period.h"
+#include "timesheet.h"
+
 #include <QDateTime>
 #include <QHelpEvent>
 #include <QPainter>
@@ -40,12 +43,12 @@ GanttView::GanttView(QWidget* parent)
   setMouseTracking(true);
 }
 
-void GanttView::set_model(const IntervalModel* interval_model)
+void GanttView::set_time_sheet(const TimeSheet* time_sheet)
 {
-  m_interval_model = interval_model;
+  m_time_sheet = time_sheet;
   m_current_interval = nullptr;
-  if (m_interval_model != nullptr) {
-    connect(m_interval_model, &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
+  if (m_time_sheet != nullptr) {
+    connect(&m_time_sheet->interval_model(), &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
   }
   update();
 }
@@ -64,7 +67,7 @@ void GanttView::select_period(const Period& period)
 
 void GanttView::paintEvent(QPaintEvent* event)
 {
-  if (m_interval_model == nullptr) {
+  if (m_time_sheet == nullptr) {
     return;
   }
 
@@ -81,7 +84,7 @@ void GanttView::paintEvent(QPaintEvent* event)
     painter.fillRect(rect, bg_color);
   }
 
-  for (const auto* const interval : m_interval_model->intervals()) {
+  for (const auto* const interval : m_time_sheet->interval_model().intervals()) {
     for (const auto& rect : rects(*interval)) {
       if (const auto* const project = interval->project()) {
         painter.fillRect(rect, project->color());

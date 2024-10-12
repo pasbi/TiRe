@@ -1,14 +1,17 @@
 #pragma once
 
-#include "intervalmodel.h"
+#include "period.h"
 #include <QWidget>
+
+class TimeSheet;
+class Interval;
 
 class GanttView : public QWidget
 {
   Q_OBJECT
 public:
   explicit GanttView(QWidget* parent = nullptr);
-  void set_model(const IntervalModel* interval_model);
+  void set_time_sheet(const TimeSheet* time_sheet);
   void set_current_interval(const Interval* interval);
   void select_period(const Period& period);
 
@@ -21,7 +24,7 @@ Q_SIGNALS:
   void clicked(QDateTime date);
 
 private:
-  const IntervalModel* m_interval_model = nullptr;
+  const TimeSheet* m_time_sheet = nullptr;
   const Interval* m_current_interval = nullptr;
   Period m_period;
   Period m_selected_period;
