@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "application.h"
 #include "commands/addremovecommand.h"
+#include "commands/commands.h"
 #include "commands/modifycommand.h"
 #include "commands/undostack.h"
 #include "datetimeeditor.h"
@@ -33,22 +34,6 @@ constexpr auto extension = ".ts";
   return QObject::tr("Time Sheets (*%1)").arg(extension);
 }
 
-template<typename IntervalT, typename Value, typename Swapper> std::unique_ptr<Command>
-make_modify_interval_command(IntervalModel& interval_model, IntervalT& interval, Value other_value, Swapper swapper)
-{
-  if constexpr (std::is_const_v<IntervalT>) {
-    return make_modify_interval_command(interval_model, interval_model.remove_const(interval), std::move(other_value),
-                                        std::move(swapper));
-  } else {
-    const auto signal = [&interval_model, &interval]() {
-      const auto index = interval_model.index(interval);
-      Q_EMIT interval_model.dataChanged(index, index.siblingAtColumn(interval_model.columnCount({}) - 1));
-      Q_EMIT interval_model.data_changed();
-    };
-    return make_modify_command(interval, std::move(other_value), std::move(swapper), std::move(signal));
-  }
-}
-
 auto find_open_intervals(const std::vector<Interval*>& intervals)
 {
   auto view = intervals | std::views::filter([](const auto* const interval) { return !interval->end().isValid(); });
@@ -72,8 +57,6 @@ MainWindow::MainWindow(QWidget* parent)
     }
   });
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
-  connect(m_ui->period_detail_view, &QWidget::customContextMenuRequested, this,
-          [this](const QPoint& pos) { show_table_context_menu(m_ui->period_detail_view->mapToGlobal(pos)); });
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
           &GanttView::set_current_interval);
   connect(m_ui->ganttview, &GanttView::clicked, this, [this](const QDateTime& timestamp) {
@@ -122,8 +105,6 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(&Application::undo_stack().impl(), &QUndoStack::cleanChanged, this,
           [this](const bool clean) { setWindowModified(!clean); });
-
-  init_context_menu_actions();
 
   new_time_sheet();
 }
@@ -298,57 +279,6 @@ bool MainWindow::save_as()
 void MainWindow::closeEvent(QCloseEvent* event)
 {
   can_close() ? event->accept() : event->ignore();
-}
-
-void MainWindow::delete_intervals(const std::set<const Interval*>& selection) const
-{
-  const auto macro = Application::undo_stack().start_macro(tr("Delete selected intervals"));
-  for (const auto* const interval : selection) {
-    Application::undo_stack().push(make<RemoveCommand>(m_time_sheet->interval_model(), *interval));
-  }
-}
-
-void MainWindow::split_interval(const Interval& interval) const
-{
-  TimeRangeEditor e;
-  e.set_split(true);
-  e.set_range(interval.begin(), interval.end());
-
-  if (e.exec() == QDialog::Accepted) {
-    const auto macro = Application::undo_stack().start_macro(tr("Delete selected intervals"));
-    auto new_interval = std::make_unique<Interval>(interval.project());
-    new_interval->swap_begin(e.mid());
-    new_interval->swap_end(interval.end());
-    Application::undo_stack().push(make<AddCommand>(m_time_sheet->interval_model(), std::move(new_interval)));
-    Application::undo_stack().push(
-        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.mid(), &Interval::swap_end));
-  }
-}
-
-void MainWindow::init_context_menu_actions()
-{
-  const auto add_action = [this](const QString& label, const QKeySequence& shortcut, auto slot) {
-    auto& action = *m_context_menu_actions.emplace_back(std::make_unique<QAction>(label));
-    addAction(&action);
-    action.setShortcut(shortcut);
-    connect(&action, &QAction::triggered, this, slot);
-  };
-  add_action(tr("Delete"), QKeySequence(Qt::Key_Delete),
-             [this]() { delete_intervals(m_ui->period_detail_view->selected_intervals()); });
-  add_action(tr("Split"), Qt::CTRL | Qt::Key_Comma, [this]() {
-    if (const auto* const interval = m_ui->period_detail_view->current_interval(); interval != nullptr) {
-      split_interval(*interval);
-    }
-  });
-}
-
-void MainWindow::show_table_context_menu(const QPoint& pos)
-{
-  QMenu menu;
-  for (const auto& action : m_context_menu_actions) {
-    menu.addAction(action.get());
-  }
-  menu.exec(pos);
 }
 
 void MainWindow::edit_date_time(const QModelIndex& index) const
