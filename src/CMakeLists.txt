@@ -6,6 +6,7 @@ target_sources(tire-impl PRIVATE
         datetimeeditor.cpp
         datetimeeditor.h
         datetimeeditor.ui
+        enum.h
         exceptions.h
         fmt.h
         ganttview.cpp
@@ -21,8 +22,13 @@ target_sources(tire-impl PRIVATE
         mainwindow.ui
         period.cpp
         period.h
+        periodedit.cpp
+        periodedit.h
+        periodedit.ui
         plan.cpp
         plan.h
+        plantableview.cpp
+        plantableview.h
         project.cpp
         project.h
         projecteditor.cpp

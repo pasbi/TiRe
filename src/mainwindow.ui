@@ -49,7 +49,7 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="tab_3">
+       <widget class="QWidget" name="tab_gantt">
         <attribute name="title">
          <string>Gantt</string>
         </attribute>
@@ -74,7 +74,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="tab_4">
+       <widget class="QWidget" name="tab_summary">
         <attribute name="title">
          <string>Summary</string>
         </attribute>
@@ -96,6 +96,23 @@
          </property>
          <item>
           <widget class="PeriodSummaryView" name="period_summary_view" native="true"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_plan">
+        <attribute name="title">
+         <string>Plan</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="PlanTableView" name="tv_plan">
+           <attribute name="horizontalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -132,6 +149,7 @@
     <addaction name="action_Add_Interval"/>
     <addaction name="action_Switch_Task"/>
     <addaction name="actionEnd_Task"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -155,9 +173,16 @@
      <string>&amp;Edit</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuPlan">
+    <property name="title">
+     <string>&amp;Plan</string>
+    </property>
+    <addaction name="actionAdd_Plan_Entry"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
    <addaction name="menuIntervals"/>
+   <addaction name="menuPlan"/>
    <addaction name="menuView"/>
    <addaction name="menuNavigation"/>
   </widget>
@@ -291,6 +316,11 @@
     <string>Ctrl+E</string>
    </property>
   </action>
+  <action name="actionAdd_Plan_Entry">
+   <property name="text">
+    <string>&amp;Add Entry</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -316,6 +346,11 @@
    <extends>QWidget</extends>
    <header>views/periodsummaryview.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PlanTableView</class>
+   <extends>QTableView</extends>
+   <header>plantableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

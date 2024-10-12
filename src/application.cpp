@@ -1,11 +1,14 @@
 #include "application.h"
+#include "commands/undostack.h"
 #include "fmt.h"
+
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDateTime>
 
 std::optional<QDateTime> Application::m_current_date_time = std::nullopt;
 std::filesystem::path Application::m_timesheet_filename = {};
+std::unique_ptr<UndoStack> Application::m_undo_stack = std::make_unique<UndoStack>();
 
 namespace
 {
@@ -57,4 +60,9 @@ QDateTime Application::current_date_time()
 const std::filesystem::path& Application::timesheet_filename() noexcept
 {
   return m_timesheet_filename;
+}
+
+UndoStack& Application::undo_stack() noexcept
+{
+  return *m_undo_stack;
 }

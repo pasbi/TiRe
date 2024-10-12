@@ -2,7 +2,11 @@
 #include "application.h"
 #include "colorutil.h"
 #include "interval.h"
+#include "intervalmodel.h"
 #include "period.h"
+#include "plan.h"
+#include "timesheet.h"
+
 #include <QDateTime>
 #include <QHelpEvent>
 #include <QPainter>
@@ -30,6 +34,28 @@ private:
 
 constexpr auto default_gantt_length_days = 30;
 
+Qt::BrushStyle brush_style(const Plan::Kind kind)
+{
+  switch (kind) {
+    using enum Plan::Kind;
+  case Normal:
+    return Qt::NoBrush;
+  case Sick:
+    return Qt::DiagCrossPattern;
+  case Vacation:
+    [[fallthrough]];
+  case Holiday:
+    [[fallthrough]];
+  case HalfVacationHalfHoliday:
+    return Qt::CrossPattern;
+  case HalfVacation:
+    [[fallthrough]];
+  case HalfHoliday:
+    return Qt::VerPattern;
+  }
+  Q_UNREACHABLE();
+}
+
 }  // namespace
 
 GanttView::GanttView(QWidget* parent)
@@ -40,12 +66,12 @@ GanttView::GanttView(QWidget* parent)
   setMouseTracking(true);
 }
 
-void GanttView::set_model(const IntervalModel* interval_model)
+void GanttView::set_time_sheet(const TimeSheet* time_sheet)
 {
-  m_interval_model = interval_model;
+  m_time_sheet = time_sheet;
   m_current_interval = nullptr;
-  if (m_interval_model != nullptr) {
-    connect(m_interval_model, &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
+  if (m_time_sheet != nullptr) {
+    connect(&m_time_sheet->interval_model(), &IntervalModel::data_changed, this, QOverload<>::of(&QWidget::update));
   }
   update();
 }
@@ -64,27 +90,31 @@ void GanttView::select_period(const Period& period)
 
 void GanttView::paintEvent(QPaintEvent* event)
 {
-  if (m_interval_model == nullptr) {
+  if (m_time_sheet == nullptr) {
     return;
   }
 
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  for (int day = 0; day < m_period.days(); ++day) {
-    const auto date = m_period.begin().addDays(day);
+  for (const auto& date : m_period.dates()) {
     auto bg_color = ::background(date);
     if (m_selected_period.contains(date)) {
       bg_color = ::selected(bg_color);
     }
-    const auto rect = this->rect(date, date.startOfDay().time(), date.endOfDay().time());
-    painter.fillRect(rect, bg_color);
+    painter.fillRect(rect(date), bg_color);
   }
 
-  for (const auto* const interval : m_interval_model->intervals()) {
+  for (const auto* const interval : m_time_sheet->interval_model().intervals()) {
     for (const auto& rect : rects(*interval)) {
-      painter.fillRect(rect, interval->project().color());
+      if (const auto* const project = interval->project()) {
+        painter.fillRect(rect, project->color());
+      }
     }
+  }
+
+  for (const auto& date : m_period.dates()) {
+    painter.fillRect(rect(date), ::brush_style(m_time_sheet->plan().find_kind(date)));
   }
 
   draw_grid(painter);
@@ -102,8 +132,11 @@ void GanttView::paintEvent(QPaintEvent* event)
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
+  const auto date_time = datetime_at(event->pos());
+  const auto kind_of_day = m_time_sheet->plan().find_kind(date_time.date());
+  const auto kind_of_day_text = kind_of_day == Plan::Kind::Normal ? "" : fmt::format(" [{}]", kind_of_day);
   QToolTip::showText(event->globalPosition().toPoint(),
-                     tr("%1").arg(datetime_at(event->pos()).toString("dddd, dd.MM. hh:mm")));
+                     date_time.toString("dddd, dd.MM. hh:mm") + QString::fromStdString(kind_of_day_text));
 }
 
 void GanttView::mousePressEvent(QMouseEvent* const event)
@@ -170,8 +203,8 @@ void GanttView::draw_grid(QPainter& painter) const
     painter.drawLine(QPointF{x, 0.0}, QPointF{x, static_cast<double>(height())});
   }
   painter.setPen(::lerp(0.9, text_color, base_color));
-  for (auto day = 0; day < m_period.days(); ++day) {
-    const auto y = pos_y(m_period.begin().addDays(day));
+  for (const auto& date : m_period.dates()) {
+    const auto y = pos_y(date);
     painter.drawLine(QPointF{0.0, y}, QPointF{static_cast<double>(width()), y});
   }
 }
@@ -183,4 +216,9 @@ QRectF GanttView::rect(const QDate& date, const QTime& begin, const QTime& end) 
   const auto pos_y_begin = pos_y(date);
   const auto pos_y_end = pos_y(date.addDays(1));
   return {QPointF{pos_x_begin, pos_y_begin}, QPointF{pos_x_end, pos_y_end}};
+}
+
+QRectF GanttView::rect(const QDate& date) const
+{
+  return rect(date, date.startOfDay().time(), date.endOfDay().time());
 }

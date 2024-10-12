@@ -1,14 +1,17 @@
 #pragma once
 
-#include "intervalmodel.h"
+#include "period.h"
 #include <QWidget>
+
+class TimeSheet;
+class Interval;
 
 class GanttView : public QWidget
 {
   Q_OBJECT
 public:
   explicit GanttView(QWidget* parent = nullptr);
-  void set_model(const IntervalModel* interval_model);
+  void set_time_sheet(const TimeSheet* time_sheet);
   void set_current_interval(const Interval* interval);
   void select_period(const Period& period);
 
@@ -21,7 +24,7 @@ Q_SIGNALS:
   void clicked(QDateTime date);
 
 private:
-  const IntervalModel* m_interval_model = nullptr;
+  const TimeSheet* m_time_sheet = nullptr;
   const Interval* m_current_interval = nullptr;
   Period m_period;
   Period m_selected_period;
@@ -35,6 +38,7 @@ private:
   [[nodiscard]] std::vector<QRectF> rects(const Interval& interval) const;
   void draw_grid(QPainter& painter) const;
   [[nodiscard]] QRectF rect(const QDate& date, const QTime& begin, const QTime& end) const;
+  [[nodiscard]] QRectF rect(const QDate& date) const;
 
   [[nodiscard]] QColor interpolate_base(const double t) const noexcept;
 };

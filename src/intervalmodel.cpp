@@ -2,6 +2,7 @@
 #include "colorutil.h"
 #include "period.h"
 #include <QColor>
+#include <complex>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -22,13 +23,12 @@ template<typename Intervals> [[nodiscard]] auto find(Intervals&& intervals, cons
   };
 }
 
-[[nodiscard]] bool is_match(const Project& project, const std::optional<Project::Type>& type,
-                            const std::optional<QString>& name)
+[[nodiscard]] bool is_match(const Project* project, const std::optional<QString>& name)
 {
-  if (type.has_value() && *type != project.type()) {
+  if (project == nullptr) {
     return false;
   }
-  if (name.has_value() && *name != project.name()) {
+  if (name.has_value() && *name != project->name()) {
     return false;
   }
   return true;
@@ -57,17 +57,18 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
   }
 
   const auto& interval = m_intervals.at(index.row());
+  const auto* project = interval->project();
   if (role == Qt::BackgroundRole) {
-    return interval->project().color();
+    return project ? project->color() : QVariant{};
   }
   if (role == Qt::ForegroundRole) {
-    return ::contrast_color(interval->project().color());
+    return project ? ::contrast_color(project->color()) : QVariant{};
   }
 
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
     case project_column:
-      return interval->project().label();
+      return project ? project->name() : QVariant{};
     case begin_column:
       return interval->begin().time();
     case end_column:
@@ -84,7 +85,7 @@ QVariant IntervalModel::data(const QModelIndex& index, const int role) const
   if (role == Qt::EditRole) {
     switch (index.column()) {
     case project_column:
-      return interval->project().label();
+      return project ? project->name() : QVariant{};
     case begin_column:
       return interval->begin();
     case end_column:
@@ -187,12 +188,10 @@ const Interval* IntervalModel::interval(const std::size_t index) const
 }
 
 std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,
-                                            const std::optional<Project::Type>& type,
                                             const std::optional<QString>& name) const
 {
-  const auto accumulate_minutes_in_period = [period, &type, &name](const std::chrono::minutes accu,
-                                                                   const auto& interval) {
-    if (!is_match(interval->project(), type, name)) {
+  const auto accumulate_minutes_in_period = [period, &name](const std::chrono::minutes accu, const auto& interval) {
+    if (!is_match(interval->project(), name)) {
       return accu;
     }
     if (period.has_value()) {
@@ -202,4 +201,9 @@ std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,
   };
   using std::chrono_literals::operator""min;
   return std::accumulate(m_intervals.begin(), m_intervals.end(), 0min, accumulate_minutes_in_period);
+}
+
+std::chrono::minutes IntervalModel::minutes(const QDate& date, const std::optional<QString>& name) const
+{
+  return minutes(Period(date, Period::Type::Day), name);
 }

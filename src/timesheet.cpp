@@ -8,7 +8,7 @@
 TimeSheet::TimeSheet()
   : m_project_model(std::make_unique<ProjectModel>())
   , m_interval_model(std::make_unique<IntervalModel>())
-  , m_plan(std::make_unique<Plan>())
+  , m_plan(std::make_unique<FullTimePlan>())
 {
 }
 

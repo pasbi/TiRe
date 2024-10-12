@@ -1,6 +1,9 @@
 #include "period.h"
+
+#include "enum.h"
 #include "fmt.h"
 #include "interval.h"
+#include "json.h"
 #include <chrono>
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
@@ -10,6 +13,9 @@ namespace
 
 constexpr auto number_of_days_in_a_week = 7;
 enum class Rim { Begin, End };
+constexpr auto begin_key = "begin";
+constexpr auto end_key = "end";
+constexpr auto type_key = "type";
 
 [[nodiscard]] auto type_label(const Period::Type type)
 {
@@ -93,8 +99,19 @@ std::chrono::minutes Period::overlap(const Interval& interval) const noexcept
   return 0min;
 }
 
+std::optional<Period> Period::overlap(const Period& period) const noexcept
+{
+  const auto begin = std::max(this->begin(), period.begin());
+  const auto end = std::min(this->end(), period.end());
+  if (begin <= end) {
+    return Period{begin, end};
+  }
+  return std::nullopt;
+}
+
 QString Period::label() const
 {
+  const auto verbose_date = QObject::tr("dddd, dd.MM.yyyy");
   if (!m_begin.isValid() || !m_end.isValid()) {
     return QObject::tr("-");
   }
@@ -107,10 +124,15 @@ QString Period::label() const
   case Week: {
     int year;
     const auto week_number = m_begin.weekNumber(&year);
-    return QObject::tr("Week %1 in %2").arg(week_number).arg(year);
+    return QObject::tr("Week %1 in %2 (from %3)")
+        .arg(week_number)
+        .arg(year)
+        .arg(m_begin.toString(QObject::tr("MMM. dd.")));
   }
   case Day:
-    return m_begin.toString("dddd, dd.MM.yyyy");
+    return m_begin.toString(verbose_date);
+  case Custom:
+    return QObject::tr("%1–%2").arg(m_begin.toString(verbose_date), m_end.toString(verbose_date));
   }
   return {};
 }
@@ -127,7 +149,7 @@ bool Period::contains(const QDate& date) const noexcept
 
 std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept
 {
-  return a.dates() <=> b.dates();
+  return a.limits() <=> b.limits();
 }
 
 fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const Period& p, fmt::format_context& ctx)
@@ -178,7 +200,51 @@ Period Period::constrained(const QDate& latest_begin, const QDate& earliest_end)
   return *this;
 }
 
-std::pair<QDate, QDate> Period::dates() const noexcept
+std::pair<QDate, QDate> Period::limits() const noexcept
 {
   return {m_begin, m_end};
+}
+
+std::vector<QDate> Period::dates() const
+{
+  std::vector<QDate> days;
+  days.reserve(this->days());
+  for (std::size_t i = 0; i < days.capacity(); ++i) {
+    days.emplace_back(m_begin.addDays(i));
+  }
+  return days;
+}
+
+void to_json(nlohmann::json& j, const Period& value)
+{
+  if (value.type() == Period::Type::Custom) {
+    j = {
+        {begin_key, value.begin()},
+        {end_key, value.end()},
+    };
+  } else {
+    j = {
+        {begin_key, value.begin()},
+        {type_key, value.type()},
+    };
+  }
+}
+
+void from_json(const nlohmann::json& j, Period& value)
+{
+  if (const auto it = j.find(type_key); it != j.end()) {
+    value = Period(j.at(begin_key), static_cast<Period::Type>(*it));
+  } else {
+    value = Period(j.at(begin_key), static_cast<QDate>(j.at(end_key)));
+  }
+}
+
+void to_json(nlohmann::json& j, const Period::Type& value)
+{
+  j = fmt::format("{}", value);
+}
+
+void from_json(const nlohmann::json& j, Period::Type& value)
+{
+  value = ::enum_from_string<Period::Type, 5>(j);
 }

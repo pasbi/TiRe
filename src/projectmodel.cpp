@@ -11,15 +11,6 @@ namespace
 
 using ColorSet = std::set<QColor, decltype([](const QColor& a, const QColor& b) { return a.name() < b.name(); })>;
 
-[[nodiscard]] Project& find(const std::vector<std::unique_ptr<Project>>& projects, const Project::Type type)
-{
-  const auto pred = [type](const auto& project) { return project->type() == type; };
-  if (const auto it = std::ranges::find_if(projects, pred); it != projects.end()) {
-    return **it;
-  }
-  throw RuntimeError("Failed to find project of type {}.", type);
-}
-
 constexpr auto colors = std::array{
     "#01FFFE", "#FFA6FE", "#FFDB66", "#006401", "#010067", "#95003A", "#007DB5", "#FF00F6", "#FFEEE8", "#774D00",
     "#90FB92", "#0076FF", "#D5FF00", "#FF937E", "#6A826C", "#FF029D", "#FE8900", "#7A4782", "#7E2DD2", "#85A900",
@@ -51,17 +42,10 @@ constexpr auto colors = std::array{
 }  // namespace
 
 ProjectModel::ProjectModel()
-  : m_empty_project(add(std::make_unique<Project>(Project::Type::Empty, QString{}, Qt::gray)))
-  , m_holiday_project(add(std::make_unique<Project>(Project::Type::Holiday, QString{}, Qt::darkRed)))
-  , m_sick_project(add(std::make_unique<Project>(Project::Type::Sick, QString{}, Qt::green)))
 {
 }
 
-ProjectModel::ProjectModel(std::vector<std::unique_ptr<Project>> projects)
-  : m_projects(std::move(projects))
-  , m_empty_project(find(m_projects, Project::Type::Empty))
-  , m_holiday_project(find(m_projects, Project::Type::Holiday))
-  , m_sick_project(find(m_projects, Project::Type::Sick))
+ProjectModel::ProjectModel(std::vector<std::unique_ptr<Project>> projects) : m_projects(std::move(projects))
 {
 }
 
@@ -77,7 +61,7 @@ Project& ProjectModel::add(std::unique_ptr<Project> project)
 {
   if (!project->color().isValid()) {
     project->set_color(generate_color());
-    spdlog::info("Project {} has not color. Assigning {}.", project->label(), project->color().name());
+    spdlog::info("Project {} has not color. Assigning {}.", project->name(), project->color().name());
   }
   auto& ref = *m_projects.emplace_back(std::move(project));
   Q_EMIT projects_changed();
@@ -91,16 +75,6 @@ std::unique_ptr<Project> ProjectModel::extract(const Project& project)
   m_projects.erase(it);
   Q_EMIT projects_changed();
   return extracted_project;
-}
-
-const Project& ProjectModel::empty_project() const noexcept
-{
-  return m_empty_project;
-}
-
-bool ProjectModel::is_special_project(const Project* const project) const noexcept
-{
-  return project == &m_empty_project || project == &m_holiday_project || project == &m_sick_project;
 }
 
 const Project& ProjectModel::project(const std::size_t index) const

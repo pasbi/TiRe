@@ -2,6 +2,7 @@
 
 #include <QDate>
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 class Interval;
 
@@ -9,7 +10,6 @@ class Interval;
  * @class Period period.h "period.h"
  * @brief A Period represents a time range with well-defined begin and end date.
  * At first glance, it resembles the Interval, however, its purpose is very different.
- * - In contrast to an Interval, a Period cannot be serialized.
  * - The Period usually reflects a common time range (e.g., last week, yesterday, etc.).
  * - The Period has a precision of a day, while Interval is precise up to a minute.
  * - The Period must have both begin and end, the interval may not have an end if it is ongoing.
@@ -26,6 +26,7 @@ public:
   [[nodiscard]] const QDate& end() const noexcept;
   [[nodiscard]] Type type() const noexcept;
   [[nodiscard]] std::chrono::minutes overlap(const Interval& interval) const noexcept;
+  [[nodiscard]] std::optional<Period> overlap(const Period& period) const noexcept;
   [[nodiscard]] QString label() const;
   [[nodiscard]] bool contains(const Period& period) const noexcept;
   [[nodiscard]] bool contains(const QDate& date) const noexcept;
@@ -33,7 +34,8 @@ public:
   [[nodiscard]] QDate clamp(const QDate& date) const noexcept;
   [[nodiscard]] QDateTime clamp(const QDateTime& date_time) const noexcept;
   [[nodiscard]] Period constrained(const QDate& latest_begin, const QDate& earliest_end) const;
-  [[nodiscard]] std::pair<QDate, QDate> dates() const noexcept;
+  [[nodiscard]] std::pair<QDate, QDate> limits() const noexcept;
+  [[nodiscard]] std::vector<QDate> dates() const;
 
 private:
   QDate m_begin;
@@ -56,3 +58,8 @@ template<> struct fmt::formatter<Period::Type> : fmt::formatter<std::string>
   using format_return_type = decltype(std::declval<format_context>().out());
   [[nodiscard]] format_return_type format(const Period::Type& t, fmt::format_context& ctx) const;
 };
+
+void to_json(nlohmann::json& j, const Period& value);
+void from_json(const nlohmann::json& j, Period& value);
+void to_json(nlohmann::json& j, const Period::Type& value);
+void from_json(const nlohmann::json& j, Period::Type& value);

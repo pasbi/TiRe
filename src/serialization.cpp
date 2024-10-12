@@ -35,7 +35,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
     j[begin_key] = interval->begin();
     j[end_key] = interval->end();
     try {
-      j[project_key] = project_index_map.at(&interval->project());
+      j[project_key] = project_index_map.at(interval->project());
     } catch (std::out_of_range&) {
       throw DeserializationError("Failed to store project reference.");
     }
@@ -57,8 +57,7 @@ using ProjectIndexMap = std::map<const Project*, int>;
   std::deque<std::unique_ptr<Interval>> intervals;
   for (const auto& v : data) {
     try {
-      const Project& project = *projects.at(v.at(project_key));
-      auto& interval = *intervals.emplace_back(std::make_unique<Interval>(project));
+      auto& interval = *intervals.emplace_back(std::make_unique<Interval>(projects.at(v.at(project_key))));
       interval.swap_begin(v.at(begin_key));
       interval.swap_end(v.at(end_key));
     } catch (const std::out_of_range&) {
@@ -104,7 +103,7 @@ std::unique_ptr<TimeSheet> deserialize(const nlohmann::json& json)
     auto project_model = ::deserialize_project_model(json.at(project_model_key));
     const auto projects = project_model->projects();
     auto interval_model = ::deserialize_interval_model(json.at(interval_model_key), projects);
-    auto plan = std::make_unique<Plan>(json.at(plan_key));
+    auto plan = std::make_unique<FullTimePlan>(json.at(plan_key));
     return std::make_unique<TimeSheet>(std::move(project_model), std::move(interval_model), std::move(plan));
   } catch (const nlohmann::json::out_of_range& e) {
     throw DeserializationError("Failed to load time sheet: {}", e.what());

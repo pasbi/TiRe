@@ -1,4 +1,6 @@
 #include "projecteditor.h"
+
+#include "application.h"
 #include "commands/addremovecommand.h"
 #include "commands/undostack.h"
 #include "project.h"
@@ -9,11 +11,8 @@
 #include <QPushButton>
 #include <spdlog/spdlog.h>
 
-ProjectEditor::ProjectEditor(UndoStack& undo_stack, ProjectModel& project_model, QWidget* parent)
-  : QDialog(parent)
-  , m_ui(std::make_unique<Ui::ProjectEditor>())
-  , m_undo_stack(undo_stack)
-  , m_project_model(project_model)
+ProjectEditor::ProjectEditor(ProjectModel& project_model, QWidget* parent)
+  : QDialog(parent), m_ui(std::make_unique<Ui::ProjectEditor>()), m_project_model(project_model)
 {
   m_ui->setupUi(this);
 
@@ -36,7 +35,7 @@ const Project& ProjectEditor::current_project() const
 
 std::unique_ptr<Project> ProjectEditor::create_project() const
 {
-  return std::make_unique<Project>(Project::Type::Work, m_ui->cb_name->currentText(), m_project_model.generate_color());
+  return std::make_unique<Project>(m_ui->cb_name->currentText(), m_project_model.generate_color());
 }
 
 void ProjectEditor::showEvent(QShowEvent* event)
@@ -55,7 +54,7 @@ void ProjectEditor::update_project_list() const
   const QSignalBlocker _(m_ui->cb_name);
   m_ui->cb_name->clear();
   for (const auto& project : m_project_model.projects()) {
-    m_ui->cb_name->addItem(project->label());
+    m_ui->cb_name->addItem(project->name());
   }
 }
 
@@ -72,7 +71,7 @@ void ProjectEditor::about_to_accept()
     }
     auto new_project = create_project();
     const auto& project_ref = *new_project;
-    m_undo_stack.push(::make<AddCommand>(m_project_model, std::move(new_project)));
+    Application::undo_stack().push(::make<AddCommand>(m_project_model, std::move(new_project)));
     update_project_list();
     set_project(project_ref);  // must be after update_project_list!
   }

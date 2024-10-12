@@ -30,4 +30,8 @@ private:
   std::unique_ptr<PeriodDetailProxyModel> m_proxy_model;
   class ItemDelegate;
   std::unique_ptr<ItemDelegate> m_item_delegate;
+  std::vector<std::unique_ptr<QAction>> m_context_menu_actions;
+
+  void init_context_menu_actions();
+  void show_table_context_menu(const QPoint& pos);
 };

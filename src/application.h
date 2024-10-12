@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+class UndoStack;
 class QApplication;
 class QDateTime;
 
@@ -15,9 +16,11 @@ public:
 
   [[nodiscard]] static QDateTime current_date_time();
   [[nodiscard]] static const std::filesystem::path& timesheet_filename() noexcept;
+  [[nodiscard]] static UndoStack& undo_stack() noexcept;
 
 private:
   std::unique_ptr<QApplication> m_qapp;
   static std::optional<QDateTime> m_current_date_time;
   static std::filesystem::path m_timesheet_filename;
+  static std::unique_ptr<UndoStack> m_undo_stack;
 };

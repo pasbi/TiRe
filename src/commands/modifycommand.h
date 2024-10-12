@@ -30,8 +30,8 @@ private:
 };
 
 template<typename Object, typename Value, typename Swapper, typename Signal>
-auto make_modify_command(Object& interval, Value other_value, Swapper swapper, Signal signal)
+auto make_modify_command(Object& object, Value other_value, Swapper swapper, Signal signal)
 {
   return std::unique_ptr<Command>(
-      new ModifyCommand(interval, std::move(other_value), std::move(swapper), std::move(signal)));
+      new ModifyCommand(object, std::move(other_value), std::move(swapper), std::move(signal)));
 }
