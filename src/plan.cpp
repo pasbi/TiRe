@@ -159,6 +159,7 @@ void Plan::add(std::unique_ptr<Entry> entry)
   beginInsertRows({}, row, row);
   m_periods.emplace_back(std::move(entry));
   endInsertRows();
+  Q_EMIT plan_changed();
 }
 
 std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
@@ -172,6 +173,7 @@ std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
     auto ret = std::move(*it);
     m_periods.erase(it);
     endRemoveRows();
+    Q_EMIT plan_changed();
     return ret;
   }
   return {};
@@ -186,6 +188,37 @@ void Plan::data_changed(const int row, const int column)
 {
   const auto index = this->index(row, column);
   Q_EMIT dataChanged(index, index);
+  Q_EMIT plan_changed();
+}
+
+std::chrono::minutes Plan::count(const Period& period, const std::map<Kind, double>& factors) const
+{
+  using std::chrono_literals::operator""min;
+  auto sum = 0min;
+  for (const auto& entry : m_periods) {
+    const auto it = factors.find(entry->kind);
+    if (it == factors.end()) {
+      continue;
+    }
+    const auto intersected_period = entry->period.overlap(period);
+    if (!intersected_period.has_value()) {
+      continue;
+    }
+
+    sum +=
+        std::chrono::duration_cast<std::chrono::minutes>(it->second * planned_normal_working_time(*intersected_period));
+  }
+  return sum;
+}
+
+std::chrono::minutes Plan::planned_normal_working_time(const Period& period) const noexcept
+{
+  using std::chrono_literals::operator""min;
+  auto result = 0min;
+  for (int day = 0; day <= period.days(); ++day) {
+    result += planned_normal_working_time(period.begin().addDays(day));
+  }
+  return result;
 }
 
 void Plan::set_data(const int row, const Kind kind)
@@ -198,6 +231,45 @@ void Plan::set_data(const int row, const Period& period)
 {
   m_periods.at(row)->period = period;
   data_changed(row, kind_column);
+}
+
+std::chrono::minutes Plan::sick_time(const Period& period) const
+{
+  return count(period, {
+                           {Kind::Holiday, 0.0},
+                           {Kind::Normal, 0.0},
+                           {Kind::Sick, 1.0},
+                           {Kind::Vacation, 0.0},
+                           {Kind::HalfVacation, 0.0},
+                           {Kind::HalfHoliday, 0.0},
+                           {Kind::HalfVacationHalfHoliday, 0.0},
+                       });
+}
+
+std::chrono::minutes Plan::holiday_time(const Period& period) const
+{
+  return count(period, {
+                           {Kind::Holiday, 1.0},
+                           {Kind::Normal, 0.0},
+                           {Kind::Sick, 0.0},
+                           {Kind::Vacation, 0.0},
+                           {Kind::HalfVacation, 0.0},
+                           {Kind::HalfHoliday, 0.5},
+                           {Kind::HalfVacationHalfHoliday, 0.5},
+                       });
+}
+
+std::chrono::minutes Plan::vacation_time(const Period& period) const
+{
+  return count(period, {
+                           {Kind::Holiday, 0.0},
+                           {Kind::Normal, 0.0},
+                           {Kind::Sick, 0.0},
+                           {Kind::Vacation, 1.0},
+                           {Kind::HalfVacation, 0.5},
+                           {Kind::HalfHoliday, 0.0},
+                           {Kind::HalfVacationHalfHoliday, 0.5},
+                       });
 }
 
 std::chrono::minutes FullTimePlan::planned_normal_working_time(const QDate& date) const noexcept

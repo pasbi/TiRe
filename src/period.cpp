@@ -99,6 +99,16 @@ std::chrono::minutes Period::overlap(const Interval& interval) const noexcept
   return 0min;
 }
 
+std::optional<Period> Period::overlap(const Period& period) const noexcept
+{
+  const auto begin = std::max(this->begin(), period.begin());
+  const auto end = std::min(this->end(), period.end());
+  if (begin <= end) {
+    return Period{begin, end};
+  }
+  return std::nullopt;
+}
+
 QString Period::label() const
 {
   const auto verbose_date = QObject::tr("dddd, dd.MM.yyyy");

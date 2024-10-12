@@ -26,6 +26,7 @@ public:
   [[nodiscard]] const QDate& end() const noexcept;
   [[nodiscard]] Type type() const noexcept;
   [[nodiscard]] std::chrono::minutes overlap(const Interval& interval) const noexcept;
+  [[nodiscard]] std::optional<Period> overlap(const Period& period) const noexcept;
   [[nodiscard]] QString label() const;
   [[nodiscard]] bool contains(const Period& period) const noexcept;
   [[nodiscard]] bool contains(const QDate& date) const noexcept;

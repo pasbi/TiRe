@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>186</width>
-    <height>232</height>
+    <height>255</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,14 +61,14 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="4" column="0">
     <widget class="QLabel" name="label_4">
      <property name="text">
       <string>Holiday:</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="1">
+   <item row="4" column="1">
     <widget class="QLabel" name="lb_holiday">
      <property name="toolTip">
       <string>The time spent on holiday (vacation and bank holidays).</string>
@@ -81,21 +81,21 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="2">
+   <item row="5" column="0" colspan="2">
     <widget class="Line" name="line_2">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
+   <item row="6" column="0">
     <widget class="QLabel" name="label_5">
      <property name="text">
       <string>Expected Worktime:</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
+   <item row="6" column="1">
     <widget class="QLabel" name="lb_expected_worktime">
      <property name="font">
       <font>
@@ -103,7 +103,7 @@
       </font>
      </property>
      <property name="toolTip">
-      <string>The expected worktime (total worktime minus sick and holiday).</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The expected worktime (total worktime minus sick, holiday and vacation).&lt;/p&gt;&lt;p&gt;On sick days, the expected worktime is never less than the actual work time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
       <string>TextLabel</string>
@@ -113,14 +113,14 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
+   <item row="7" column="0">
     <widget class="QLabel" name="label_6">
      <property name="text">
       <string>Actual Worktime:</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="1">
+   <item row="7" column="1">
     <widget class="QLabel" name="lb_actual_worktime">
      <property name="font">
       <font>
@@ -138,21 +138,21 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="2">
+   <item row="8" column="0" colspan="2">
     <widget class="Line" name="line_3">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
      </property>
     </widget>
    </item>
-   <item row="8" column="0">
+   <item row="9" column="0">
     <widget class="QLabel" name="label_7">
      <property name="text">
       <string>Period Balance</string>
      </property>
     </widget>
    </item>
-   <item row="8" column="1">
+   <item row="9" column="1">
     <widget class="QLabel" name="lb_period_balance">
      <property name="font">
       <font>
@@ -170,14 +170,14 @@
      </property>
     </widget>
    </item>
-   <item row="9" column="0">
+   <item row="10" column="0">
     <widget class="QLabel" name="label_8">
      <property name="text">
       <string>Balance Carryover:</string>
      </property>
     </widget>
    </item>
-   <item row="9" column="1">
+   <item row="10" column="1">
     <widget class="QLabel" name="lb_balance_carryover">
      <property name="toolTip">
       <string>The balance from before this period.</string>
@@ -190,21 +190,21 @@
      </property>
     </widget>
    </item>
-   <item row="10" column="0" colspan="2">
+   <item row="11" column="0" colspan="2">
     <widget class="Line" name="line_4">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
      </property>
     </widget>
    </item>
-   <item row="11" column="0">
+   <item row="12" column="0">
     <widget class="QLabel" name="label_9">
      <property name="text">
       <string>Total Balance:</string>
      </property>
     </widget>
    </item>
-   <item row="11" column="1">
+   <item row="12" column="1">
     <widget class="QLabel" name="lb_total_balance">
      <property name="font">
       <font>
@@ -215,6 +215,26 @@
      </property>
      <property name="toolTip">
       <string>The balance since the beginning of records (including this period).</string>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_10">
+     <property name="text">
+      <string>Vacation:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="lb_vacation">
+     <property name="toolTip">
+      <string>The time spend being sick.</string>
      </property>
      <property name="text">
       <string>TextLabel</string>

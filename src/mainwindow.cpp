@@ -128,6 +128,7 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
   m_ui->period_summary_view->set_model(m_time_sheet.get());
   m_ui->ganttview->set_time_sheet(m_time_sheet.get());
   m_ui->tv_plan->setModel(&m_time_sheet->plan());
+  connect(&m_time_sheet->plan(), &Plan::plan_changed, m_ui->plan_view, &PlanView::invalidate);
   Application::undo_stack().impl().clear();
 }
 

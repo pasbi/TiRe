@@ -12,6 +12,7 @@ class QDate;
 
 class Plan : public QAbstractTableModel
 {
+  Q_OBJECT
 public:
   static constexpr auto period_column = 0;
   static constexpr auto kind_column = 1;
@@ -45,6 +46,13 @@ public:
   void set_data(int row, Kind kind);
   void set_data(int row, const Period& period);
 
+  [[nodiscard]] std::chrono::minutes sick_time(const Period& period) const;
+  [[nodiscard]] std::chrono::minutes holiday_time(const Period& period) const;
+  [[nodiscard]] std::chrono::minutes vacation_time(const Period& period) const;
+
+Q_SIGNALS:
+  void plan_changed();
+
 protected:
   [[nodiscard]] virtual std::chrono::minutes planned_normal_working_time(const QDate& date) const noexcept = 0;
 
@@ -53,6 +61,8 @@ private:
   std::chrono::minutes m_overtime_offset{0};
   std::vector<std::unique_ptr<Entry>> m_periods;
   void data_changed(int row, int column);
+  [[nodiscard]] std::chrono::minutes count(const Period& period, const std::map<Kind, double>& factors) const;
+  [[nodiscard]] std::chrono::minutes planned_normal_working_time(const Period& period) const noexcept;
 };
 
 class FullTimePlan : public Plan
