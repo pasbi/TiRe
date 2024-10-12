@@ -3,7 +3,10 @@
 #include "enum.h"
 #include "exceptions.h"
 #include "fmt.h"
+#include "json.h"
 #include "period.h"
+#include "periodedit.h"
+
 #include <QDate>
 #include <nlohmann/json.hpp>
 
@@ -123,7 +126,7 @@ QVariant Plan::data(const QModelIndex& index, const int role) const
 
   const auto& [period, kind] = *m_periods.at(index.row());
   switch (index.column()) {
-  case date_column:
+  case period_column:
     return period.label();
   case kind_column:
     return QString::fromStdString(fmt::format("{}", kind));
@@ -137,12 +140,17 @@ QVariant Plan::headerData(const int section, const Qt::Orientation orientation, 
     return {};
   }
   switch (section) {
-  case date_column:
+  case period_column:
     return tr("Period");
   case kind_column:
     return tr("Kind");
   }
   Q_UNREACHABLE();
+}
+
+Qt::ItemFlags Plan::flags(const QModelIndex& index) const
+{
+  return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
 }
 
 void Plan::add(std::unique_ptr<Entry> entry)
@@ -167,6 +175,29 @@ std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
     return ret;
   }
   return {};
+}
+
+const Plan::Entry& Plan::entry(int row) const noexcept
+{
+  return *m_periods.at(row);
+}
+
+void Plan::data_changed(const int row, const int column)
+{
+  const auto index = this->index(row, column);
+  Q_EMIT dataChanged(index, index);
+}
+
+void Plan::set_data(const int row, const Kind kind)
+{
+  m_periods.at(row)->kind = kind;
+  data_changed(row, period_column);
+}
+
+void Plan::set_data(const int row, const Period& period)
+{
+  m_periods.at(row)->period = period;
+  data_changed(row, kind_column);
 }
 
 std::chrono::minutes FullTimePlan::planned_normal_working_time(const QDate& date) const noexcept

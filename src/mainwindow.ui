@@ -105,7 +105,7 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
-          <widget class="TableView" name="tv_plan">
+          <widget class="PlanTableView" name="tv_plan">
            <attribute name="horizontalHeaderVisible">
             <bool>false</bool>
            </attribute>
@@ -348,9 +348,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>TableView</class>
+   <class>PlanTableView</class>
    <extends>QTableView</extends>
-   <header>tableview.h</header>
+   <header>plantableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

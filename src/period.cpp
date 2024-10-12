@@ -101,6 +101,7 @@ std::chrono::minutes Period::overlap(const Interval& interval) const noexcept
 
 QString Period::label() const
 {
+  const auto verbose_date = QObject::tr("dddd, dd.MM.yyyy");
   if (!m_begin.isValid() || !m_end.isValid()) {
     return QObject::tr("-");
   }
@@ -113,10 +114,15 @@ QString Period::label() const
   case Week: {
     int year;
     const auto week_number = m_begin.weekNumber(&year);
-    return QObject::tr("Week %1 in %2").arg(week_number).arg(year);
+    return QObject::tr("Week %1 in %2 (from %3)")
+        .arg(week_number)
+        .arg(year)
+        .arg(m_begin.toString(QObject::tr("MMM. dd.")));
   }
   case Day:
-    return m_begin.toString("dddd, dd.MM.yyyy");
+    return m_begin.toString(verbose_date);
+  case Custom:
+    return QObject::tr("%1–%2").arg(m_begin.toString(verbose_date), m_end.toString(verbose_date));
   }
   return {};
 }

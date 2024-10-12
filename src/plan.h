@@ -2,7 +2,6 @@
 
 #include "application.h"
 #include "fmt.h"
-#include "json.h"
 #include "period.h"
 
 #include <QAbstractTableModel>
@@ -14,7 +13,7 @@ class QDate;
 class Plan : public QAbstractTableModel
 {
 public:
-  static constexpr auto date_column = 0;
+  static constexpr auto period_column = 0;
   static constexpr auto kind_column = 1;
   explicit Plan(const nlohmann::json& data);
   explicit Plan();
@@ -31,6 +30,7 @@ public:
   [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+  [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
 
   struct Entry
   {
@@ -41,14 +41,18 @@ public:
   void add(std::unique_ptr<Entry> entry);
   std::unique_ptr<Entry> extract(const Entry& entry);
 
+  const Entry& entry(int row) const noexcept;
+  void set_data(int row, Kind kind);
+  void set_data(int row, const Period& period);
+
 protected:
   [[nodiscard]] virtual std::chrono::minutes planned_normal_working_time(const QDate& date) const noexcept = 0;
 
 private:
   QDate m_start = Application::current_date_time().date();
   std::chrono::minutes m_overtime_offset{0};
-
   std::vector<std::unique_ptr<Entry>> m_periods;
+  void data_changed(int row, int column);
 };
 
 class FullTimePlan : public Plan
