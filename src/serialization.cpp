@@ -34,10 +34,14 @@ using ProjectIndexMap = std::map<const Project*, int>;
     nlohmann::json& j = vs.emplace_back();
     j[begin_key] = interval->begin();
     j[end_key] = interval->end();
-    try {
-      j[project_key] = project_index_map.at(interval->project());
-    } catch (std::out_of_range&) {
-      throw DeserializationError("Failed to store project reference.");
+    if (const auto project = interval->project(); project == nullptr) {
+      j[project_key] = nullptr;
+    } else {
+      try {
+        j[project_key] = project_index_map.at(project);
+      } catch (std::out_of_range&) {
+        throw DeserializationError("Failed to store project reference.");
+      }
     }
   }
   return vs;
@@ -57,10 +61,14 @@ using ProjectIndexMap = std::map<const Project*, int>;
   std::deque<std::unique_ptr<Interval>> intervals;
   for (const auto& v : data) {
     try {
-      auto& interval = *intervals.emplace_back(std::make_unique<Interval>(projects.at(v.at(project_key))));
+      const auto project_reference = v.at(project_key);
+      const auto* const project = project_reference.is_null() ? nullptr : projects.at(project_reference);
+      auto& interval = *intervals.emplace_back(std::make_unique<Interval>(project));
       interval.swap_begin(v.at(begin_key));
       interval.swap_end(v.at(end_key));
     } catch (const std::out_of_range&) {
+      throw DeserializationError("Failed to restore project reference.");
+    } catch (const nlohmann::json::exception&) {
       throw DeserializationError("Failed to restore project reference.");
     }
   }
