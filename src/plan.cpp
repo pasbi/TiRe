@@ -215,8 +215,8 @@ std::chrono::minutes Plan::planned_normal_working_time(const Period& period) con
 {
   using std::chrono_literals::operator""min;
   auto result = 0min;
-  for (int day = 0; day <= period.days(); ++day) {
-    result += planned_normal_working_time(period.begin().addDays(day));
+  for (const auto date : period.dates()) {
+    result += planned_normal_working_time(date);
   }
   return result;
 }
