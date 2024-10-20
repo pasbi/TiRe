@@ -1,7 +1,13 @@
 #include "views/perioddetailview.h"
+
+#include "application.h"
+#include "callbackdelegate.h"
 #include "commands/commands.h"
+#include "commands/undostack.h"
 #include "intervalmodel.h"
+#include "projecteditor.h"
 #include "tableview.h"
+#include "timerangeeditor2.h"
 #include "timesheet.h"
 #include "views/perioddetailproxymodel.h"
 #include <QHBoxLayout>
@@ -11,53 +17,66 @@
 #include <QStyledItemDelegate>
 #include <spdlog/spdlog.h>
 
-class PeriodDetailView::ItemDelegate : public QStyledItemDelegate
+namespace
+{
+
+void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index, Period::Type period_type)
+{
+  if (const auto data = index.data(Qt::DisplayRole); data.typeId() == qMetaTypeId<DatePair>()) {
+    const auto& [begin, end] = qvariant_cast<DatePair>(data);
+    using enum Period::Type;
+    const auto format = period_type == Custom || period_type == Year ? "dd.MM." : "ddd, dd.";
+    if (begin == end) {
+      option->text = begin.toString(format);
+    } else {
+      option->text = begin.toString(format) + " - " + end.toString(format);
+    }
+  }
+  if (option->state & QStyle::State_Selected) {
+    option->font.setBold(true);
+    option->font.setUnderline(true);
+    option->palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
+    option->palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
+  }
+}
+
+class CallbackItemDelegate : public CallbackDelegate
 {
 public:
-  void set_period_type(const Period::Type type)
-  {
-    m_period_type = type;
-  }
+  using CallbackDelegate::CallbackDelegate;
+  Period::Type period_type = Period::Type::Custom;
 
 protected:
   void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
   {
-    QStyledItemDelegate::initStyleOption(option, index);
-    if (const auto data = index.data(Qt::DisplayRole); data.typeId() == qMetaTypeId<DatePair>()) {
-      const auto& [begin, end] = qvariant_cast<DatePair>(data);
-      using enum Period::Type;
-      const auto format = m_period_type == Custom || m_period_type == Year ? "dd.MM." : "ddd, dd.";
-      if (begin == end) {
-        option->text = begin.toString(format);
-      } else {
-        option->text = begin.toString(format) + " - " + end.toString(format);
-      }
-    }
-    if (option->state & QStyle::State_Selected) {
-      option->font.setBold(true);
-      option->font.setUnderline(true);
-      option->palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
-      option->palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
-    }
+    CallbackDelegate::initStyleOption(option, index);
+    ::initStyleOption(option, index, period_type);
   }
-
-private:
-  Period::Type m_period_type = Period::Type::Custom;
 };
 
-PeriodDetailView::PeriodDetailView(QWidget* parent)
+constexpr auto noop = [](auto&&...) {};
+
+}  // namespace
+
+PeriodDetailView::PeriodDetailView(QWidget* const parent)
   : AbstractPeriodView(parent)
   , m_table_view(::setup_ui_with_single_table_view(this))
   , m_proxy_model(std::make_unique<PeriodDetailProxyModel>())
-  , m_item_delegate(std::make_unique<ItemDelegate>())
+  , m_ro_item_delegate(std::make_unique<CallbackItemDelegate>(noop, nullptr))
+  , m_begin_end_delegate(std::make_unique<CallbackItemDelegate>(
+        [this](const QModelIndex& index) { edit_date_time(m_proxy_model->mapToSource(index)); }))
+  , m_project_delegate(std::make_unique<CallbackItemDelegate>(
+        [this](const QModelIndex& index) { edit_project(m_proxy_model->mapToSource(index)); }))
 {
   init_context_menu_actions();
-  connect(&m_table_view, &QAbstractItemView::doubleClicked, this,
-          [this](const QModelIndex& index) { Q_EMIT double_clicked(m_proxy_model->mapToSource(index)); });
   m_table_view.setModel(m_proxy_model.get());
   m_table_view.setSelectionBehavior(QAbstractItemView::SelectRows);
   m_table_view.setSelectionMode(QAbstractItemView::SingleSelection);
-  m_table_view.setItemDelegate(m_item_delegate.get());
+  m_table_view.setItemDelegateForColumn(0, m_project_delegate.get());
+  m_table_view.setItemDelegateForColumn(1, m_begin_end_delegate.get());
+  m_table_view.setItemDelegateForColumn(2, m_begin_end_delegate.get());
+  m_table_view.setItemDelegateForColumn(3, m_begin_end_delegate.get());
+  m_table_view.setItemDelegateForColumn(4, m_ro_item_delegate.get());
   m_table_view.setSortingEnabled(true);
   m_table_view.sortByColumn(IntervalModel::begin_column, Qt::AscendingOrder);
   connect(m_table_view.selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex& index) {
@@ -103,7 +122,9 @@ void PeriodDetailView::set_model(const TimeSheet* time_sheet)
 void PeriodDetailView::set_period(const Period& period)
 {
   m_proxy_model->set_period(period);
-  m_item_delegate->set_period_type(period.type());
+  for (auto& delegate : {m_begin_end_delegate.get(), m_project_delegate.get(), m_ro_item_delegate.get()}) {
+    dynamic_cast<CallbackItemDelegate&>(*delegate).period_type = period.type();
+  }
   AbstractPeriodView::set_period(period);
 }
 
@@ -136,4 +157,32 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
     menu.addAction(action.get());
   }
   menu.exec(pos);
+}
+
+void PeriodDetailView::edit_date_time(const QModelIndex& index) const
+{
+  TimeRangeEditor2 e;
+  auto& interval = *time_sheet()->interval_model().intervals().at(index.row());
+  e.set_range(interval.begin(), interval.end());
+  if (e.exec() == QDialog::Accepted) {
+    const auto macro = Application::undo_stack().start_macro(tr("Change interval"));
+    Application::undo_stack().push(
+        make_modify_interval_command(time_sheet()->interval_model(), interval, e.begin(), &Interval::swap_begin));
+    Application::undo_stack().push(
+        make_modify_interval_command(time_sheet()->interval_model(), interval, e.end(), &Interval::swap_end));
+    Q_EMIT time_sheet()->interval_model().data_changed();
+  }
+}
+
+void PeriodDetailView::edit_project(const QModelIndex& index) const
+{
+  ProjectEditor e(time_sheet()->project_model());
+  auto* const interval = time_sheet()->interval_model().intervals().at(index.row());
+  if (const auto* const project = interval->project(); project != nullptr) {
+    e.set_project(*project);
+  }
+  if (e.exec() == QDialog::Accepted) {
+    Application::undo_stack().push(make_modify_interval_command(time_sheet()->interval_model(), *interval,
+                                                                &e.current_project(), &Interval::swap_project));
+  }
 }

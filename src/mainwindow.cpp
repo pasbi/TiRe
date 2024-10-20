@@ -11,8 +11,6 @@
 #include "projecteditor.h"
 #include "projectmodel.h"
 #include "serialization.h"
-#include "timerangeeditor.h"
-#include "timerangeeditor2.h"
 #include "timerangeslider.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
@@ -49,13 +47,6 @@ MainWindow::MainWindow(QWidget* parent)
   , m_view_action_group(this)
 {
   m_ui->setupUi(this);
-  connect(m_ui->period_detail_view, &PeriodDetailView::double_clicked, this, [this](const QModelIndex& index) {
-    if (index.column() == IntervalModel::begin_column || index.column() == IntervalModel::end_column) {
-      edit_date_time(index);
-    } else if (index.column() == IntervalModel::project_column) {
-      edit_project(index);
-    }
-  });
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
           &GanttView::set_current_interval);
@@ -290,34 +281,6 @@ bool MainWindow::save_as()
 void MainWindow::closeEvent(QCloseEvent* event)
 {
   can_close() ? event->accept() : event->ignore();
-}
-
-void MainWindow::edit_date_time(const QModelIndex& index) const
-{
-  TimeRangeEditor2 e;
-  auto& interval = *m_time_sheet->interval_model().intervals().at(index.row());
-  e.set_range(interval.begin(), interval.end());
-  if (e.exec() == QDialog::Accepted) {
-    const auto macro = Application::undo_stack().start_macro(tr("Change interval"));
-    Application::undo_stack().push(
-        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.begin(), &Interval::swap_begin));
-    Application::undo_stack().push(
-        make_modify_interval_command(m_time_sheet->interval_model(), interval, e.end(), &Interval::swap_end));
-    Q_EMIT m_time_sheet->interval_model().data_changed();
-  }
-}
-
-void MainWindow::edit_project(const QModelIndex& index) const
-{
-  ProjectEditor e(m_time_sheet->project_model());
-  auto* const interval = m_time_sheet->interval_model().intervals().at(index.row());
-  if (const auto* const project = interval->project(); project != nullptr) {
-    e.set_project(*project);
-  }
-  if (e.exec() == QDialog::Accepted) {
-    Application::undo_stack().push(make_modify_interval_command(m_time_sheet->interval_model(), *interval,
-                                                                &e.current_project(), &Interval::swap_project));
-  }
 }
 
 bool MainWindow::new_time_sheet()
