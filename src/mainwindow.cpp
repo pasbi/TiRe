@@ -8,7 +8,6 @@
 #include "exceptions.h"
 #include "intervalmodel.h"
 #include "plan.h"
-#include "projecteditor.h"
 #include "projectmodel.h"
 #include "serialization.h"
 #include "timerangeslider.h"
@@ -158,13 +157,8 @@ void MainWindow::switch_task()
     return;
   }
 
-  ProjectEditor d(m_time_sheet->project_model());
-  if (d.exec() == QDialog::Rejected) {
-    return;
-  }
-
   const auto timestamp = Application::current_date_time();
-  auto new_interval = std::make_unique<Interval>(&d.current_project());
+  auto new_interval = std::make_unique<Interval>(nullptr);
   new_interval->swap_begin(timestamp);
   auto add_interval_command = make<AddCommand>(interval_model, std::move(new_interval));
   const auto macro = Application::undo_stack().start_macro(add_interval_command->text());

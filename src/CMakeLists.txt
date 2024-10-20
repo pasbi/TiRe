@@ -32,9 +32,6 @@ target_sources(tire-impl PRIVATE
         plantableview.h
         project.cpp
         project.h
-        projecteditor.cpp
-        projecteditor.h
-        projecteditor.ui
         projectmodel.cpp
         projectmodel.h
         serialization.cpp
