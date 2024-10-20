@@ -113,7 +113,7 @@ Qt::ItemFlags IntervalModel::flags(const QModelIndex& index) const
   if (!index.isValid()) {
     return {};
   }
-  return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+  return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
 }
 
 QModelIndex IntervalModel::index(const Interval& interval) const

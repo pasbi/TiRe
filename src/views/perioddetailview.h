@@ -22,16 +22,18 @@ public:
   void set_period(const Period& period) override;
 
 Q_SIGNALS:
-  void double_clicked(const QModelIndex& index);
   void current_interval_changed(const Interval* interval);
 
 private:
   QTableView& m_table_view;
   std::unique_ptr<PeriodDetailProxyModel> m_proxy_model;
-  class ItemDelegate;
-  std::unique_ptr<ItemDelegate> m_item_delegate;
+  std::unique_ptr<QAbstractItemDelegate> m_ro_item_delegate;
+  std::unique_ptr<QAbstractItemDelegate> m_begin_end_delegate;
+  std::unique_ptr<QAbstractItemDelegate> m_project_delegate;
   std::vector<std::unique_ptr<QAction>> m_context_menu_actions;
 
   void init_context_menu_actions();
   void show_table_context_menu(const QPoint& pos);
+  void edit_date_time(const QModelIndex& index) const;
+  void edit_project(const QModelIndex& index) const;
 };

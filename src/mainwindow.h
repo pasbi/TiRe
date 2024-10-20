@@ -52,8 +52,6 @@ private:
   std::filesystem::path m_filename;
   QActionGroup m_view_action_group;
 
-  void edit_date_time(const QModelIndex& index) const;
-  void edit_project(const QModelIndex& index) const;
   void end_task();
   void switch_task();
   void update_window_title();
