@@ -10,15 +10,24 @@
 namespace
 {
 
-class PeriodDelegate : public QStyledItemDelegate
+/**
+ * @class The CallbackDelegate allows to call a callback instead of open an editor.
+ * The callback could, e.g., spawn an editor.
+ * This functionality could also be implemented by connection to the `QAbstractItemView::doubleClicked`-signal.
+ * However, that would less elegant because:
+ *  - connections and delegates would both share responsibility for creating editors
+ *  - the model is required not to return the ItemIsEditable-flag to avoid creating the default in-place editor widget
+ *    on double click. That's counterintuitive because the field is actually editable.
+ */
+class CallbackDelegate : public QStyledItemDelegate
 {
 public:
-  PeriodDelegate(std::function<void(const QModelIndex&)> edit_callback, QObject* parent = nullptr)
+  CallbackDelegate(std::function<void(const QModelIndex&)> edit_callback, QObject* parent = nullptr)
     : QStyledItemDelegate(parent), m_edit_callback(std::move(edit_callback))
   {
   }
 
-  QWidget* createEditor(QWidget* const, const QStyleOptionViewItem&, const QModelIndex& index) const override
+  QWidget* createEditor(QWidget* const parent, const QStyleOptionViewItem&, const QModelIndex& index) const override
   {
     if (m_edit_callback) {
       m_edit_callback(index);
@@ -58,14 +67,14 @@ class KindDelegate : public QStyledItemDelegate
 
 PlanTableView::PlanTableView(QWidget* parent)
   : TableView(parent)
-  , m_period_delegate(std::make_unique<PeriodDelegate>([this](const QModelIndex& index) { open_period_edit(index); }))
+  , m_period_delegate(std::make_unique<CallbackDelegate>([this](const QModelIndex& index) { open_period_edit(index); }))
   , m_kind_delegate(std::make_unique<KindDelegate>())
 {
   setItemDelegateForColumn(0, m_period_delegate.get());
   setItemDelegateForColumn(1, m_kind_delegate.get());
 }
 
-void PlanTableView::open_period_edit(const QModelIndex& index)
+void PlanTableView::open_period_edit(const QModelIndex& index) const
 {
   PeriodEdit period_edit;
   auto& plan = static_cast<Plan&>(*model());
