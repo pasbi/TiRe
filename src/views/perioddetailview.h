@@ -35,5 +35,4 @@ private:
   void init_context_menu_actions();
   void show_table_context_menu(const QPoint& pos);
   void edit_date_time(const QModelIndex& index) const;
-  void edit_project(const QModelIndex& index) const;
 };
