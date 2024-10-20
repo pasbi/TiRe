@@ -28,6 +28,7 @@ void TimeRangeEditor2::set_range(const QDateTime& begin, const QDateTime& end)
   m_ui->dt_end->setDateTime(e);
   m_ui->w_slider->set_date_time(e);
   m_ui->cb_has_end->setChecked(end.isValid());
+  update_fences();
   update();
 }
 
