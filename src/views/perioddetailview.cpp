@@ -34,7 +34,7 @@ void init_style_selected(QStyleOptionViewItem* option, const QModelIndex& index)
   }
 }
 
-void init_style_option(QStyleOptionViewItem* option, const QModelIndex& index, Period::Type period_type)
+void init_style_option(QStyleOptionViewItem* option, const QModelIndex& index, const Period::Type period_type)
 {
   if (const auto data = index.data(Qt::DisplayRole); data.typeId() == qMetaTypeId<DatePair>()) {
     const auto& [begin, end] = qvariant_cast<DatePair>(data);
@@ -88,6 +88,7 @@ public:
     for (const auto& project : m_time_sheet->project_model().projects()) {
       editor->addItem(project->name());
     }
+    editor->addItem(tr("No Project"));
     return editor.release();
   }
 
@@ -102,7 +103,10 @@ public:
   {
     const auto& combo_box = dynamic_cast<QComboBox&>(*editor);
     const Project* project = nullptr;
-    if (const auto current_text = combo_box.currentText(); current_text == combo_box.itemText(combo_box.currentIndex()))
+    if (combo_box.currentIndex() == m_time_sheet->project_model().projects().size()) {
+      project = nullptr;
+    } else if (const auto current_text = combo_box.currentText();
+               current_text == combo_box.itemText(combo_box.currentIndex()))
     {
       project = &m_time_sheet->project_model().project(combo_box.currentIndex());
     } else if (QMessageBox::question(editor, QApplication::applicationDisplayName(),
