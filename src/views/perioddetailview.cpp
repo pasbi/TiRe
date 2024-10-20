@@ -20,18 +20,6 @@ public:
   }
 
 protected:
-  void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
-  {
-    auto option_copy = option;
-    if (option.state & QStyle::State_Selected) {
-      option_copy.font.setBold(true);
-      option_copy.font.setUnderline(true);
-      option_copy.palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
-      option_copy.palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
-    }
-    QStyledItemDelegate::paint(painter, option_copy, index);
-  }
-
   void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
   {
     QStyledItemDelegate::initStyleOption(option, index);
@@ -44,6 +32,12 @@ protected:
       } else {
         option->text = begin.toString(format) + " - " + end.toString(format);
       }
+    }
+    if (option->state & QStyle::State_Selected) {
+      option->font.setBold(true);
+      option->font.setUnderline(true);
+      option->palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
+      option->palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
     }
   }
 
