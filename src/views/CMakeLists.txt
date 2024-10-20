@@ -1,6 +1,8 @@
 target_sources(tire-impl PRIVATE
         abstractperiodview.cpp
         abstractperiodview.h
+        callbackdelegate.cpp
+        callbackdelegate.h
         perioddetailproxymodel.cpp
         perioddetailproxymodel.h
         perioddetailview.cpp
