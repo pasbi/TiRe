@@ -15,6 +15,7 @@
 
 #include <QApplication>
 #include <QHeaderView>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPainter>
@@ -94,9 +95,11 @@ public:
 
   void setEditorData(QWidget* const editor, const QModelIndex& index) const override
   {
+    auto& combo_box = dynamic_cast<QComboBox&>(*editor);
     if (const auto* const project = interval(index).project(); project != nullptr) {
-      dynamic_cast<QComboBox&>(*editor).setCurrentText(project->name());
+      combo_box.setCurrentText(project->name());
     }
+    combo_box.lineEdit()->selectAll();
   }
 
   void setModelData(QWidget* const editor, QAbstractItemModel* const model, const QModelIndex& index) const override
