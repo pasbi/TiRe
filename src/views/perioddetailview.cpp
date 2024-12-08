@@ -9,7 +9,7 @@
 #include "intervalmodel.h"
 #include "projectmodel.h"
 #include "tableview.h"
-#include "timerangeeditor2.h"
+#include "timerangeeditor.h"
 #include "timesheet.h"
 #include "views/perioddetailproxymodel.h"
 
@@ -259,7 +259,7 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
 
 void PeriodDetailView::edit_date_time(const QModelIndex& index) const
 {
-  TimeRangeEditor2 e;
+  TimeRangeEditor e;
   auto& interval = *time_sheet()->interval_model().intervals().at(index.row());
   e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {

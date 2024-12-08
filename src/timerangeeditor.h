@@ -5,16 +5,16 @@
 
 namespace Ui
 {
-class TimeRangeEditor2;
+class TimeRangeEditor;
 }
 
-class TimeRangeEditor2 : public QDialog
+class TimeRangeEditor : public QDialog
 {
   Q_OBJECT
 
 public:
-  explicit TimeRangeEditor2(QWidget* parent = nullptr);
-  ~TimeRangeEditor2() override;
+  explicit TimeRangeEditor(QWidget* parent = nullptr);
+  ~TimeRangeEditor() override;
 
   void set_range(const QDateTime& begin, const QDateTime& end);
   [[nodiscard]] QDateTime begin() const noexcept;
@@ -23,6 +23,6 @@ public:
   void accept() override;
 
 private:
-  std::unique_ptr<Ui::TimeRangeEditor2> m_ui;
+  std::unique_ptr<Ui::TimeRangeEditor> m_ui;
   void update_enabledness() const;
 };

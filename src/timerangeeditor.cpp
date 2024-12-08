@@ -1,16 +1,16 @@
-#include "timerangeeditor2.h"
+#include "timerangeeditor.h"
 
 #include "application.h"
 #include "datetimeselector.h"
-#include "ui_timerangeeditor2.h"
+#include "ui_timerangeeditor.h"
 
 #include <QMessageBox>
 
-TimeRangeEditor2::TimeRangeEditor2(QWidget* const parent)
-  : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor2>())
+TimeRangeEditor::TimeRangeEditor(QWidget* const parent)
+  : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor>())
 {
   m_ui->setupUi(this);
-  connect(m_ui->cb_has_end, &QCheckBox::toggled, this, &TimeRangeEditor2::update_enabledness);
+  connect(m_ui->cb_has_end, &QCheckBox::toggled, this, &TimeRangeEditor::update_enabledness);
   connect(m_ui->pb_begin_to_last_end, &QPushButton::clicked, this, []() {});
   connect(m_ui->pb_begin_to_now, &QPushButton::clicked, this, [this]() {
     m_ui->te_begin->setDate(Application::current_date_time().date());
@@ -28,9 +28,9 @@ TimeRangeEditor2::TimeRangeEditor2(QWidget* const parent)
   update_enabledness();
 }
 
-TimeRangeEditor2::~TimeRangeEditor2() = default;
+TimeRangeEditor::~TimeRangeEditor() = default;
 
-void TimeRangeEditor2::set_range(const QDateTime& begin, const QDateTime& end)
+void TimeRangeEditor::set_range(const QDateTime& begin, const QDateTime& end)
 {
   m_ui->te_begin->setTime(begin.time());
   m_ui->de_begin->setDate(begin.date());
@@ -41,24 +41,24 @@ void TimeRangeEditor2::set_range(const QDateTime& begin, const QDateTime& end)
   update();
 }
 
-QDateTime TimeRangeEditor2::begin() const noexcept
+QDateTime TimeRangeEditor::begin() const noexcept
 {
   return {m_ui->de_begin->date(), m_ui->te_begin->time()};
 }
 
-QDateTime TimeRangeEditor2::end() const noexcept
+QDateTime TimeRangeEditor::end() const noexcept
 {
   return m_ui->cb_has_end->isChecked()
              ? QDateTime{m_ui->de_begin->date().addDays(m_ui->sp_end_offset->value()), m_ui->te_end->time()}
              : QDateTime{};
 }
 
-void TimeRangeEditor2::set_end(const QDateTime& end)
+void TimeRangeEditor::set_end(const QDateTime& end)
 {
   set_range(begin(), end);
 }
 
-void TimeRangeEditor2::update_enabledness() const
+void TimeRangeEditor::update_enabledness() const
 {
   for (auto* const w :
        std::vector<QWidget*>{m_ui->pb_end_to_begin, m_ui->pb_end_to_now, m_ui->te_end, m_ui->sp_end_offset})
@@ -67,7 +67,7 @@ void TimeRangeEditor2::update_enabledness() const
   }
 }
 
-void TimeRangeEditor2::accept()
+void TimeRangeEditor::accept()
 {
   if (const auto end = this->end(); !end.isValid() || begin() <= end) {
     QDialog::accept();

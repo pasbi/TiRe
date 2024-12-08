@@ -46,9 +46,9 @@ target_sources(tire-impl PRIVATE
         colorutil.h
         timeedit.cpp
         timeedit.h
-        timerangeeditor2.cpp
-        timerangeeditor2.h
-        timerangeeditor2.ui
+        timerangeeditor.cpp
+        timerangeeditor.h
+        timerangeeditor.ui
         datetimeselector.cpp
         datetimeselector.h
         splitpointeditor.cpp

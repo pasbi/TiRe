@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Split Edtor</string>
+   <string>Split Editor</string>
   </property>
   <layout class="QGridLayout" name="gridLayout" rowstretch="1,1,1,1,1">
    <item row="1" column="2">

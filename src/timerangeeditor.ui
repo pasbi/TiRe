@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TimeRangeEditor2</class>
- <widget class="QDialog" name="TimeRangeEditor2">
+ <class>TimeRangeEditor</class>
+ <widget class="QDialog" name="TimeRangeEditor">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>TimeRangeEditor2</string>
+   <string>Edit Time Range</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="3" column="3" colspan="2">
@@ -112,7 +112,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>TimeRangeEditor2</receiver>
+   <receiver>TimeRangeEditor</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -128,7 +128,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>TimeRangeEditor2</receiver>
+   <receiver>TimeRangeEditor</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

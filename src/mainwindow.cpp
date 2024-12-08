@@ -10,7 +10,6 @@
 #include "plan.h"
 #include "projectmodel.h"
 #include "serialization.h"
-#include "timerangeslider.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
 
@@ -49,9 +48,8 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
           &GanttView::set_current_interval);
-  connect(m_ui->ganttview, &GanttView::clicked, this, [this](const QDateTime& timestamp) {
-    set_period(Period{timestamp.date(), Period::Type::Day});
-  });
+  connect(m_ui->ganttview, &GanttView::clicked, this,
+          [this](const QDateTime& timestamp) { set_period(Period{timestamp.date(), Period::Type::Day}); });
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
   connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
   connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
