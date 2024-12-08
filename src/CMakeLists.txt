@@ -42,9 +42,6 @@ target_sources(tire-impl PRIVATE
         timesheet.h
         timerangeslider.cpp
         timerangeslider.h
-        timerangeeditor.cpp
-        timerangeeditor.h
-        timerangeeditor.ui
         colorutil.cpp
         colorutil.h
         timeedit.cpp
@@ -54,6 +51,9 @@ target_sources(tire-impl PRIVATE
         timerangeeditor2.ui
         datetimeselector.cpp
         datetimeselector.h
+        splitpointeditor.cpp
+        splitpointeditor.h
+        splitpointeditor.ui
 )
 
 target_link_libraries(tire-impl PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
