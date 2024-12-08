@@ -40,6 +40,7 @@ public:
   [[nodiscard]] std::vector<Interval*> intervals() const;
   [[nodiscard]] std::vector<Interval*> intervals(const Period& period) const;
   [[nodiscard]] const Interval* interval(std::size_t index) const;
+  [[nodiscard]] std::vector<Interval*> open_intervals() const;
 
 Q_SIGNALS:
   void data_changed();

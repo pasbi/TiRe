@@ -30,12 +30,6 @@ constexpr auto extension = ".ts";
   return QObject::tr("Time Sheets (*%1)").arg(extension);
 }
 
-auto find_open_intervals(const std::vector<Interval*>& intervals)
-{
-  auto view = intervals | std::views::filter([](const auto* const interval) { return !interval->end().isValid(); });
-  return std::vector(view.begin(), view.end());
-}
-
 }  // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -129,7 +123,7 @@ void MainWindow::set_filename(std::filesystem::path filename)
 void MainWindow::end_task()
 {
   auto& interval_model = m_time_sheet->interval_model();
-  const auto open_intervals = ::find_open_intervals(interval_model.intervals());
+  const auto open_intervals = interval_model.open_intervals();
   if (const auto n = open_intervals.size(); n != 1) {
     QMessageBox::warning(
         this, QApplication::applicationDisplayName(),
@@ -145,7 +139,7 @@ void MainWindow::end_task()
 void MainWindow::switch_task()
 {
   auto& interval_model = m_time_sheet->interval_model();
-  const auto open_intervals = ::find_open_intervals(interval_model.intervals());
+  const auto open_intervals = interval_model.open_intervals();
   if (const auto n = open_intervals.size(); n > 1) {
     QMessageBox::warning(
         this, QApplication::applicationDisplayName(),
