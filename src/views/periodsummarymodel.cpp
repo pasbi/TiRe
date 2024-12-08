@@ -191,14 +191,12 @@ QVariant PeriodSummaryModel::headerData(const int section, const Qt::Orientation
 
 void PeriodSummaryModel::set_source(const TimeSheet* model)
 {
-  beginResetModel();
   m_time_sheet = model;
   if (m_time_sheet != nullptr) {
     connect(&m_time_sheet->project_model(), &ProjectModel::projects_changed, this, &PeriodSummaryModel::invalidate);
   }
   invalidate();
   update_summary();
-  endResetModel();
 }
 
 void PeriodSummaryModel::set_period(const Period& period)
