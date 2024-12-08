@@ -20,9 +20,9 @@ public:
   [[nodiscard]] QDateTime begin() const noexcept;
   [[nodiscard]] QDateTime end() const noexcept;
   void set_end(const QDateTime& end);
+  void accept() override;
 
 private:
   std::unique_ptr<Ui::TimeRangeEditor2> m_ui;
-  void update_fences() const;
   void update_enabledness() const;
 };

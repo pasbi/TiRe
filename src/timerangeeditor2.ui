@@ -6,99 +6,107 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>668</width>
-    <height>214</height>
+    <width>443</width>
+    <height>154</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>TimeRangeEditor2</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0">
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Begin:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QDateTimeEdit" name="dt_begin"/>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pb_snap">
-       <property name="text">
-        <string>|&lt;- Snap</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="cb_has_end">
-       <property name="text">
-        <string>End:</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QDateTimeEdit" name="dt_end"/>
-     </item>
-    </layout>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="3" column="3" colspan="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
    </item>
-   <item>
-    <widget class="DateTimeSelector" name="w_slider" native="true"/>
+   <item row="0" column="4">
+    <widget class="QPushButton" name="pb_begin_to_now">
+     <property name="text">
+      <string>Now</string>
+     </property>
+    </widget>
    </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="pb_begin">
-       <property name="text">
-        <string>Go To Begin</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pb_now">
-       <property name="text">
-        <string>Go To Now</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QDialogButtonBox" name="buttonBox">
-       <property name="standardButtons">
-        <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
-       </property>
-      </widget>
-     </item>
-    </layout>
+   <item row="0" column="2">
+    <widget class="QTimeEdit" name="te_begin"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QCheckBox" name="cb_has_end">
+     <property name="text">
+      <string>End:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <widget class="QTimeEdit" name="te_end"/>
+   </item>
+   <item row="1" column="3">
+    <widget class="QPushButton" name="pb_end_to_begin">
+     <property name="text">
+      <string>to Begin</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="4">
+    <widget class="QPushButton" name="pb_end_to_now">
+     <property name="text">
+      <string>Now</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="4">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Begin:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QPushButton" name="pb_begin_to_last_end">
+     <property name="text">
+      <string>to last End</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QDateEdit" name="de_begin">
+     <property name="displayFormat">
+      <string>dd. MMM. yyyy</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QSpinBox" name="sp_end_offset">
+     <property name="specialValueText">
+      <string>Same Day</string>
+     </property>
+     <property name="suffix">
+      <string> Days</string>
+     </property>
+     <property name="prefix">
+      <string>+</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>DateTimeSelector</class>
-   <extends>QWidget</extends>
-   <header>datetimeselector.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -108,8 +116,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>534</x>
-     <y>198</y>
+     <x>175</x>
+     <y>284</y>
     </hint>
     <hint type="destinationlabel">
      <x>542</x>
@@ -124,8 +132,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>628</x>
-     <y>193</y>
+     <x>175</x>
+     <y>284</y>
     </hint>
     <hint type="destinationlabel">
      <x>628</x>
