@@ -40,8 +40,6 @@ target_sources(tire-impl PRIVATE
         tableview.h
         timesheet.cpp
         timesheet.h
-        timerangeslider.cpp
-        timerangeslider.h
         colorutil.cpp
         colorutil.h
         timeedit.cpp
