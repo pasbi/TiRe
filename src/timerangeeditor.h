@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QDialog>
 
+class IntervalModel;
 namespace Ui
 {
 class TimeRangeEditor;
@@ -13,7 +14,7 @@ class TimeRangeEditor : public QDialog
   Q_OBJECT
 
 public:
-  explicit TimeRangeEditor(QWidget* parent = nullptr);
+  explicit TimeRangeEditor(const IntervalModel& interval_model, QWidget* parent = nullptr);
   ~TimeRangeEditor() override;
 
   void set_range(const QDateTime& begin, const QDateTime& end);

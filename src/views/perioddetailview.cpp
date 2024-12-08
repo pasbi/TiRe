@@ -259,7 +259,7 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
 
 void PeriodDetailView::edit_date_time(const QModelIndex& index) const
 {
-  TimeRangeEditor e;
+  TimeRangeEditor e{time_sheet()->interval_model()};
   auto& interval = *time_sheet()->interval_model().intervals().at(index.row());
   e.set_range(interval.begin(), interval.end());
   if (e.exec() == QDialog::Accepted) {

@@ -2,26 +2,37 @@
 
 #include "application.h"
 #include "datetimeselector.h"
+#include "intervalmodel.h"
 #include "ui_timerangeeditor.h"
 
 #include <QMessageBox>
 
-TimeRangeEditor::TimeRangeEditor(QWidget* const parent)
+TimeRangeEditor::TimeRangeEditor(const IntervalModel& interval_model, QWidget* const parent)
   : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor>())
 {
   m_ui->setupUi(this);
   connect(m_ui->cb_has_end, &QCheckBox::toggled, this, &TimeRangeEditor::update_enabledness);
-  connect(m_ui->pb_begin_to_last_end, &QPushButton::clicked, this, []() {});
+  connect(m_ui->pb_begin_to_last_end, &QPushButton::clicked, this, [&interval_model, this]() {
+    auto ends_view =
+        interval_model.intervals() | std::views::transform(&Interval::end) | std::views::filter(&QDateTime::isValid);
+    if (const std::vector ends(ends_view.begin(), ends_view.end()); ends.empty()) {
+      QMessageBox::critical(this, "Error", "No end intervals were found");
+    } else {
+      const auto end = std::ranges::max_element(ends);
+      m_ui->de_begin->setDate(end->date());
+      m_ui->te_begin->setTime(end->time());
+    }
+  });
   connect(m_ui->pb_begin_to_now, &QPushButton::clicked, this, [this]() {
-    m_ui->te_begin->setDate(Application::current_date_time().date());
-    m_ui->de_begin->setTime(Application::current_date_time().time());
+    m_ui->te_begin->setTime(Application::current_date_time().time());
+    m_ui->de_begin->setDate(Application::current_date_time().date());
   });
   connect(m_ui->pb_end_to_begin, &QPushButton::clicked, this, [this]() {
     m_ui->te_end->setTime(m_ui->te_begin->time());
     m_ui->sp_end_offset->setValue(0);
   });
   connect(m_ui->pb_end_to_now, &QPushButton::clicked, this, [this]() {
-    const auto offset = m_ui->te_begin->date().daysTo(Application::current_date_time().date());
+    const auto offset = m_ui->de_begin->date().daysTo(Application::current_date_time().date());
     m_ui->sp_end_offset->setValue(offset);
     m_ui->te_end->setTime(Application::current_date_time().time());
   });
