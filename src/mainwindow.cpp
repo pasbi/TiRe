@@ -42,6 +42,7 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
           &GanttView::set_current_interval);
+  connect(m_ui->period_detail_view, &PeriodDetailView::period_changed, m_ui->ganttview, &GanttView::ensure_visible);
   connect(m_ui->ganttview, &GanttView::clicked, this,
           [this](const QDateTime& timestamp) { set_period(Period{timestamp.date(), Period::Type::Day}); });
   connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));

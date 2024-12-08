@@ -14,6 +14,7 @@ public:
   void set_time_sheet(const TimeSheet* time_sheet);
   void set_current_interval(const Interval* interval);
   void select_period(const Period& period);
+  void ensure_visible(const Period& period);
 
 protected:
   void paintEvent(QPaintEvent* event) override;
@@ -40,5 +41,5 @@ private:
   [[nodiscard]] QRectF rect(const QDate& date, const QTime& begin, const QTime& end) const;
   [[nodiscard]] QRectF rect(const QDate& date) const;
 
-  [[nodiscard]] QColor interpolate_base(const double t) const noexcept;
+  [[nodiscard]] QColor interpolate_base(double t) const noexcept;
 };

@@ -224,6 +224,7 @@ void PeriodDetailView::set_period(const Period& period)
   m_proxy_model->set_period(period);
   dynamic_cast<CallbackItemDelegate&>(*m_begin_end_delegate).period_type = period.type();
   AbstractPeriodView::set_period(period);
+  Q_EMIT period_changed(period);
 }
 
 void PeriodDetailView::invalidate()

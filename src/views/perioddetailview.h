@@ -23,6 +23,7 @@ public:
 
 Q_SIGNALS:
   void current_interval_changed(const Interval* interval);
+  void period_changed(Period period);
 
 private:
   QTableView& m_table_view;

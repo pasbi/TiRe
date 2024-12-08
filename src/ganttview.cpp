@@ -135,9 +135,17 @@ void GanttView::paintEvent(QPaintEvent* event)
     pen.setColor(palette().text().color());
     return pen;
   }());
+
+  const auto display_date = [this](const QDate& date) {
+    if (m_period.begin().weekNumber() != m_period.end().weekNumber() || m_period.begin().dayOfWeek() == Qt::Monday) {
+      return date.dayOfWeek() == Qt::Monday;
+    }
+    return false;
+  };
+
   for (const auto& date : m_period.dates()) {
-    if (date.dayOfWeek() == Qt::Monday) {
-      painter.drawText(rect(date), date.toString("dddd, dd.MM."), Qt::AlignLeft | Qt::AlignVCenter);
+    if (display_date(date)) {
+      painter.drawText(rect(date).bottomLeft(), date.toString("dddd, dd.MM."));
     }
   }
 }
@@ -233,4 +241,17 @@ QRectF GanttView::rect(const QDate& date, const QTime& begin, const QTime& end) 
 QRectF GanttView::rect(const QDate& date) const
 {
   return rect(date, date.startOfDay().time(), date.endOfDay().time());
+}
+
+void GanttView::ensure_visible(const Period& period)
+{
+  if (const auto fill = default_gantt_length_days - period.days(); fill > 0) {
+    const auto fill_end = fill / 4;
+    const auto begin = period.begin().addDays(fill_end - fill);
+    const auto end = period.end().addDays(fill_end);
+    m_period = Period{begin, end};
+  } else {
+    m_period = period;
+  }
+  update();
 }
