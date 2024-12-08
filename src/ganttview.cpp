@@ -128,6 +128,18 @@ void GanttView::paintEvent(QPaintEvent* event)
       painter.drawRect(rect);
     }
   }
+
+  painter.setPen([this] {
+    QPen pen;
+    pen.setCosmetic(true);
+    pen.setColor(palette().text().color());
+    return pen;
+  }());
+  for (const auto& date : m_period.dates()) {
+    if (date.dayOfWeek() == Qt::Monday) {
+      painter.drawText(rect(date), date.toString("dddd, dd.MM."), Qt::AlignLeft | Qt::AlignVCenter);
+    }
+  }
 }
 
 void GanttView::mouseMoveEvent(QMouseEvent* event)
@@ -197,7 +209,7 @@ void GanttView::draw_grid(QPainter& painter) const
   using std::chrono_literals::operator""h;
   const auto text_color = palette().text().color();
   const auto base_color = palette().base().color();
-  painter.setPen(::lerp(0.1, text_color, base_color));
+  painter.setPen(::lerp(0.8, text_color, base_color));
   for (auto hour = 0h; hour <= 24h; ++hour) {
     const auto x = pos_x(QTime{static_cast<int>(hour / 1h), 0});
     painter.drawLine(QPointF{x, 0.0}, QPointF{x, static_cast<double>(height())});
