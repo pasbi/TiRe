@@ -20,21 +20,21 @@ TimeRangeEditor::TimeRangeEditor(const IntervalModel& interval_model, QWidget* c
     } else {
       const auto end = std::ranges::max_element(ends);
       m_ui->de_begin->setDate(end->date());
-      m_ui->te_begin->setTime(end->time());
+      m_ui->te_begin->set_time(end->time());
     }
   });
   connect(m_ui->pb_begin_to_now, &QPushButton::clicked, this, [this]() {
-    m_ui->te_begin->setTime(Application::current_date_time().time());
+    m_ui->te_begin->set_time(Application::current_date_time().time());
     m_ui->de_begin->setDate(Application::current_date_time().date());
   });
   connect(m_ui->pb_end_to_begin, &QPushButton::clicked, this, [this]() {
-    m_ui->te_end->setTime(m_ui->te_begin->time());
+    m_ui->te_end->set_time(m_ui->te_begin->time());
     m_ui->sp_end_offset->setValue(0);
   });
   connect(m_ui->pb_end_to_now, &QPushButton::clicked, this, [this]() {
     const auto offset = m_ui->de_begin->date().daysTo(Application::current_date_time().date());
     m_ui->sp_end_offset->setValue(offset);
-    m_ui->te_end->setTime(Application::current_date_time().time());
+    m_ui->te_end->set_time(Application::current_date_time().time());
   });
   update_enabledness();
 }
@@ -43,9 +43,9 @@ TimeRangeEditor::~TimeRangeEditor() = default;
 
 void TimeRangeEditor::set_range(const QDateTime& begin, const QDateTime& end)
 {
-  m_ui->te_begin->setTime(begin.time());
+  m_ui->te_begin->set_time(begin.time());
   m_ui->de_begin->setDate(begin.date());
-  m_ui->te_end->setTime(end.time());
+  m_ui->te_end->set_time(end.time());
   m_ui->sp_end_offset->setValue(begin.date().daysTo(end.date()));
   const auto e = end.isValid() ? end : Application::current_date_time();
   m_ui->cb_has_end->setChecked(end.isValid());

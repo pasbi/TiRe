@@ -1,5 +1,6 @@
 qt_add_executable(tire main.cpp)
 add_library(tire-impl STATIC)
+
 target_sources(tire-impl PRIVATE
         application.cpp
         application.h
@@ -41,6 +42,9 @@ target_sources(tire-impl PRIVATE
         colorutil.h
         timeedit.cpp
         timeedit.h
+        timeedit.ui
+        timeeditspinbox.cpp
+        timeeditspinbox.h
         timerangeeditor.cpp
         timerangeeditor.h
         timerangeeditor.ui

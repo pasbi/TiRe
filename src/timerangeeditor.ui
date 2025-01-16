@@ -14,81 +14,10 @@
    <string>Edit Time Range</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="3" colspan="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="standardButtons">
-      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="4">
-    <widget class="QPushButton" name="pb_begin_to_now">
-     <property name="text">
-      <string>Now</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="2">
-    <widget class="QTimeEdit" name="te_begin"/>
-   </item>
-   <item row="1" column="0">
-    <widget class="QCheckBox" name="cb_has_end">
-     <property name="text">
-      <string>End:</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QTimeEdit" name="te_end"/>
-   </item>
-   <item row="1" column="3">
-    <widget class="QPushButton" name="pb_end_to_begin">
-     <property name="text">
-      <string>to Begin</string>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="4">
     <widget class="QPushButton" name="pb_end_to_now">
      <property name="text">
       <string>Now</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="4">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Begin:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="3">
-    <widget class="QPushButton" name="pb_begin_to_last_end">
-     <property name="text">
-      <string>to last End</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QDateEdit" name="de_begin">
-     <property name="displayFormat">
-      <string>dd. MMM. yyyy</string>
      </property>
     </widget>
    </item>
@@ -105,8 +34,87 @@
      </property>
     </widget>
    </item>
+   <item row="1" column="3">
+    <widget class="QPushButton" name="pb_end_to_begin">
+     <property name="text">
+      <string>to Begin</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Begin:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QDateEdit" name="de_begin">
+     <property name="displayFormat">
+      <string>dd. MMM. yyyy</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <widget class="TimeEdit" name="te_end" native="true"/>
+   </item>
+   <item row="2" column="4">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0">
+    <widget class="QCheckBox" name="cb_has_end">
+     <property name="text">
+      <string>End:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QPushButton" name="pb_begin_to_last_end">
+     <property name="text">
+      <string>to last End</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="2">
+    <widget class="TimeEdit" name="te_begin" native="true"/>
+   </item>
+   <item row="0" column="4">
+    <widget class="QPushButton" name="pb_begin_to_now">
+     <property name="text">
+      <string>Now</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="3" colspan="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TimeEdit</class>
+   <extends>QWidget</extends>
+   <header>timeedit.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
