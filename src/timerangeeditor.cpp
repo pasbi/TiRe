@@ -43,11 +43,11 @@ TimeRangeEditor::~TimeRangeEditor() = default;
 
 void TimeRangeEditor::set_range(const QDateTime& begin, const QDateTime& end)
 {
+  const auto proposed_end = end.isValid() ? end : Application::current_date_time();
   m_ui->te_begin->set_time(begin.time());
   m_ui->de_begin->setDate(begin.date());
-  m_ui->te_end->set_time(end.time());
-  m_ui->sp_end_offset->setValue(begin.date().daysTo(end.date()));
-  const auto e = end.isValid() ? end : Application::current_date_time();
+  m_ui->te_end->set_time(proposed_end.time());
+  m_ui->sp_end_offset->setValue(begin.date().daysTo(proposed_end.date()));
   m_ui->cb_has_end->setChecked(end.isValid());
   update();
 }
