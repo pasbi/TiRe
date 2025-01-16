@@ -17,10 +17,15 @@ public:
 
   [[nodiscard]] QTime time() const;
   void set_time(const QTime& time) noexcept;
+  void set_time_range(const QTime& min, const QTime& max) noexcept;
 
 Q_SIGNALS:
   void time_changed();
 
 private:
   std::unique_ptr<Ui::TimeEdit> m_ui;
+  QTime m_min;
+  QTime m_max;
+
+  void handle_change();
 };
