@@ -3,9 +3,6 @@ add_library(tire-impl STATIC)
 target_sources(tire-impl PRIVATE
         application.cpp
         application.h
-        datetimeeditor.cpp
-        datetimeeditor.h
-        datetimeeditor.ui
         enum.h
         enumcombobox.h
         exceptions.h

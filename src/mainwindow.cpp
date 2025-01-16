@@ -4,7 +4,6 @@
 #include "commands/commands.h"
 #include "commands/modifycommand.h"
 #include "commands/undostack.h"
-#include "datetimeeditor.h"
 #include "exceptions.h"
 #include "intervalmodel.h"
 #include "plan.h"
