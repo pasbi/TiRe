@@ -8,6 +8,7 @@
 #include <QDate>
 #include <chrono>
 
+class IntervalModel;
 class QDate;
 
 class Plan : public QAbstractTableModel
@@ -19,8 +20,7 @@ public:
   explicit Plan(const nlohmann::json& data);
   explicit Plan();
   [[nodiscard]] nlohmann::json to_json() const noexcept;
-  [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date,
-                                                          std::chrono::minutes actual_working_time) const;
+  [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date, const IntervalModel& interval_model) const;
   [[nodiscard]] const std::chrono::minutes& overtime_offset() const noexcept;
   [[nodiscard]] const QDate& start() const noexcept;
 

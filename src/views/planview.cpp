@@ -53,9 +53,7 @@ std::chrono::minutes expected_working_time(const Plan& plan, const IntervalModel
 
   const auto day_count = period.begin().daysTo(actual_end) + 1;
   for (qint64 day = 0; day < day_count; ++day) {
-
-    duration +=
-        plan.planned_working_time(period.begin().addDays(day), interval_model.minutes(period.begin().addDays(day)));
+    duration += plan.planned_working_time(period.begin().addDays(day), interval_model);
   }
   return duration;
 }

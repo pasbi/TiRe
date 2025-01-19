@@ -1,6 +1,7 @@
 #include "plan.h"
 
 #include "enum.h"
+#include "intervalmodel.h"
 #include "json.h"
 #include "period.h"
 #include "periodedit.h"
@@ -111,7 +112,7 @@ nlohmann::json Plan::to_json() const noexcept
   };
 }
 
-std::chrono::minutes Plan::planned_working_time(const QDate& date, const std::chrono::minutes actual_working_time) const
+std::chrono::minutes Plan::planned_working_time(const QDate& date, const IntervalModel& interval_model) const
 {
   const auto planned_normal_working_time = this->planned_normal_working_time(date);
   using enum Kind;
@@ -124,7 +125,7 @@ std::chrono::minutes Plan::planned_working_time(const QDate& date, const std::ch
   case HalfVacationHalfHoliday:
     return 0min;
   case Sick:
-    return std::min(actual_working_time, planned_normal_working_time);
+    return std::min(interval_model.minutes(date), planned_normal_working_time);
   case HalfHoliday:
   case HalfVacation:
     return planned_normal_working_time / 2;
