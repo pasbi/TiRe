@@ -261,14 +261,15 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
 void PeriodDetailView::edit_date_time(const QModelIndex& index) const
 {
   TimeRangeEditor e{time_sheet()->interval_model()};
-  auto& interval = *time_sheet()->interval_model().intervals().at(index.row());
+  const auto& interval = *time_sheet()->interval_model().interval(index.row());
   e.set_range(interval.begin(), interval.end());
-  if (e.exec() == QDialog::Accepted) {
-    const auto macro = Application::undo_stack().start_macro(tr("Change interval"));
-    Application::undo_stack().push(
-        make_modify_interval_command(time_sheet()->interval_model(), interval, e.begin(), &Interval::swap_begin));
-    Application::undo_stack().push(
-        make_modify_interval_command(time_sheet()->interval_model(), interval, e.end(), &Interval::swap_end));
-    Q_EMIT time_sheet()->interval_model().data_changed();
+  if (e.exec() != QDialog::Accepted) {
+    return;
   }
+  const auto macro = Application::undo_stack().start_macro(tr("Change interval"));
+  Application::undo_stack().push(
+      make_modify_interval_command(time_sheet()->interval_model(), interval, e.begin(), &Interval::swap_begin));
+  Application::undo_stack().push(
+      make_modify_interval_command(time_sheet()->interval_model(), interval, e.end(), &Interval::swap_end));
+  Q_EMIT time_sheet()->interval_model().data_changed();
 }

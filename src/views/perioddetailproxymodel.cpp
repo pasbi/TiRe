@@ -33,7 +33,7 @@ bool PeriodDetailProxyModel::filterAcceptsRow(const int source_row, const QModel
   if (interval_model() == nullptr) {
     return false;
   }
-  const auto* const interval = interval_model()->intervals().at(source_row);
+  const auto* const interval = interval_model()->interval(source_row);
   const Period period(interval->begin().date(),
                       (interval->end().isValid() ? interval->end() : interval->begin()).date());
   return current_period().contains(period);
