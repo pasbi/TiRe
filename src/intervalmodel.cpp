@@ -172,6 +172,7 @@ std::vector<Interval*> IntervalModel::intervals() const
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
   return std::vector(view.begin(), view.end());
 }
+
 std::vector<Interval*> IntervalModel::intervals(const Period& period) const
 {
   std::vector<Interval> intervals;

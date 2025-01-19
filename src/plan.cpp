@@ -1,8 +1,6 @@
 #include "plan.h"
 
 #include "enum.h"
-#include "exceptions.h"
-#include "fmt.h"
 #include "json.h"
 #include "period.h"
 #include "periodedit.h"
@@ -19,10 +17,7 @@ constexpr auto period_key = "period";
 constexpr auto kind_key = "kind";
 }  // namespace
 
-namespace nlohmann
-{
-
-template<> struct adl_serializer<std::unique_ptr<Plan::Entry>>
+template<> struct nlohmann::adl_serializer<std::unique_ptr<Plan::Entry>>
 {
   static void to_json(json& json_value, const std::unique_ptr<Plan::Entry>& ptr)
   {
@@ -42,8 +37,6 @@ template<> struct adl_serializer<std::unique_ptr<Plan::Entry>>
     }
   }
 };
-
-}  // namespace nlohmann
 
 Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime_offset(data.at(overtime_offset_key))
 {
@@ -130,8 +123,9 @@ QVariant Plan::data(const QModelIndex& index, const int role) const
     return period.label();
   case kind_column:
     return QString::fromStdString(fmt::format("{}", kind));
+  default:
+    Q_UNREACHABLE();
   }
-  Q_UNREACHABLE();
 }
 
 QVariant Plan::headerData(const int section, const Qt::Orientation orientation, const int role) const
@@ -144,8 +138,9 @@ QVariant Plan::headerData(const int section, const Qt::Orientation orientation, 
     return tr("Period");
   case kind_column:
     return tr("Kind");
+  default:
+    Q_UNREACHABLE();
   }
-  Q_UNREACHABLE();
 }
 
 Qt::ItemFlags Plan::flags(const QModelIndex& index) const
@@ -179,7 +174,7 @@ std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
   return {};
 }
 
-const Plan::Entry& Plan::entry(int row) const noexcept
+const Plan::Entry& Plan::entry(const int row) const noexcept
 {
   return *m_periods.at(row);
 }
