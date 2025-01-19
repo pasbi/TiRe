@@ -15,6 +15,59 @@ constexpr auto overtime_offset_key = "overtime_offset";
 constexpr auto periods_key = "periods";
 constexpr auto period_key = "period";
 constexpr auto kind_key = "kind";
+
+struct SickLeaveFactors
+{
+  using enum Plan::Kind;
+  [[nodiscard]] static constexpr double factor(const Plan::Kind kind) noexcept
+  {
+    switch (kind) {
+    case Sick:
+      return 1.0;
+    default:
+      return 0.0;
+    }
+  }
+};
+
+struct VacationLeaveFactors
+{
+  using enum Plan::Kind;
+  [[nodiscard]] static constexpr double factor(const Plan::Kind kind) noexcept
+  {
+    switch (kind) {
+    case Holiday:
+      return 1.0;
+    case Vacation:
+      return 1.0;
+    case HalfVacation:
+      return 0.5;
+    case HalfVacationHalfHoliday:
+      return 0.5;
+    default:
+      return 0.0;
+    }
+  }
+};
+
+struct HolidayLeaveFactors
+{
+  using enum Plan::Kind;
+  [[nodiscard]] static constexpr double factor(const Plan::Kind kind) noexcept
+  {
+    switch (kind) {
+    case Holiday:
+      return 1.0;
+    case HalfHoliday:
+      return 0.5;
+    case HalfVacationHalfHoliday:
+      return 0.5;
+    default:
+      return 0.0;
+    }
+  }
+};
+
 }  // namespace
 
 template<> struct nlohmann::adl_serializer<std::unique_ptr<Plan::Entry>>
@@ -186,22 +239,18 @@ void Plan::data_changed(const int row, const int column)
   Q_EMIT plan_changed();
 }
 
-std::chrono::minutes Plan::count(const Period& period, const std::map<Kind, double>& factors) const
+template<typename LeaveFactors> std::chrono::minutes Plan::count(const Period& period) const
 {
   using std::chrono_literals::operator""min;
   auto sum = 0min;
   for (const auto& entry : m_periods) {
-    const auto it = factors.find(entry->kind);
-    if (it == factors.end()) {
-      continue;
-    }
+    const auto factor = LeaveFactors::factor(entry->kind);
     const auto intersected_period = entry->period.overlap(period);
     if (!intersected_period.has_value()) {
       continue;
     }
 
-    sum +=
-        std::chrono::duration_cast<std::chrono::minutes>(it->second * planned_normal_working_time(*intersected_period));
+    sum += std::chrono::duration_cast<std::chrono::minutes>(factor * planned_normal_working_time(*intersected_period));
   }
   return sum;
 }
@@ -230,41 +279,17 @@ void Plan::set_data(const int row, const Period& period)
 
 std::chrono::minutes Plan::sick_time(const Period& period) const
 {
-  return count(period, {
-                           {Kind::Holiday, 0.0},
-                           {Kind::Normal, 0.0},
-                           {Kind::Sick, 1.0},
-                           {Kind::Vacation, 0.0},
-                           {Kind::HalfVacation, 0.0},
-                           {Kind::HalfHoliday, 0.0},
-                           {Kind::HalfVacationHalfHoliday, 0.0},
-                       });
+  return count<SickLeaveFactors>(period);
 }
 
 std::chrono::minutes Plan::holiday_time(const Period& period) const
 {
-  return count(period, {
-                           {Kind::Holiday, 1.0},
-                           {Kind::Normal, 0.0},
-                           {Kind::Sick, 0.0},
-                           {Kind::Vacation, 0.0},
-                           {Kind::HalfVacation, 0.0},
-                           {Kind::HalfHoliday, 0.5},
-                           {Kind::HalfVacationHalfHoliday, 0.5},
-                       });
+  return count<HolidayLeaveFactors>(period);
 }
 
 std::chrono::minutes Plan::vacation_time(const Period& period) const
 {
-  return count(period, {
-                           {Kind::Holiday, 0.0},
-                           {Kind::Normal, 0.0},
-                           {Kind::Sick, 0.0},
-                           {Kind::Vacation, 1.0},
-                           {Kind::HalfVacation, 0.5},
-                           {Kind::HalfHoliday, 0.0},
-                           {Kind::HalfVacationHalfHoliday, 0.5},
-                       });
+  return count<VacationLeaveFactors>(period);
 }
 
 std::chrono::minutes FullTimePlan::planned_normal_working_time(const QDate& date) const noexcept

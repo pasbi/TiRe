@@ -61,7 +61,7 @@ private:
   std::chrono::minutes m_overtime_offset{0};
   std::vector<std::unique_ptr<Entry>> m_periods;
   void data_changed(int row, int column);
-  [[nodiscard]] std::chrono::minutes count(const Period& period, const std::map<Kind, double>& factors) const;
+  template<typename LeaveFactors> [[nodiscard]] std::chrono::minutes count(const Period& period) const;
   [[nodiscard]] std::chrono::minutes planned_normal_working_time(const Period& period) const noexcept;
 };
 
