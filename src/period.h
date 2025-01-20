@@ -45,6 +45,7 @@ private:
   friend std::weak_ordering operator<=>(const Period& a, const Period& b) noexcept;
   friend bool operator==(const Period&, const Period&) noexcept = default;
   friend bool operator!=(const Period&, const Period&) noexcept = default;
+  friend void swap(Period& a, Period& b);
 };
 
 template<> struct fmt::formatter<Period> : fmt::formatter<std::string>

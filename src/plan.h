@@ -51,7 +51,7 @@ public:
 
   const Entry& entry(int row) const noexcept;
   void set_data(int row, Kind kind);
-  void set_data(int row, const Period& period);
+  void set_data(int row, Period period);
 
   [[nodiscard]] std::chrono::minutes sick_time(const Period& period) const;
   [[nodiscard]] std::chrono::minutes holiday_time(const Period& period) const;
@@ -73,6 +73,19 @@ private:
   [[nodiscard]] std::chrono::minutes planned_normal_working_time(const Period& period) const noexcept;
   [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date, Kind kind,
                                                           const IntervalModel& interval_model) const noexcept;
+  /**
+   * @brief Sorts the periods.
+   * The periods are supposed to be sorted at any time, i.e., this function must only be called if the ordering has
+   * been destroyed (e.g., after changing the beginning or end of a period in m_periods).
+   * Sorting may fail (i.e., if periods overlap).
+   * To check if sorting succeeded, use ::is_sorted.
+   */
+  void sort() noexcept;
+
+  /**
+   * @brief checks if the periods are sorted.
+   */
+  [[nodiscard]] bool is_sorted() const noexcept;
 };
 
 class FullTimePlan : public Plan

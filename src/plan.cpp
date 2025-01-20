@@ -71,16 +71,6 @@ struct HolidayLeaveFactors
   }
 };
 
-[[nodiscard]] bool is_sorted(const std::vector<std::unique_ptr<Plan::Entry>>& vector)
-{
-  if (vector.empty()) {
-    return true;
-  }
-  return std::ranges::all_of(std::views::iota(static_cast<std::size_t>(1), vector.size()), [&vector](const auto i) {
-    return vector.at(i - 1)->period.end() <= vector.at(i)->period.begin();
-  });
-}
-
 }  // namespace
 
 template<> struct nlohmann::adl_serializer<std::unique_ptr<Plan::Entry>>
@@ -109,8 +99,8 @@ Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime
   if (data.contains(periods_key)) {
     m_periods = data.at(periods_key);
   }
-  std::ranges::sort(m_periods, std::less<>{}, [](const auto& entry) { return entry->period.begin(); });
-  if (!::is_sorted(m_periods)) {
+  sort();
+  if (!is_sorted()) {
     throw RuntimeError("Failed to sort periods in plan: overlapping periods cannot be sorted.");
   }
 }
@@ -149,6 +139,11 @@ std::chrono::minutes Plan::planned_working_time(const QDate& date, const Kind ki
   Q_UNREACHABLE();
 }
 
+void Plan::sort() noexcept
+{
+  std::ranges::sort(m_periods, std::less<>{}, [](const auto& entry) { return entry->period.begin(); });
+}
+
 std::vector<Plan::Kind> Plan::kinds_in(const Period& period) const
 {
   if (!period.begin().isValid() || !period.end().isValid()) {
@@ -158,7 +153,7 @@ std::vector<Plan::Kind> Plan::kinds_in(const Period& period) const
   std::vector<Kind> kinds;
   kinds.reserve(period.days());
   Period active_period = period;
-  assert(::is_sorted(m_periods));
+  assert(is_sorted());
   for (const auto& p : m_periods) {
     if (p->period.begin() > period.end()) {
       // we are past the interesting periods
@@ -302,7 +297,7 @@ bool Plan::add(std::unique_ptr<Entry> entry)
   m_periods.insert(*insert_pos, std::move(entry));
   endInsertRows();
   Q_EMIT plan_changed();
-  assert(::is_sorted(m_periods));
+  assert(is_sorted());
   return true;
 }
 
@@ -361,16 +356,24 @@ std::chrono::minutes Plan::planned_normal_working_time(const Period& period) con
   return result;
 }
 
-void Plan::set_data(const int row, const Kind kind)
+void Plan::set_data(const int row, Kind kind)
 {
-  m_periods.at(row)->kind = kind;
-  data_changed(row, period_column);
+  using std::swap;
+  swap(m_periods.at(row)->kind, kind);
+  data_changed(row, kind_column);
 }
 
-void Plan::set_data(const int row, const Period& period)
+void Plan::set_data(const int row, Period period)
 {
-  m_periods.at(row)->period = period;
-  data_changed(row, kind_column);
+  Period& old_period = m_periods.at(row)->period;
+  swap(old_period, period);
+  sort();
+  if (!is_sorted()) {
+    swap(old_period, period);
+    sort();
+    throw RuntimeError("Failed to change period because it would overlap.");
+  }
+  data_changed(row, period_column);
 }
 
 std::chrono::minutes Plan::sick_time(const Period& period) const
@@ -418,4 +421,12 @@ void to_json(nlohmann::json& j, const Plan::Kind& value)
 void from_json(const nlohmann::json& j, Plan::Kind& value)
 {
   value = ::enum_from_string<Plan::Kind, 7>(j);
+}
+
+[[nodiscard]] bool Plan::is_sorted() const noexcept
+{
+  return m_periods.empty()
+         || std::ranges::all_of(std::views::iota(static_cast<std::size_t>(1), m_periods.size()), [this](const auto i) {
+              return m_periods.at(i - 1)->period.end() < m_periods.at(i)->period.begin();
+            });
 }

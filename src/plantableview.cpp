@@ -4,9 +4,11 @@
 #include "plan.h"
 
 #include "enumcombobox.h"
+#include "exceptions.h"
 #include "views/callbackdelegate.h"
 
 #include <QComboBox>
+#include <QMessageBox>
 #include <QStyledItemDelegate>
 #include <spdlog/spdlog.h>
 
@@ -43,12 +45,16 @@ PlanTableView::PlanTableView(QWidget* parent)
   setItemDelegateForColumn(1, m_kind_delegate.get());
 }
 
-void PlanTableView::open_period_edit(const QModelIndex& index) const
+void PlanTableView::open_period_edit(const QModelIndex& index)
 {
   PeriodEdit period_edit;
   auto& plan = dynamic_cast<Plan&>(*model());
   period_edit.set_period(plan.entry(index.row()).period);
   if (period_edit.exec() == QDialog::Accepted) {
-    plan.set_data(index.row(), period_edit.period());
+    try {
+      plan.set_data(index.row(), period_edit.period());
+    } catch (const RuntimeError& e) {
+      QMessageBox::critical(this, tr("Failed to set period"), e.what());
+    }
   }
 }

@@ -164,6 +164,14 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(
   return fmt::format_to(ctx.out(), "{}", ::type_label(t));
 }
 
+void swap(Period& a, Period& b)
+{
+  using std::swap;
+  swap(a.m_begin, b.m_begin);
+  swap(a.m_end, b.m_end);
+  swap(a.m_type, b.m_type);
+}
+
 int Period::days() const noexcept
 {
   return static_cast<int>(m_begin.daysTo(m_end)) + 1;
