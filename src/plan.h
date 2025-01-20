@@ -28,6 +28,12 @@ public:
   enum class Kind { Normal, Sick, Holiday, HalfHoliday, Vacation, HalfVacation, HalfVacationHalfHoliday };
   [[nodiscard]] Kind find_kind(const QDate& date) const;
 
+  /**
+   * @brief return a period which doesn't overlap with any period in this plan.
+   *  Return the period of today or of the date one day after the end of the last period in this plan.
+   */
+  [[nodiscard]] Period default_period() const noexcept;
+
   [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
   [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;

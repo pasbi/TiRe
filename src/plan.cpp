@@ -7,6 +7,7 @@
 #include "periodedit.h"
 
 #include <QDate>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -210,6 +211,16 @@ Plan::Kind Plan::find_kind(const QDate& date) const
   return (*it)->kind;
 }
 
+Period Plan::default_period() const noexcept
+{
+  const auto date = Application::current_date_time().date();
+  const Period candidate{date, Period::Type::Day};
+  if (find_period_insert_pos(m_periods, candidate) == m_periods.end()) {
+    return candidate;
+  }
+  return Period{m_periods.back()->period.end().addDays(1), Period::Type::Day};
+}
+
 int Plan::columnCount(const QModelIndex& parent) const
 {
   return parent.isValid() ? 0 : 2;
@@ -281,6 +292,8 @@ bool Plan::add(std::unique_ptr<Entry> entry)
 {
   const auto insert_pos = find_period_insert_pos(m_periods, entry->period);
   if (!insert_pos.has_value()) {
+    spdlog::warn("Failed to find insert position for {} in {} because it overlaps with the existing periods.",
+                 entry->period, m_periods | std::views::transform([](const auto& e) { return e->period; }));
     return false;
   }
 
