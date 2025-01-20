@@ -101,6 +101,7 @@ std::chrono::minutes Period::overlap(const Interval& interval) const noexcept
 
 std::optional<Period> Period::overlap(const Period& period) const noexcept
 {
+  // TODO better return Period{} if there is no overlap. Ensure that Period{}.days() == 0
   const auto begin = std::max(this->begin(), period.begin());
   const auto end = std::min(this->end(), period.end());
   if (begin <= end) {

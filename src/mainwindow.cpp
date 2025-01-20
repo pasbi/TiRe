@@ -61,11 +61,11 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(m_ui->actionAdd_Plan_Entry, &QAction::triggered, this, [this]() {
     m_ui->tabWidget->setCurrentWidget(m_ui->tv_plan->parentWidget());
-    const Period today{Application::current_date_time().date(), Period::Type::Day};
-    Application::undo_stack().push(make<AddCommand>(m_time_sheet->plan(), std::make_unique<Plan::Entry>(Plan::Entry{
-                                                                              .period = today,
-                                                                              .kind = Plan::Kind::Normal,
-                                                                          })));
+    Application::undo_stack().push(
+        make<AddCommand>(m_time_sheet->plan(), std::make_unique<Plan::Entry>(Plan::Entry{
+                                                   .period = m_time_sheet->plan().default_period(),
+                                                   .kind = Plan::Kind::Normal,
+                                               })));
   });
 
   const auto init_view_action = [this](QAction* action, const Period::Type type) {

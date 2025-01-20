@@ -9,6 +9,12 @@
 
 namespace
 {
+
+[[noreturn]] void throw_as_deserialization_error(const std::exception& e)
+{
+  throw DeserializationError("Failed to load time sheet: {}", e.what());
+}
+
 constexpr auto interval_model_key = "intervals";
 constexpr auto project_model_key = "projects";
 constexpr auto plan_key = "plan";
@@ -114,6 +120,8 @@ std::unique_ptr<TimeSheet> deserialize(const nlohmann::json& json)
     auto plan = std::make_unique<FullTimePlan>(json.at(plan_key));
     return std::make_unique<TimeSheet>(std::move(project_model), std::move(interval_model), std::move(plan));
   } catch (const nlohmann::json::out_of_range& e) {
-    throw DeserializationError("Failed to load time sheet: {}", e.what());
+    ::throw_as_deserialization_error(e);
+  } catch (const RuntimeError& e) {
+    ::throw_as_deserialization_error(e);
   }
 }

@@ -20,7 +20,8 @@ public:
   explicit Plan(const nlohmann::json& data);
   explicit Plan();
   [[nodiscard]] nlohmann::json to_json() const noexcept;
-  [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date, const IntervalModel& interval_model) const;
+  [[nodiscard]] std::chrono::minutes planned_working_time(const Period& period,
+                                                          const IntervalModel& interval_model) const;
   [[nodiscard]] const std::chrono::minutes& overtime_offset() const noexcept;
   [[nodiscard]] const QDate& start() const noexcept;
 
@@ -39,7 +40,7 @@ public:
     Kind kind;
   };
 
-  void add(std::unique_ptr<Entry> entry);
+  bool add(std::unique_ptr<Entry> entry);
   std::unique_ptr<Entry> extract(const Entry& entry);
 
   const Entry& entry(int row) const noexcept;
@@ -49,6 +50,7 @@ public:
   [[nodiscard]] std::chrono::minutes sick_time(const Period& period) const;
   [[nodiscard]] std::chrono::minutes holiday_time(const Period& period) const;
   [[nodiscard]] std::chrono::minutes vacation_time(const Period& period) const;
+  [[nodiscard]] std::vector<Kind> kinds_in(const Period& period) const;
 
 Q_SIGNALS:
   void plan_changed();
@@ -63,6 +65,8 @@ private:
   void data_changed(int row, int column);
   template<typename LeaveFactors> [[nodiscard]] std::chrono::minutes count(const Period& period) const;
   [[nodiscard]] std::chrono::minutes planned_normal_working_time(const Period& period) const noexcept;
+  [[nodiscard]] std::chrono::minutes planned_working_time(const QDate& date, Kind kind,
+                                                          const IntervalModel& interval_model) const noexcept;
 };
 
 class FullTimePlan : public Plan
@@ -72,9 +76,9 @@ public:
   [[nodiscard]] std::chrono::minutes planned_normal_working_time(const QDate& date) const noexcept override;
 };
 
-template<> struct fmt::formatter<Plan::Kind> : fmt::formatter<std::string>
+template<> struct fmt::formatter<Plan::Kind> : formatter<std::string>
 {
-  [[nodiscard]] static auto format(Plan::Kind kind, fmt::format_context& ctx)
+  [[nodiscard]] static auto format(Plan::Kind kind, format_context& ctx)
   {
     const auto str = [kind]() {
       switch (kind) {
@@ -105,3 +109,6 @@ void to_json(nlohmann::json& j, const Plan::Entry& value);
 void from_json(const nlohmann::json& j, Plan::Entry& value);
 void to_json(nlohmann::json& j, const Plan::Kind& value);
 void from_json(const nlohmann::json& j, Plan::Kind& value);
+
+std::optional<std::vector<std::unique_ptr<Plan::Entry>>::const_iterator>
+find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& candidate) noexcept;

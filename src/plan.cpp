@@ -8,6 +8,7 @@
 
 #include <QDate>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -69,6 +70,16 @@ struct HolidayLeaveFactors
   }
 };
 
+[[nodiscard]] bool is_sorted(const std::vector<std::unique_ptr<Plan::Entry>>& vector)
+{
+  if (vector.empty()) {
+    return true;
+  }
+  return std::ranges::all_of(std::views::iota(static_cast<std::size_t>(1), vector.size()), [&vector](const auto i) {
+    return vector.at(i - 1)->period.end() <= vector.at(i)->period.begin();
+  });
+}
+
 }  // namespace
 
 template<> struct nlohmann::adl_serializer<std::unique_ptr<Plan::Entry>>
@@ -97,6 +108,10 @@ Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime
   if (data.contains(periods_key)) {
     m_periods = data.at(periods_key);
   }
+  std::ranges::sort(m_periods, std::less<>{}, [](const auto& entry) { return entry->period.begin(); });
+  if (!::is_sorted(m_periods)) {
+    throw RuntimeError("Failed to sort periods in plan: overlapping periods cannot be sorted.");
+  }
 }
 
 Plan::Plan()
@@ -112,25 +127,68 @@ nlohmann::json Plan::to_json() const noexcept
   };
 }
 
-std::chrono::minutes Plan::planned_working_time(const QDate& date, const IntervalModel& interval_model) const
+std::chrono::minutes Plan::planned_working_time(const QDate& date, const Kind kind,
+                                                const IntervalModel& interval_model) const noexcept
 {
-  const auto planned_normal_working_time = this->planned_normal_working_time(date);
   using enum Kind;
-  using std::chrono_literals::operator""min;
-  switch (find_kind(date)) {
+  switch (kind) {
   case Normal:
-    return planned_normal_working_time;
+    return planned_normal_working_time(date);
   case Holiday:
   case Vacation:
   case HalfVacationHalfHoliday:
+    using std::chrono_literals::operator""min;
     return 0min;
   case Sick:
-    return std::min(interval_model.minutes(date), planned_normal_working_time);
+    return std::min(interval_model.minutes(date), planned_normal_working_time(date));
   case HalfHoliday:
   case HalfVacation:
-    return planned_normal_working_time / 2;
+    return planned_normal_working_time(date) / 2;
   }
   Q_UNREACHABLE();
+}
+
+std::vector<Plan::Kind> Plan::kinds_in(const Period& period) const
+{
+  if (!period.begin().isValid() || !period.end().isValid()) {
+    return {};
+  }
+
+  std::vector<Kind> kinds;
+  kinds.reserve(period.days());
+  Period active_period = period;
+  assert(::is_sorted(m_periods));
+  for (const auto& p : m_periods) {
+    if (p->period.begin() > period.end()) {
+      // we are past the interesting periods
+      break;
+    }
+    if (p->period.end() < period.begin()) {
+      // we haven't yet reached the interesting periods
+      continue;
+    }
+    kinds.insert(kinds.end(), active_period.begin().daysTo(p->period.begin()), Kind::Normal);
+    const auto overlap = p->period.overlap(active_period);
+    assert(overlap.has_value());
+    kinds.insert(kinds.end(), overlap->days(), p->kind);
+    active_period = Period{p->period.end().addDays(1), active_period.end()};
+  }
+  kinds.insert(kinds.end(), active_period.days(), Kind::Normal);
+  return kinds;
+}
+
+std::chrono::minutes Plan::planned_working_time(const Period& period, const IntervalModel& interval_model) const
+{
+  const std::vector<Kind> kinds = kinds_in(period);
+  using std::chrono_literals::operator""min;
+  auto sum = 0min;
+  for (const auto i : std::views::iota(0, period.days())) {
+    // TODO planned_working_time calls planned_normal_working_time which is virtual.
+    // The virtual lookup doesn't need to be done each time, the runtime type is the same in each iteration, only
+    // the function argument changes.
+    sum += planned_working_time(period.begin().addDays(i), kinds.at(i), interval_model);
+  }
+  return sum;
 }
 
 const std::chrono::minutes& Plan::overtime_offset() const noexcept
@@ -202,13 +260,37 @@ Qt::ItemFlags Plan::flags(const QModelIndex& index) const
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
 }
 
-void Plan::add(std::unique_ptr<Entry> entry)
+std::optional<std::vector<std::unique_ptr<Plan::Entry>>::const_iterator>
+find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& period) noexcept
 {
-  const auto row = static_cast<int>(m_periods.size());
+  static constexpr auto projection = [](const auto& e) { return e->period.begin(); };
+  const auto insert_pos = std::ranges::upper_bound(periods, period.begin(), std::less<>{}, projection);
+  if (insert_pos != periods.end() && period.end() >= (*insert_pos)->period.begin()) {
+    // there is a subsequent period and its beginning is before the candidate's end.
+    return {};
+  }
+  if (insert_pos != periods.begin() && (*(insert_pos - 1))->period.end() >= period.begin()) {
+    // there is a previous period and its end is after the candidate's begin.
+    return {};
+  }
+  // If periods before or after the candidate exist, then they do not overlap with the candidate
+  return insert_pos;
+}
+
+bool Plan::add(std::unique_ptr<Entry> entry)
+{
+  const auto insert_pos = find_period_insert_pos(m_periods, entry->period);
+  if (!insert_pos.has_value()) {
+    return false;
+  }
+
+  const auto row = std::distance(m_periods.cbegin(), *insert_pos);
   beginInsertRows({}, row, row);
-  m_periods.emplace_back(std::move(entry));
+  m_periods.insert(*insert_pos, std::move(entry));
   endInsertRows();
   Q_EMIT plan_changed();
+  assert(::is_sorted(m_periods));
+  return true;
 }
 
 std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)

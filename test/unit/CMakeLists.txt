@@ -9,3 +9,4 @@ endmacro()
 
 package_add_test(colortest.cpp)
 package_add_test(periodtest.cpp)
+package_add_test(plantest.cpp)
