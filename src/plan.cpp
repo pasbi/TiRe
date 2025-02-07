@@ -163,13 +163,14 @@ std::vector<Plan::Kind> Plan::kinds_in(const Period& period) const
       // we haven't yet reached the interesting periods
       continue;
     }
-    kinds.insert(kinds.end(), active_period.begin().daysTo(p->period.begin()), Kind::Normal);
+    const auto n = std::max(static_cast<qint64>(0), active_period.begin().daysTo(p->period.begin()));
+    kinds.insert(kinds.end(), n, Kind::Normal);
     const auto overlap = p->period.overlap(active_period);
     assert(overlap.has_value());
     kinds.insert(kinds.end(), overlap->days(), p->kind);
     active_period = Period{p->period.end().addDays(1), active_period.end()};
   }
-  kinds.insert(kinds.end(), active_period.days(), Kind::Normal);
+  kinds.insert(kinds.end(), std::max(0, active_period.days()), Kind::Normal);
   return kinds;
 }
 
