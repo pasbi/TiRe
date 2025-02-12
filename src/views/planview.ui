@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>186</width>
-    <height>255</height>
+    <width>409</width>
+    <height>720</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,6 +50,26 @@
    </item>
    <item row="2" column="1">
     <widget class="QLabel" name="lb_sick">
+     <property name="toolTip">
+      <string>The time spend being sick.</string>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_10">
+     <property name="text">
+      <string>Vacation:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="lb_vacation">
      <property name="toolTip">
       <string>The time spend being sick.</string>
      </property>
@@ -224,28 +244,40 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label_10">
-     <property name="text">
-      <string>Vacation:</string>
+   <item row="13" column="0" colspan="2">
+    <widget class="Line" name="line_5">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QLabel" name="lb_vacation">
-     <property name="toolTip">
-      <string>The time spend being sick.</string>
-     </property>
+   <item row="14" column="0">
+    <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>TextLabel</string>
+      <string>Relative Share:</string>
      </property>
-     <property name="alignment">
-      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+    </widget>
+   </item>
+   <item row="15" column="0" colspan="2">
+    <widget class="SharesWidget" name="w_shares" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SharesWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">shareswidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

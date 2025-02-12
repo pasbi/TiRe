@@ -3,8 +3,13 @@
 #include "fmt.h"
 #include "intervalmodel.h"
 #include "plan.h"
+#include "projectmodel.h"
 #include "timesheet.h"
 #include "ui_planview.h"
+
+#include <QPainter>
+#include <QPainterPath>
+#include <spdlog/spdlog.h>
 
 int PlanView::m_max_period_text_width = 0;
 
@@ -92,8 +97,9 @@ void PlanView::invalidate()
       tr("The balance since the beginning of records (including this period, from %1 to %2).")
           .arg(plan.start().toString(), current_period.end().toString()));
 
-  update();
+  m_ui->w_shares->update(*time_sheet(), current_period);
 }
+
 QSize PlanView::sizeHint() const
 {
   // The PlanView can only grow.
