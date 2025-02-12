@@ -86,6 +86,7 @@ public:
   {
     auto editor = std::make_unique<QComboBox>(parent);
     editor->setEditable(true);
+    editor->setInsertPolicy(QComboBox::NoInsert);
     for (const auto& project : m_time_sheet->project_model().projects()) {
       editor->addItem(project->name());
     }
@@ -106,7 +107,7 @@ public:
   {
     const auto& combo_box = dynamic_cast<QComboBox&>(*editor);
     const Project* project = nullptr;
-    if (combo_box.currentIndex() == m_time_sheet->project_model().projects().size()) {
+    if (combo_box.currentIndex() >= m_time_sheet->project_model().projects().size()) {
       project = nullptr;
     } else if (const auto current_text = combo_box.currentText();
                current_text == combo_box.itemText(combo_box.currentIndex()))
