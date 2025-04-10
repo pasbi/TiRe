@@ -66,3 +66,8 @@ UndoStack& Application::undo_stack() noexcept
 {
   return *m_undo_stack;
 }
+
+QApplication& Application::qapp() const noexcept
+{
+  return *m_qapp;
+}

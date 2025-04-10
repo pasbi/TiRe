@@ -57,7 +57,7 @@ target_sources(tire-impl PRIVATE
         splitpointeditor.ui
 )
 
-target_link_libraries(tire-impl PUBLIC Qt6::Core Qt6::Widgets spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
+target_link_libraries(tire-impl PUBLIC Qt6::Core Qt6::Widgets Qt6::Network spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json)
 target_link_libraries(tire PRIVATE tire-impl)
 target_compile_features(tire PUBLIC cxx_std_20)
 target_compile_features(tire-impl PUBLIC cxx_std_20)
@@ -65,3 +65,4 @@ target_include_directories(tire-impl PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(commands)
 add_subdirectory(views)
+add_subdirectory(kdsingleapplication)

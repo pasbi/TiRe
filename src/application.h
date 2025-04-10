@@ -17,6 +17,7 @@ public:
   [[nodiscard]] static QDateTime current_date_time();
   [[nodiscard]] static const std::filesystem::path& timesheet_filename() noexcept;
   [[nodiscard]] static UndoStack& undo_stack() noexcept;
+  QApplication& qapp() const noexcept;
 
 private:
   std::unique_ptr<QApplication> m_qapp;
