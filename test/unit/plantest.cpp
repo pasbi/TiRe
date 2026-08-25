@@ -1,5 +1,10 @@
 #include "plan.h"
 
+#include "application.h"
+#include "commands/commands.h"
+#include "commands/undostack.h"
+#include "exceptions.h"
+
 #include <gtest/gtest.h>
 
 TEST(PlanTest, KindsIn)
@@ -51,6 +56,62 @@ std::ostream& operator<<(std::ostream& o, const Plan::Kind kind)
     Q_UNREACHABLE();
   }();
   return o << name;
+}
+
+TEST(PlanTest, can_set_period)
+{
+  FullTimePlan plan;
+  const auto add = [&plan](const QDate& begin, const QDate& end) {
+    plan.add(std::make_unique<Plan::Entry>(Period{begin, end}, Plan::Kind::Holiday, EntityId{}));
+  };
+  add(QDate{2025, 2, 1}, QDate{2025, 2, 3});
+  add(QDate{2025, 3, 1}, QDate{2025, 3, 4});
+
+  // Keeping a period unchanged must be allowed: the entry may of course overlap itself.
+  EXPECT_TRUE(plan.can_set_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 2, 3}}));
+  // Moving into free space.
+  EXPECT_TRUE(plan.can_set_period(plan.entry(0), Period{QDate{2025, 1, 1}, QDate{2025, 1, 5}}));
+  // Growing up to, but not into, the next entry.
+  EXPECT_TRUE(plan.can_set_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 2, 28}}));
+  // Overlapping the other entry.
+  EXPECT_FALSE(plan.can_set_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 3, 2}}));
+  // Merely touching the other entry counts as overlapping, matching the sortedness rule.
+  EXPECT_FALSE(plan.can_set_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 3, 1}}));
+
+  // can_set_period must agree with what swap_period actually does.
+  EXPECT_THROW(plan.swap_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 3, 1}}), RuntimeError);
+  EXPECT_NO_THROW(plan.swap_period(plan.entry(0), Period{QDate{2025, 2, 1}, QDate{2025, 2, 28}}));
+}
+
+TEST(PlanTest, undo_period_change_that_reorders)
+{
+  // Changing a period re-sorts the entries, so a command must not identify its entry by row
+  // index: after the reorder that index refers to a different entry, and undo would rewrite the
+  // wrong one.
+  FullTimePlan plan;
+  const auto add = [&plan](const QDate& begin, const QDate& end) {
+    plan.add(std::make_unique<Plan::Entry>(Period{begin, end}, Plan::Kind::Holiday, EntityId{}));
+  };
+  add(QDate{2026, 1, 5}, QDate{2026, 1, 5});
+  add(QDate{2026, 3, 5}, QDate{2026, 3, 5});
+
+  // Identify the entries by address: Plan owns them through unique_ptrs, so sorting moves the
+  // pointers around but never the Entry objects themselves.
+  const auto* const moved = &plan.entry(0);
+  const auto* const other = &plan.entry(1);
+
+  // Move the first entry past the second, which reorders them.
+  Application::undo_stack().push(
+      make_modify_plan_period_command(plan, *moved, Period{QDate{2026, 6, 5}, QDate{2026, 6, 5}}));
+  ASSERT_EQ(other, &plan.entry(0)) << "the entries should have swapped places";
+  ASSERT_EQ(moved, &plan.entry(1));
+
+  Application::undo_stack().undo();
+
+  ASSERT_EQ(2, plan.rowCount({}));
+  EXPECT_EQ(Period(QDate(2026, 1, 5), QDate(2026, 1, 5)), moved->period) << "undo must restore the moved entry";
+  EXPECT_EQ(Period(QDate(2026, 3, 5), QDate(2026, 3, 5)), other->period) << "undo must not touch the other entry";
+  EXPECT_EQ(moved, &plan.entry(0)) << "and the original order should be back";
 }
 
 TEST(PlanTest, add_sorted)

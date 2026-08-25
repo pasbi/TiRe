@@ -1,5 +1,8 @@
 #include "plantableview.h"
 
+#include "application.h"
+#include "commands/commands.h"
+#include "commands/undostack.h"
 #include "periodedit.h"
 #include "plan.h"
 
@@ -30,7 +33,13 @@ class KindDelegate : public QStyledItemDelegate
 
   void setModelData(QWidget* const editor, QAbstractItemModel* const model, const QModelIndex& index) const override
   {
-    dynamic_cast<Plan&>(*model).set_data(index.row(), dynamic_cast<const Editor&>(*editor).current_enum());
+    auto& plan = dynamic_cast<Plan&>(*model);
+    const auto& entry = plan.entry(index.row());
+    const auto kind = dynamic_cast<const Editor&>(*editor).current_enum();
+    if (kind == entry.kind) {
+      return;
+    }
+    Application::undo_stack().push(make_modify_plan_kind_command(plan, entry, kind));
   }
 };
 
@@ -49,12 +58,17 @@ void PlanTableView::open_period_edit(const QModelIndex& index)
 {
   PeriodEdit period_edit;
   auto& plan = dynamic_cast<Plan&>(*model());
-  period_edit.set_period(plan.entry(index.row()).period);
-  if (period_edit.exec() == QDialog::Accepted) {
-    try {
-      plan.set_data(index.row(), period_edit.period());
-    } catch (const RuntimeError& e) {
-      QMessageBox::critical(this, tr("Failed to set period"), e.what());
-    }
+  const auto& entry = plan.entry(index.row());
+  period_edit.set_period(entry.period);
+  if (period_edit.exec() != QDialog::Accepted) {
+    return;
   }
+  const auto period = period_edit.period();
+  // Validate up front: pushing a command whose redo() throws would leave the undo stack holding
+  // an entry that never applied.
+  if (!plan.can_set_period(entry, period)) {
+    QMessageBox::critical(this, tr("Failed to set period"), tr("The period would overlap another one."));
+    return;
+  }
+  Application::undo_stack().push(make_modify_plan_period_command(plan, entry, period));
 }

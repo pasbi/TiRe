@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 
 project(tire)
 
-find_package(Qt6 6.4 REQUIRED Core Widgets Network)
-find_package(nlohmann_json REQUIRED)
+find_package(Qt6 6.4 REQUIRED Core Widgets Network Sql)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 

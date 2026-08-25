@@ -33,7 +33,6 @@ class TireRecipe(ConanFile):
           "shared": True,
         })
         self.requires("spdlog/[>=1.14]")
-        self.requires("nlohmann_json/[>=3.0]")
         self.requires("fmt/[>=10.0]")
 
     def config_options(self):

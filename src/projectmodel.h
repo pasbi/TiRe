@@ -4,13 +4,17 @@
 #include <memory>
 #include <vector>
 
+class AbstractTimeSheetRepository;
 class Project;
 class ProjectModel : public QObject
 {
   Q_OBJECT
 public:
+  /** @brief Creates a model that does not persist anything. */
   explicit ProjectModel();
-  explicit ProjectModel(std::vector<std::unique_ptr<Project>> projects);
+  explicit ProjectModel(AbstractTimeSheetRepository& repository);
+  /** @brief Adopts already-stored projects without writing them back. */
+  explicit ProjectModel(AbstractTimeSheetRepository& repository, std::vector<std::unique_ptr<Project>> projects);
   ~ProjectModel() override;
 
   [[nodiscard]] std::vector<Project*> projects() const;
@@ -24,5 +28,6 @@ Q_SIGNALS:
   void projects_changed();
 
 private:
+  AbstractTimeSheetRepository& m_repository;
   std::vector<std::unique_ptr<Project>> m_projects;
 };

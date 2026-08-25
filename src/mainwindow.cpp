@@ -7,47 +7,41 @@
 #include "exceptions.h"
 #include "intervalmodel.h"
 #include "plan.h"
+#include "plansettingsdialog.h"
 #include "projectmodel.h"
-#include "serialization.h"
 #include "timesheet.h"
 #include "ui_mainwindow.h"
 
 #include <QCloseEvent>
-#include <QFileDialog>
+#include <QLabel>
 #include <QMessageBox>
+#include <QStatusBar>
 #include <fmt/chrono.h>
-#include <fstream>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-namespace
-{
-
-constexpr auto extension = ".ts";
-[[nodiscard]] auto file_filter()
-{
-  return QObject::tr("Time Sheets (*%1)").arg(extension);
-}
-
-}  // namespace
-
-MainWindow::MainWindow(QWidget* parent)
-  : QMainWindow(parent)
-  , m_ui(std::make_unique<Ui::MainWindow>())
-  , m_time_sheet(std::make_unique<TimeSheet>())
-  , m_view_action_group(this)
+MainWindow::MainWindow(std::unique_ptr<TimeSheet> time_sheet)
+  : m_ui(std::make_unique<Ui::MainWindow>()), m_view_action_group(this)
 {
   m_ui->setupUi(this);
+  set_time_sheet(std::move(time_sheet));
+
+  m_persistence_status_label = new QLabel{this};
+  m_persistence_status_label->setStyleSheet(QStringLiteral("QLabel { color: red; }"));
+  m_persistence_status_label->hide();
+  // A permanent widget, not showMessage(): the status bar's transient slot is used for the
+  // period label and would overwrite a warning on the next navigation keystroke.
+  statusBar()->addPermanentWidget(m_persistence_status_label);
+  connect(&Application::undo_stack(), &UndoStack::write_failed, this, &MainWindow::on_write_failed);
+  connect(&Application::undo_stack(), &UndoStack::write_succeeded, this, &MainWindow::on_write_succeeded);
+
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
           &GanttView::set_current_interval);
   connect(m_ui->period_detail_view, &PeriodDetailView::period_changed, m_ui->ganttview, &GanttView::ensure_visible);
   connect(m_ui->ganttview, &GanttView::clicked, this,
           [this](const QDateTime& timestamp) { set_period(Period{timestamp.date(), Period::Type::Day}); });
-  connect(m_ui->action_Load, &QAction::triggered, this, QOverload<>::of(&MainWindow::load));
-  connect(m_ui->action_Save, &QAction::triggered, this, &MainWindow::save);
-  connect(m_ui->action_Save_As, &QAction::triggered, this, &MainWindow::save_as);
-  connect(m_ui->action_New_time_sheet, &QAction::triggered, this, &MainWindow::new_time_sheet);
+  connect(m_ui->actionQuit, &QAction::triggered, this, &QMainWindow::close);
+  connect(m_ui->actionPlan_Settings, &QAction::triggered, this, &MainWindow::edit_plan_settings);
 
   connect(m_ui->action_Add_Interval, &QAction::triggered, this, [this]() {
     auto interval = std::make_unique<Interval>(nullptr);
@@ -81,23 +75,33 @@ MainWindow::MainWindow(QWidget* parent)
   init_view_action(m_ui->actionMonth, Period::Type::Month);
   init_view_action(m_ui->actionWeek, Period::Type::Week);
   init_view_action(m_ui->actionDay, Period::Type::Day);
-  m_ui->actionDay->trigger();
 
   connect(m_ui->actionNext, &QAction::triggered, this, &MainWindow::next);
   connect(m_ui->actionPrevious, &QAction::triggered, this, &MainWindow::previous);
   connect(m_ui->actionToday, &QAction::triggered, this, &MainWindow::today);
 
-  auto* const undo_action = Application::undo_stack().impl().createUndoAction(this);
-  m_ui->menu_Edit->addAction(undo_action);
+  // Built by hand rather than with QUndoStack::createUndoAction, because those trigger
+  // QUndoStack::undo()/redo() directly and would bypass UndoStack's transaction handling --
+  // undoing a forty-interval macro would then run forty separate transactions.
+  auto* const undo_action = new QAction{tr("&Undo"), this};
   undo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
-  auto* const redo_action = Application::undo_stack().impl().createRedoAction(this);
+  undo_action->setEnabled(Application::undo_stack().impl().canUndo());
+  connect(undo_action, &QAction::triggered, this, [] { Application::undo_stack().undo(); });
+  connect(&Application::undo_stack().impl(), &QUndoStack::canUndoChanged, undo_action, &QAction::setEnabled);
+  m_ui->menu_Edit->addAction(undo_action);
+
+  auto* const redo_action = new QAction{tr("&Redo"), this};
   redo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
+  redo_action->setEnabled(Application::undo_stack().impl().canRedo());
+  connect(redo_action, &QAction::triggered, this, [] { Application::undo_stack().redo(); });
+  connect(&Application::undo_stack().impl(), &QUndoStack::canRedoChanged, redo_action, &QAction::setEnabled);
   m_ui->menu_Edit->addAction(redo_action);
 
-  connect(&Application::undo_stack().impl(), &QUndoStack::cleanChanged, this,
-          [this](const bool clean) { setWindowModified(!clean); });
-
-  new_time_sheet();
+  update_window_title();
+  // Establishing the period must come last: set_period reads Plan::start(), so it needs the
+  // loaded plan, and it pushes the period into views that must already have their models.
+  m_ui->actionDay->trigger();
+  today();
 }
 
 MainWindow::~MainWindow() = default;
@@ -111,13 +115,6 @@ void MainWindow::set_time_sheet(std::unique_ptr<TimeSheet> time_sheet)
   m_ui->ganttview->set_time_sheet(m_time_sheet.get());
   m_ui->tv_plan->setModel(&m_time_sheet->plan());
   connect(&m_time_sheet->plan(), &Plan::plan_changed, m_ui->plan_view, &PlanView::invalidate);
-  Application::undo_stack().impl().clear();
-}
-
-void MainWindow::set_filename(std::filesystem::path filename)
-{
-  m_filename = std::move(filename);
-  update_window_title();
 }
 
 void MainWindow::end_task()
@@ -163,7 +160,6 @@ void MainWindow::switch_task()
 
 void MainWindow::update_window_title()
 {
-  const auto filename_part = m_filename.empty() ? tr("Untitled") : QString::fromStdString(m_filename.string());
   static const auto app_now_hint = [] {
     if (const auto app_now = Application::current_date_time(); app_now != QDateTime::currentDateTime()) {
       spdlog::warn("Application now ({}) doesn't match system now ({}). This may be useful for debugging only.",
@@ -172,112 +168,64 @@ void MainWindow::update_window_title()
     }
     return QStringLiteral();
   }();
-  QStringList title{tr("%1[*] — %2").arg(filename_part, QApplication::applicationDisplayName())};
+  QStringList title{QApplication::applicationDisplayName()};
   if (!app_now_hint.isEmpty()) {
     title.append(app_now_hint);
+  }
+  // The default database needs no mention; an override does, so it is never unclear which records
+  // are being edited.
+  if (!Application::is_default_database()) {
+    title.append(tr("DB=%1").arg(QString::fromStdString(Application::database_path().string())));
   }
   setWindowTitle(title.join(" "));
 }
 
+void MainWindow::on_write_failed(const QString& message)
+{
+  m_persistence_status_label->setText(tr("Not saving — changes are only in memory"));
+  m_persistence_status_label->show();
+  if (m_persistence_failed) {
+    // Already reported. A broken database fails on every keystroke, and one modal per failure
+    // would be an unclosable dialog storm.
+    return;
+  }
+  m_persistence_failed = true;
+  QMessageBox::critical(this, QApplication::applicationDisplayName(),
+                        tr("Cannot write to the database '%1':\n\n%2\n\nYour recent changes are still shown but "
+                           "are not saved. Copy anything you cannot lose before closing.")
+                            .arg(QString::fromStdString(Application::database_path().string()), message));
+}
+
+void MainWindow::on_write_succeeded()
+{
+  if (!m_persistence_failed) {
+    return;
+  }
+  m_persistence_failed = false;
+  m_persistence_status_label->hide();
+}
+
+void MainWindow::edit_plan_settings()
+{
+  PlanSettingsDialog dialog{m_time_sheet->plan(), this};
+  dialog.exec();
+}
+
 bool MainWindow::can_close()
 {
-  if (Application::undo_stack().impl().isClean()) {
+  if (!m_persistence_failed) {
     return true;
   }
-
-  const auto answer = QMessageBox::question(this, QApplication::applicationDisplayName(),
-                                            tr("Do you want to save pending changes before close?"),
-                                            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Abort);
-  return answer == QMessageBox::Discard || (answer == QMessageBox::Save && save());
-}
-
-bool MainWindow::load()
-{
-  const auto last_load_dir = QDir::home().path();  // TODO
-  const auto q_filename =
-      QFileDialog::getOpenFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
-  if (q_filename.isEmpty()) {
-    return false;
-  }
-
-  return load(static_cast<std::filesystem::path>(q_filename.toStdString()));
-}
-
-bool MainWindow::load(std::filesystem::path filename)
-{
-  if (!can_close()) {
-    return false;
-  }
-
-  try {
-    std::ifstream ifs(filename);
-    if (!ifs) {
-      QMessageBox::critical(this, QApplication::applicationDisplayName(),
-                            tr("Failed to open '%1' for reading.").arg(QString::fromStdString(m_filename.string())));
-    }
-    nlohmann::json data;
-    ifs >> data;
-    set_time_sheet(::deserialize(data));
-    set_filename(std::move(filename));
-    return true;
-  } catch (const DeserializationError& e) {
-    QMessageBox::critical(
-        this, QApplication::applicationDisplayName(),
-        tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));
-  } catch (const nlohmann::json::parse_error& e) {
-    QMessageBox::critical(
-        this, QApplication::applicationDisplayName(),
-        tr("Failed to open '%1': %2").arg(QString::fromStdString(filename.string()), QString::fromStdString(e.what())));
-  }
-  return false;
-}
-
-bool MainWindow::save()
-{
-  if (m_filename.empty()) {
-    return save_as();
-  }
-
-  std::ofstream ofs(m_filename);
-  if (!ofs) {
-    QMessageBox::critical(this, QApplication::applicationDisplayName(),
-                          tr("Failed to open '%1' for writing.").arg(QString::fromStdString(m_filename.string())));
-    return false;
-  }
-  ofs << ::serialize(*m_time_sheet);
-  Application::undo_stack().impl().setClean();
-  return true;
-}
-
-bool MainWindow::save_as()
-{
-  const auto last_load_dir = QDir::home().path();  // TODO
-  const auto q_filename =
-      QFileDialog::getSaveFileName(this, QApplication::applicationDisplayName(), last_load_dir, file_filter());
-
-  if (q_filename.isEmpty()) {
-    return false;
-  }
-  set_filename(static_cast<std::filesystem::path>(q_filename.toStdString()));
-  save();
-  Application::undo_stack().impl().setClean();
-  return true;
+  const auto answer =
+      QMessageBox::warning(this, QApplication::applicationDisplayName(),
+                           tr("Recent changes could not be written to the database and will be lost. Quit anyway?"),
+                           QMessageBox::Discard | QMessageBox::Cancel);
+  return answer == QMessageBox::Discard;
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
   can_close() ? event->accept() : event->ignore();
-}
-
-bool MainWindow::new_time_sheet()
-{
-  if (!can_close()) {
-    return false;
-  }
-  set_time_sheet(std::make_unique<TimeSheet>());
-  set_filename({});
-  set_date(Application::current_date_time().date());
-  return true;
 }
 
 void MainWindow::next()

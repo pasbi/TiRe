@@ -1,4 +1,5 @@
 #include "projectmodel.h"
+#include "db/abstracttimesheetrepository.h"
 #include "exceptions.h"
 #include "project.h"
 #include <random>
@@ -41,11 +42,16 @@ constexpr auto colors = std::array{
 
 }  // namespace
 
-ProjectModel::ProjectModel()
+ProjectModel::ProjectModel() : ProjectModel(null_repository())
 {
 }
 
-ProjectModel::ProjectModel(std::vector<std::unique_ptr<Project>> projects) : m_projects(std::move(projects))
+ProjectModel::ProjectModel(AbstractTimeSheetRepository& repository) : m_repository(repository)
+{
+}
+
+ProjectModel::ProjectModel(AbstractTimeSheetRepository& repository, std::vector<std::unique_ptr<Project>> projects)
+  : m_repository(repository), m_projects(std::move(projects))
 {
 }
 
@@ -64,6 +70,9 @@ Project& ProjectModel::add(std::unique_ptr<Project> project)
     spdlog::info("Project {} has not color. Assigning {}.", project->name(), project->color().name());
   }
   auto& ref = *m_projects.emplace_back(std::move(project));
+  // Persist before notifying, so observers never see state the database does not have. A project
+  // that already carries an id is one an undone removal is putting back; insert() reuses it.
+  m_repository.insert(ref);
   Q_EMIT projects_changed();
   return ref;
 }
@@ -71,6 +80,13 @@ Project& ProjectModel::add(std::unique_ptr<Project> project)
 std::unique_ptr<Project> ProjectModel::extract(const Project& project)
 {
   const auto it = std::ranges::find(m_projects, &project, &std::unique_ptr<Project>::get);
+  if (it == m_projects.end()) {
+    throw RuntimeError("Cannot extract a project that this model does not own.");
+  }
+  // Delete the row before touching the container. If this throws, the model is unchanged and the
+  // caller gets nothing -- whereas removing first would destroy the project during unwinding and
+  // leave the calling command holding a dangling reference.
+  m_repository.remove(project);
   auto extracted_project = std::move(*it);
   m_projects.erase(it);
   Q_EMIT projects_changed();

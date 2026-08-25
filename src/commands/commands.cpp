@@ -14,6 +14,32 @@ void delete_intervals(IntervalModel& interval_model, const std::set<const Interv
   }
 }
 
+// Both capture the entry, not its row: changing a period re-sorts the plan, so by the time undo
+// runs, the original row index would point at a different entry.
+std::unique_ptr<Command> make_modify_plan_kind_command(Plan& plan, const Plan::Entry& entry, const Plan::Kind kind)
+{
+  const auto swapper = [&entry](Plan& p, const Plan::Kind k) { return p.swap_kind(entry, k); };
+  return make_modify_command(plan, kind, swapper, [] {});
+}
+
+std::unique_ptr<Command> make_modify_plan_period_command(Plan& plan, const Plan::Entry& entry, Period period)
+{
+  const auto swapper = [&entry](Plan& p, Period q) { return p.swap_period(entry, std::move(q)); };
+  return make_modify_command(plan, std::move(period), swapper, [] {});
+}
+
+std::unique_ptr<Command> make_modify_plan_start_command(Plan& plan, QDate start)
+{
+  const auto swapper = [](Plan& p, QDate s) { return p.swap_start(s); };
+  return make_modify_command(plan, start, swapper, [] {});
+}
+
+std::unique_ptr<Command> make_modify_plan_overtime_offset_command(Plan& plan, const std::chrono::minutes offset)
+{
+  const auto swapper = [](Plan& p, const std::chrono::minutes o) { return p.swap_overtime_offset(o); };
+  return make_modify_command(plan, offset, swapper, [] {});
+}
+
 void split_interval(IntervalModel& interval_model, const Interval& interval)
 {
   SplitPointEditor e;
