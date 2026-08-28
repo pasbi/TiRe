@@ -8,7 +8,7 @@ class IntervalModel;
 class PeriodDetailProxyModel : public QSortFilterProxyModel
 {
 public:
-  explicit PeriodDetailProxyModel(QObject *parent = nullptr);
+  explicit PeriodDetailProxyModel(QObject* parent = nullptr);
   void set_source_model(IntervalModel* const model);
   void set_period(const Period& period);
 
