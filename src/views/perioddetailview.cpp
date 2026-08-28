@@ -90,7 +90,7 @@ public:
     for (const auto& project : m_time_sheet->project_model().projects()) {
       editor->addItem(project->name());
     }
-    editor->addItem(tr("No Project"));
+    editor->addItem(no_project_label());
     return editor.release();
   }
 
@@ -106,19 +106,26 @@ public:
   void setModelData(QWidget* const editor, QAbstractItemModel* const model, const QModelIndex& index) const override
   {
     const auto& combo_box = dynamic_cast<QComboBox&>(*editor);
+    const auto current_text = combo_box.currentText();
+    const auto* const known = m_time_sheet->project_model().find(current_text);
+
     const Project* project = nullptr;
-    if (combo_box.currentIndex() >= m_time_sheet->project_model().projects().size()) {
+    if (known != nullptr) {
+      project = known;
+    } else if (current_text.isEmpty() || current_text == no_project_label()) {
       project = nullptr;
-    } else if (const auto current_text = combo_box.currentText();
-               current_text == combo_box.itemText(combo_box.currentIndex()))
-    {
-      project = &m_time_sheet->project_model().project(combo_box.currentIndex());
     } else if (QMessageBox::question(editor, QApplication::applicationDisplayName(),
                                      tr("There is no project '%1'. Do you want to create it?").arg(current_text),
                                      QMessageBox::Yes | QMessageBox::No)
                == QMessageBox::Yes)
     {
+      // Creating the project and assigning it are one user action, so they share a macro: one
+      // undo step, and one transaction.
+      const auto macro = Application::undo_stack().start_macro(tr("Assign new project"));
       project = &create_project(current_text);
+      Application::undo_stack().push(make_modify_interval_command(m_time_sheet->interval_model(), interval(index),
+                                                                  project, &Interval::swap_project));
+      return;
     } else {
       return;
     }
@@ -141,6 +148,12 @@ protected:
 private:
   const TimeSheet* m_time_sheet = nullptr;
   PeriodDetailProxyModel& m_proxy_model;
+
+  /** @brief The sentinel entry standing for "this interval belongs to no project". */
+  [[nodiscard]] static QString no_project_label()
+  {
+    return tr("No Project");
+  }
 
   [[nodiscard]] const Interval& interval(const QModelIndex& index) const
   {

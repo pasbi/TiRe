@@ -94,6 +94,29 @@ TEST_F(TimeSheetRepositoryTest, ExtractAndReAddKeepsId)
   EXPECT_EQ(reloaded->project_model().projects().front(), reloaded->interval_model().intervals().front()->project());
 }
 
+TEST_F(TimeSheetRepositoryTest, CreatingTheFirstProjectWorks)
+{
+  // Regression: the project editor used to decide what the typed text meant from the combo box's
+  // row index. With no projects yet, index 0 is the "No Project" sentinel, so the very first
+  // project could never be created -- the typed name was silently discarded. Name lookup has to
+  // work on an empty model.
+  const auto time_sheet = m_repository->load();
+  auto& projects = time_sheet->project_model();
+  ASSERT_TRUE(projects.projects().empty());
+  EXPECT_EQ(nullptr, projects.find(QStringLiteral("brand new")));
+
+  auto& created = add_project(*time_sheet, QStringLiteral("brand new"), QColor{1, 2, 3});
+  EXPECT_EQ(&created, projects.find(QStringLiteral("brand new")));
+  EXPECT_EQ(nullptr, projects.find(QStringLiteral("still missing")));
+  // The sentinel label must never resolve to a real project.
+  EXPECT_EQ(nullptr, projects.find(QStringLiteral("No Project")));
+  EXPECT_EQ(nullptr, projects.find(QString{}));
+
+  const auto reloaded = m_repository->load();
+  ASSERT_EQ(1U, reloaded->project_model().projects().size());
+  EXPECT_EQ(QStringLiteral("brand new"), reloaded->project_model().projects().front()->name());
+}
+
 TEST_F(TimeSheetRepositoryTest, RoundTripFull)
 {
   const auto time_sheet = m_repository->load();

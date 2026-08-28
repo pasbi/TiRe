@@ -98,6 +98,12 @@ const Project& ProjectModel::project(const std::size_t index) const
   return *m_projects.at(index);
 }
 
+const Project* ProjectModel::find(const QString& name) const
+{
+  const auto it = std::ranges::find(m_projects, name, [](const auto& project) { return project->name(); });
+  return it == m_projects.end() ? nullptr : it->get();
+}
+
 std::size_t ProjectModel::index_of(const Project& project) const
 {
   if (const auto it = std::ranges::find(m_projects, &project, &std::unique_ptr<Project>::get); it != m_projects.end()) {
