@@ -272,11 +272,16 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
   menu.exec(pos);
 }
 
-void PeriodDetailView::edit_date_time(const QModelIndex& index) const
+void PeriodDetailView::edit_date_time(const QModelIndex& index)
 {
-  TimeRangeEditor e{time_sheet()->interval_model()};
+  TimeRangeEditor e{this};
   const auto& interval = *time_sheet()->interval_model().interval(index.row());
-  e.set_range(interval.begin(), interval.end());
+  // Clicking the end column of a still-running interval means the user wants to end it: hand the
+  // dialog an end of "now" so the field is filled in and editable, rather than a disabled one
+  // they must first hunt down the checkbox to unlock.
+  const auto ends_a_running_interval = !interval.end().isValid() && index.column() == IntervalModel::end_column;
+  const auto end = ends_a_running_interval ? Application::current_date_time() : interval.end();
+  e.set_range(interval.begin(), end);
   if (e.exec() != QDialog::Accepted) {
     return;
   }
