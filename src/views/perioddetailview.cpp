@@ -289,6 +289,13 @@ void PeriodDetailView::edit_date_time(const QModelIndex& index)
   const auto ends_a_running_interval = !interval.end().isValid() && index.column() == IntervalModel::end_column;
   const auto end = ends_a_running_interval ? Application::current_date_time() : interval.end();
   e.set_range(interval.begin(), end);
+  // Start on the field the user clicked. Must follow set_range, which decides whether the end is
+  // enabled at all.
+  if (index.column() == IntervalModel::end_column) {
+    e.focus_end_time();
+  } else if (index.column() == IntervalModel::begin_column) {
+    e.focus_begin_time();
+  }
   if (e.exec() != QDialog::Accepted) {
     return;
   }

@@ -19,6 +19,8 @@ public:
   void set_range(const QDateTime& begin, const QDateTime& end);
   [[nodiscard]] QDateTime begin() const noexcept;
   [[nodiscard]] QDateTime end() const noexcept;
+  void focus_begin_time();
+  void focus_end_time();
   void accept() override;
 
 private:

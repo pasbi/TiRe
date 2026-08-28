@@ -49,6 +49,17 @@ QDateTime TimeRangeEditor::end() const noexcept
              : QDateTime{};
 }
 
+void TimeRangeEditor::focus_begin_time()
+{
+  m_ui->te_begin->first_focus_widget()->setFocus();
+}
+
+void TimeRangeEditor::focus_end_time()
+{
+  // Only has an effect while the end is enabled, i.e. the interval is not marked as running.
+  m_ui->te_end->first_focus_widget()->setFocus();
+}
+
 void TimeRangeEditor::update_enabledness() const
 {
   for (auto* const widget : std::vector<QWidget*>{m_ui->te_end, m_ui->sp_end_offset}) {
