@@ -30,8 +30,15 @@ void init_style_selected(QStyleOptionViewItem* option, const QModelIndex& index)
   if (option->state & QStyle::State_Selected) {
     option->font.setBold(true);
     option->font.setUnderline(true);
-    option->palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
-    option->palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
+    // An interval without a project supplies neither role, and QVariant{}.value<QBrush>() is an
+    // opaque black one -- which would paint black text on a black selection. Keep the palette's
+    // own highlight colors in that case. The two are taken together because the foreground is
+    // chosen to contrast with the background; mixing one with the palette's other loses that.
+    const auto background = index.data(Qt::BackgroundRole);
+    if (const auto foreground = index.data(Qt::ForegroundRole); background.isValid() && foreground.isValid()) {
+      option->palette.setBrush(QPalette::Highlight, background.value<QBrush>());
+      option->palette.setBrush(QPalette::HighlightedText, foreground.value<QBrush>());
+    }
   }
 }
 
