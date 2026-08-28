@@ -8,6 +8,18 @@
 TimeRangeEditor::TimeRangeEditor(QWidget* const parent) : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor>())
 {
   m_ui->setupUi(this);
+
+  // The .ui file's <tabstops> chain de_begin -> cb_has_end -> sp_end_offset. The two TimeEdits
+  // cannot be named there: they are compound widgets whose focusable children live in
+  // timeedit.ui, so they would otherwise be stranded at the end of the chain, after the buttons
+  // and in reverse order. Weave them in here so focus follows the visual grid.
+  setTabOrder(m_ui->de_begin, m_ui->te_begin->first_focus_widget());
+  setTabOrder(m_ui->te_begin->first_focus_widget(), m_ui->te_begin->last_focus_widget());
+  setTabOrder(m_ui->te_begin->last_focus_widget(), m_ui->cb_has_end);
+  setTabOrder(m_ui->sp_end_offset, m_ui->te_end->first_focus_widget());
+  setTabOrder(m_ui->te_end->first_focus_widget(), m_ui->te_end->last_focus_widget());
+  setTabOrder(m_ui->te_end->last_focus_widget(), m_ui->buttonBox);
+
   connect(m_ui->cb_has_end, &QCheckBox::toggled, this, &TimeRangeEditor::update_enabledness);
   update_enabledness();
 }

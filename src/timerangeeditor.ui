@@ -87,6 +87,11 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>de_begin</tabstop>
+  <tabstop>cb_has_end</tabstop>
+  <tabstop>sp_end_offset</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
