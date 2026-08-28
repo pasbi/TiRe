@@ -53,14 +53,14 @@ jobs:
           - os: ubuntu-latest
             build_type: Release
             cppstd: gnu20
-            cmake_generator: Ninja
+            generator_conf: -c tools.cmake.cmaketoolchain:generator=Ninja
             configure_preset: conan-release
             build_preset: conan-release
             build_dir: build/Release
           - os: windows-latest
             build_type: Release
             cppstd: 20
-            cmake_generator: Visual Studio 17 2022
+            generator_conf: ''
             configure_preset: conan-default
             build_preset: conan-release
             build_dir: build
@@ -87,7 +87,7 @@ jobs:
     # really does mean the cache holds the right packages.
     # Refresh it after changing dependencies (run both, second builds on the first):
     #   conan lock create . -s compiler.cppstd=gnu20 --lockfile-out=conan.lock
-    #   conan lock create . -s os=Windows -s compiler=msvc -s compiler.version=194 \
+    #   conan lock create . -s os=Windows -s compiler=msvc -s compiler.version=195 \
     #     -s compiler.runtime=dynamic -s compiler.cppstd=20 -s arch=x86_64 \
     #     --lockfile=conan.lock --lockfile-out=conan.lock
     - name: Restore Conan cache
@@ -109,7 +109,7 @@ jobs:
         --lockfile=conan.lock
         -s build_type=${{ matrix.build_type }}
         -s compiler.cppstd=${{ matrix.cppstd }}
-        -c "tools.cmake.cmaketoolchain:generator=${{ matrix.cmake_generator }}"
+        ${{ matrix.generator_conf }}
         -c tools.system.package_manager:mode=install
         -c tools.system.package_manager:sudo=True
 
