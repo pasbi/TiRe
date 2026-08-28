@@ -35,16 +35,8 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="layoutWidget">
-       <layout class="QHBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="PlanView" name="plan_view" native="true"/>
-        </item>
-        <item>
-         <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
-        </item>
-       </layout>
-      </widget>
+      <widget class="PlanView" name="plan_view" native="true"/>
+      <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
         <number>0</number>

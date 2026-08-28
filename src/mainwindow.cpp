@@ -19,6 +19,20 @@
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
+namespace
+{
+
+// Pane order inside the main splitter, as laid out in mainwindow.ui.
+constexpr auto plan_view_pane = 0;
+constexpr auto period_detail_pane = 1;
+constexpr auto tab_pane = 2;
+
+// How the space left over after the plan view is shared between the interval table and the tabs.
+constexpr auto period_detail_share = 4;
+constexpr auto tab_share = 3;
+
+}  // namespace
+
 MainWindow::MainWindow(std::unique_ptr<TimeSheet> time_sheet)
   : m_ui(std::make_unique<Ui::MainWindow>()), m_view_action_group(this)
 {
@@ -33,6 +47,27 @@ MainWindow::MainWindow(std::unique_ptr<TimeSheet> time_sheet)
   statusBar()->addPermanentWidget(m_persistence_status_label);
   connect(&Application::undo_stack(), &UndoStack::write_failed, this, &MainWindow::on_write_failed);
   connect(&Application::undo_stack(), &UndoStack::write_succeeded, this, &MainWindow::on_write_succeeded);
+
+  // One splitter across all three panes, so every boundary is draggable and there is no nesting.
+  //
+  // The plan view is a fixed set of summary labels: it has a natural width and gains nothing from
+  // being wider, so it takes no share of spare space and the other two divide it between them.
+  //
+  // Stretch factors alone only govern how *surplus* is shared when the window is resized -- the
+  // initial split is proportional to the size hints, which left the plan view far wider than it
+  // needs. Asking for its size hint and oversized values for the rest pins it: the splitter
+  // clamps those down to the space actually left, in the ratio given.
+  m_ui->splitter->setStretchFactor(plan_view_pane, 0);
+  m_ui->splitter->setStretchFactor(period_detail_pane, period_detail_share);
+  m_ui->splitter->setStretchFactor(tab_pane, tab_share);
+  // The summary and the table are the primary views and must not vanish by accident; the tab pane
+  // may be dragged shut, as it could be before.
+  m_ui->splitter->setCollapsible(plan_view_pane, false);
+  m_ui->splitter->setCollapsible(period_detail_pane, false);
+  m_ui->splitter->setCollapsible(tab_pane, true);
+  static constexpr auto total_share = period_detail_share + tab_share;
+  m_ui->splitter->setSizes({m_ui->plan_view->sizeHint().width(), period_detail_share * QWIDGETSIZE_MAX / total_share,
+                            tab_share * QWIDGETSIZE_MAX / total_share});
 
   m_ui->period_detail_view->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_ui->period_detail_view, &PeriodDetailView::current_interval_changed, m_ui->ganttview,
