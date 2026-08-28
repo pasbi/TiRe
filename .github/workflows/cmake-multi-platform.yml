@@ -39,7 +39,10 @@ jobs:
       CONAN_HOME: "${{ github.workspace }}/.conan2"
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    # Generous because conanfile.py selects non-default Qt options, so ConanCenter has
+    # no prebuilt binary and a cold cache means building Qt from source. Warm runs are
+    # minutes; only the first run after a conan.lock change pays this.
+    timeout-minutes: 300
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
@@ -78,17 +81,22 @@ jobs:
     - name: Install Conan
       run: python -m pip install --upgrade "conan>=2,<3"
 
-    # cache/restore + cache/save rather than actions/cache: conanfile.py pins version
-    # ranges, so an unchanged recipe can still resolve to new dependencies. A plain
-    # cache would keep hitting its key and never save the newly built packages.
+    # Keyed on conan.lock, not conanfile.py: the recipe pins version ranges, so its
+    # hash says nothing about which dependencies actually get resolved. The lockfile
+    # pins exact versions and recipe revisions, which makes the key truthful — a hit
+    # really does mean the cache holds the right packages.
+    # Refresh it after changing dependencies (run both, second builds on the first):
+    #   conan lock create . -s compiler.cppstd=gnu20 --lockfile-out=conan.lock
+    #   conan lock create . -s os=Windows -s compiler=msvc -s compiler.version=194 \
+    #     -s compiler.runtime=dynamic -s compiler.cppstd=20 -s arch=x86_64 \
+    #     --lockfile=conan.lock --lockfile-out=conan.lock
     - name: Restore Conan cache
       id: cache-conan
       uses: actions/cache/restore@v4
       with:
         path: ${{ env.CONAN_HOME }}
-        key: conan-${{ runner.os }}-${{ matrix.build_type }}-${{ matrix.cppstd }}-${{ hashFiles('conanfile.py') }}-${{ github.run_id }}
+        key: conan-${{ runner.os }}-${{ matrix.build_type }}-${{ matrix.cppstd }}-${{ hashFiles('conan.lock') }}
         restore-keys: |
-          conan-${{ runner.os }}-${{ matrix.build_type }}-${{ matrix.cppstd }}-${{ hashFiles('conanfile.py') }}-
           conan-${{ runner.os }}-${{ matrix.build_type }}-${{ matrix.cppstd }}-
 
     - name: Detect Conan profile
@@ -98,6 +106,7 @@ jobs:
       run: >
         conan install .
         --build=missing
+        --lockfile=conan.lock
         -s build_type=${{ matrix.build_type }}
         -s compiler.cppstd=${{ matrix.cppstd }}
         -c "tools.cmake.cmaketoolchain:generator=${{ matrix.cmake_generator }}"
@@ -118,8 +127,9 @@ jobs:
       if: always()
       run: conan cache clean "*" --source --build --temp
 
+    # Only on a miss: an exact key hit means the cache already holds these packages.
     - name: Save Conan cache
-      if: always()
+      if: always() && steps.cache-conan.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
         path: ${{ env.CONAN_HOME }}
