@@ -22,9 +22,16 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly repo_root
 
-if [[ -n ${1:-} && -d ${1:-} ]]; then
+# A leading non-option argument is the build directory. Tested for shape rather than for
+# existence so that a mistyped or unpacked-too-late path fails here, instead of falling
+# through to auto-detection and leaking the path into run-clang-tidy's file filters.
+if [[ -n ${1:-} && ${1:-} != -* ]]; then
   build_dir=$1
   shift
+  if [[ ! -d $build_dir ]]; then
+    echo "clang-tidy.sh: build directory '$build_dir' does not exist" >&2
+    exit 1
+  fi
 else
   for candidate in "$repo_root/build/Release" "$repo_root/build"; do
     if [[ -f $candidate/compile_commands.json ]]; then
@@ -69,9 +76,29 @@ with open(destination, "w") as handle:
     json.dump(entries, handle)
 PY
 
-# Distro packages install the driver unsuffixed; the clang-tidy wheel on PyPI, which CI
-# uses to pin the version, ships it as run-clang-tidy.py.
-for candidate in run-clang-tidy run-clang-tidy.py; do
+# Resolve the analyzer first, then look for its driver next to it. Order matters: Debian and
+# Ubuntu patch their unsuffixed /usr/bin/run-clang-tidy to invoke the *versioned*
+# clang-tidy-NN, so preferring a driver found on PATH silently bypasses whichever clang-tidy
+# is pinned and picks up the distro's instead. Override with CLANG_TIDY=/path/to/clang-tidy.
+tidy_binary=${CLANG_TIDY:-$(command -v clang-tidy || true)}
+if [[ -z $tidy_binary ]]; then
+  echo "clang-tidy.sh: clang-tidy is not on PATH (set CLANG_TIDY to override)" >&2
+  exit 1
+fi
+
+# ExcludeHeaderFilterRegex in .clang-tidy needs 19 or newer; older releases reject the whole
+# config file with an unhelpful "unknown key" error, so say so plainly instead.
+tidy_version=$("$tidy_binary" --version | grep -oP '(?<=LLVM version )\d+' | head -1)
+readonly minimum_version=19
+if [[ -z $tidy_version ]] || ((tidy_version < minimum_version)); then
+  echo "clang-tidy.sh: $tidy_binary reports version '${tidy_version:-unknown}';" \
+    "$minimum_version or newer is required" >&2
+  exit 1
+fi
+
+# The PyPI wheel ships the driver as run-clang-tidy.py, distro packages as run-clang-tidy.
+tidy_dir=$(dirname "$tidy_binary")
+for candidate in "$tidy_dir/run-clang-tidy" "$tidy_dir/run-clang-tidy.py" run-clang-tidy run-clang-tidy.py; do
   if command -v "$candidate" > /dev/null; then
     runner=$candidate
     break
@@ -79,16 +106,21 @@ for candidate in run-clang-tidy run-clang-tidy.py; do
 done
 
 if [[ -z ${runner:-} ]]; then
-  echo "clang-tidy.sh: neither run-clang-tidy nor run-clang-tidy.py is on PATH" >&2
+  echo "clang-tidy.sh: no run-clang-tidy driver found next to $tidy_binary or on PATH" >&2
   exit 1
 fi
+
+echo "clang-tidy.sh: using $tidy_binary (LLVM $tidy_version) via $runner"
 
 # The header filter is an llvm::Regex (no lookahead); vendored and generated headers are
 # dropped by ExcludeHeaderFilterRegex in .clang-tidy instead. The trailing positional
 # argument is a Python regex, so it can exclude the vendored directory inline.
+# -clang-tidy-binary is passed explicitly for the same reason the lookup above is ordered:
+# the driver would otherwise choose the analyzer itself.
 exec "$runner" \
   -p "$scratch" \
   -quiet \
+  -clang-tidy-binary "$tidy_binary" \
   -warnings-as-errors='*' \
   -header-filter="^$repo_root/(src|test|benchmarks)/" \
   "$@" \

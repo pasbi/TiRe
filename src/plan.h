@@ -167,7 +167,7 @@ template<> struct fmt::formatter<Plan::Kind> : formatter<std::string>
       Q_UNREACHABLE();
     }();
     using std::chrono_literals::operator""min;
-    return format_to(ctx.out(), "{}", str);
+    return fmt::format_to(ctx.out(), "{}", str);
   }
 };
 

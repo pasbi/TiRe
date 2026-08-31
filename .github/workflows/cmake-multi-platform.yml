@@ -16,6 +16,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # Pinned rather than floating: this line is the only statement of which Qt the project
+  # is built against, so a silent upstream bump would otherwise be indistinguishable from
+  # a code regression.
+  #
+  # Held at 6.10.3 rather than the newest release because of the Windows job. Qt changed
+  # its Windows repository layout in 6.11.0 -- the metadata moved from
+  # .../qt6_<ver>/qt6_<ver>/Updates.xml to a per-architecture
+  # .../qt6_<ver>/qt6_<ver>_msvc2022_64/Updates.xml -- and aqtinstall 3.3.0, the newest
+  # release, still looks only at the old path and fails with "Failed to locate XML data".
+  # Linux is unaffected; it kept the old layout. Raise this only once aqtinstall ships a
+  # version that resolves 6.11+ on Windows, and check that job rather than just this one.
+  QT_VERSION: 6.10.3
+
 jobs:
   format:
     runs-on: ubuntu-latest
@@ -35,14 +49,8 @@ jobs:
       run: git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror
 
   build:
-    env:
-      CONAN_HOME: "${{ github.workspace }}/.conan2"
-
     runs-on: ubuntu-latest
-    # Generous because conanfile.py selects non-default Qt options, so ConanCenter has
-    # no prebuilt binary and a cold cache means building Qt from source. Warm runs are
-    # minutes; only the first run after a conan.lock change pays this.
-    timeout-minutes: 300
+    timeout-minutes: 20
 
     steps:
     - uses: actions/checkout@v4
@@ -52,53 +60,29 @@ jobs:
     - name: Install Ninja
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
-    - uses: actions/setup-python@v5
+    # Official prebuilt Qt, so nothing is compiled here. install-deps (on by default)
+    # apt-installs the system libraries those binaries link against. Every job below
+    # repeats this step: the action also exports QT_ROOT_DIR and LD_LIBRARY_PATH, which
+    # the build tree's absolute paths depend on, and a cache hit makes it cheap.
+    - uses: jurplel/install-qt-action@v4
       with:
-        python-version: '3.12'
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
 
-    - name: Install Conan
-      run: python -m pip install --upgrade "conan>=2,<3"
-
-    # Keyed on conan.lock, not conanfile.py: the recipe pins version ranges, so its
-    # hash says nothing about which dependencies actually get resolved. The lockfile
-    # pins exact versions and recipe revisions, which makes the key truthful — a hit
-    # really does mean the cache holds the right packages.
-    # Refresh it after changing dependencies:
-    #   conan lock create . -s compiler.cppstd=gnu20 --lockfile-out=conan.lock
-    - name: Restore Conan cache
-      id: cache-conan
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.CONAN_HOME }}
-        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock') }}
-        restore-keys: |
-          conan-${{ runner.os }}-
-
-    - name: Detect Conan profile
-      run: conan profile detect --force
-
-    - name: Install Dependencies
-      run: >
-        conan install .
-        --build=missing
-        --lockfile=conan.lock
-        -s build_type=Release
-        -s compiler.cppstd=gnu20
-        -c "tools.cmake.cmaketoolchain:generator=Ninja"
-        -c tools.system.package_manager:mode=install
-        -c tools.system.package_manager:sudo=True
-
+    # fmt and spdlog are not installed here. CMakeLists.txt pulls them via FetchContent
+    # and they compile in seconds, which is cheaper than caching them would be.
     - name: Configure
-      run: cmake --preset conan-release -DBUILD_TESTING=ON
+      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build --preset conan-release --parallel
+      run: cmake --build build --parallel
 
     # Tarred rather than uploaded as a directory: actions/upload-artifact zips, and zip
     # drops the execute bit, which would leave ctest with unrunnable test binaries. One
     # tar is also far quicker than thousands of individual files.
     - name: Pack build tree
-      run: tar -c -I zstd -f build-release.tar.zst build/Release
+      run: tar -c -I zstd -f build-release.tar.zst build
 
     - uses: actions/upload-artifact@v4
       with:
@@ -108,67 +92,25 @@ jobs:
         # Already zstd-compressed.
         compression-level: 0
 
-    # Drop sources, build trees and temporaries so only the package binaries are cached.
-    - name: Clean Conan cache
-      if: always()
-      run: conan cache clean "*" --source --build --temp
-
-    # Only on a miss: an exact key hit means the cache already holds these packages.
-    - name: Save Conan cache
-      if: always() && steps.cache-conan.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.CONAN_HOME }}
-        key: ${{ steps.cache-conan.outputs.cache-primary-key }}
-
   test:
     needs: build
-
-    env:
-      # Must match the build job: Qt is a shared-library dependency, so the test
-      # binaries carry an RPATH into this directory. The path has to be identical.
-      CONAN_HOME: "${{ github.workspace }}/.conan2"
 
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
     # No submodules: googletest is already built into the artifact, and the tests read
-    # no data from the source tree. Only conanfile.py and conan.lock are needed below.
+    # no data from the source tree.
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
+    # Qt is a shared-library dependency, so the test binaries need it at the same path
+    # the build job used. This is a fresh runner, so its system libraries have to be
+    # apt-installed again too.
+    - uses: jurplel/install-qt-action@v4
       with:
-        python-version: '3.12'
-
-    - name: Install Conan
-      run: python -m pip install --upgrade "conan>=2,<3"
-
-    # The build job saved this under the primary key, so an exact hit is expected;
-    # a miss means the test binaries would fail to find their Qt libraries.
-    - name: Restore Conan cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.CONAN_HOME }}
-        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock') }}
-        fail-on-cache-miss: true
-
-    - name: Detect Conan profile
-      run: conan profile detect --force
-
-    # Not to build anything -- the cache holds every binary -- but to apt-install the
-    # system libraries Qt links against at runtime (X11, GL, ...). Those were installed
-    # on the build job's runner, and this is a fresh one. Deliberately no --build flag:
-    # a missing binary should fail fast, not silently start compiling Qt from source.
-    - name: Install runtime dependencies
-      run: >
-        conan install .
-        --lockfile=conan.lock
-        -s build_type=Release
-        -s compiler.cppstd=gnu20
-        -c "tools.cmake.cmaketoolchain:generator=Ninja"
-        -c tools.system.package_manager:mode=install
-        -c tools.system.package_manager:sudo=True
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
 
     - uses: actions/download-artifact@v4
       with:
@@ -178,15 +120,10 @@ jobs:
       run: tar -x -I zstd -f build-release.tar.zst
 
     - name: Test
-      run: ctest --test-dir build/Release --build-config Release --output-on-failure
+      run: ctest --test-dir build --output-on-failure
 
   tidy:
     needs: build
-
-    env:
-      # Must match the build job: compile_commands.json refers to dependency headers by
-      # absolute path into this directory.
-      CONAN_HOME: "${{ github.workspace }}/.conan2"
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -206,34 +143,20 @@ jobs:
     # Pinned to the same release as clang-format above. An unpinned clang-tidy would
     # change its diagnostics under us and turn a green gate red without a code change.
     # This wheel provides clang-tidy, run-clang-tidy.py and clang-apply-replacements.
-    - name: Install clang-tidy and Conan
-      run: python -m pip install --upgrade "clang-tidy==22.1.8" "conan>=2,<3"
+    - name: Install clang-tidy
+      run: python -m pip install --upgrade "clang-tidy==22.1.8"
 
-    - name: Restore Conan cache
-      uses: actions/cache/restore@v4
+    # clang-tidy never links or runs anything, so this is only about headers: the entries
+    # in compile_commands.json point into QT_ROOT_DIR by absolute path.
+    - uses: jurplel/install-qt-action@v4
       with:
-        path: ${{ env.CONAN_HOME }}
-        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock') }}
-        fail-on-cache-miss: true
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
 
-    - name: Detect Conan profile
-      run: conan profile detect --force
-
-    # clang-tidy never links or runs anything, so this is only about headers: it makes
-    # Conan apt-install the system development packages its recipes declare, which the
-    # dependency headers in the cache may include.
-    - name: Install dependencies
-      run: >
-        conan install .
-        --lockfile=conan.lock
-        -s build_type=Release
-        -s compiler.cppstd=gnu20
-        -c "tools.cmake.cmaketoolchain:generator=Ninja"
-        -c tools.system.package_manager:mode=install
-        -c tools.system.package_manager:sudo=True
-
-    # For compile_commands.json and for the ui_*.h and moc sources AUTOUIC/AUTOMOC
-    # generate -- clang-tidy cannot parse the widget classes without them.
+    # For compile_commands.json, for the ui_*.h and moc sources AUTOUIC/AUTOMOC generate,
+    # and for the fmt and spdlog headers FetchContent placed under build/_deps --
+    # clang-tidy cannot parse the widget classes without them.
     - uses: actions/download-artifact@v4
       with:
         name: build-release
@@ -242,4 +165,67 @@ jobs:
       run: tar -x -I zstd -f build-release.tar.zst
 
     - name: Check clang-tidy
-      run: scripts/clang-tidy.sh build/Release
+      run: scripts/clang-tidy.sh build
+
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: win64_msvc2022_64
+        cache: true
+
+    # No -G and no CMAKE_BUILD_TYPE: the default Visual Studio generator locates MSVC by
+    # itself, which avoids both a developer-prompt action and the assumption that Ninja is
+    # on the image. It is multi-config, so the configuration is named per command below
+    # rather than at configure time.
+    - name: Configure
+      run: cmake -S . -B build -DBUILD_TESTING=ON
+
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    # Uploaded as a directory rather than tarred like the Linux job. The tar there exists
+    # only because zip drops the execute bit, which would leave ctest with unrunnable ELF
+    # binaries; a .exe carries no such bit, so zip is lossless here. It also avoids
+    # depending on which tar is first on PATH -- the image has both bsdtar and GNU tar,
+    # and they disagree about how a compression program is spelled.
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-windows
+        path: build
+        retention-days: 1
+
+  windows-test:
+    needs: windows-build
+
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+    # No submodules, matching the Linux test job: gtest is already built into the
+    # artifact and the tests read nothing from the source tree.
+    - uses: actions/checkout@v4
+
+    # For the Qt DLLs the test binaries link against. Windows has no RPATH, so they are
+    # found through PATH, which the action puts QT_ROOT_DIR/bin on.
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: win64_msvc2022_64
+        cache: true
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: build-windows
+        path: build
+
+    - name: Test
+      run: ctest --test-dir build --build-config Release --output-on-failure
