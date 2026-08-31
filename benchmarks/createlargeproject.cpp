@@ -48,7 +48,7 @@ TimeSheet create_large_time_sheet(const int interval_count)
 
   // Use a constant seed to ensure reproducible results.
   static constexpr auto seed = 42;
-  std::mt19937 rng{seed};
+  std::mt19937 rng{seed};  // NOLINT(cert-msc51-cpp): predictability is the point here
   std::uniform_int_distribution project_distribution(0, static_cast<int>(projects.size()) - 1);
 
   auto time_advancer = TimeAdvancer{rng};

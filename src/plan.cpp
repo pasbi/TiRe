@@ -33,11 +33,9 @@ struct VacationLeaveFactors
   {
     switch (kind) {
     case Holiday:
-      return 1.0;
     case Vacation:
       return 1.0;
     case HalfVacation:
-      return 0.5;
     case HalfVacationHalfHoliday:
       return 0.5;
     default:
@@ -55,7 +53,6 @@ struct HolidayLeaveFactors
     case Holiday:
       return 1.0;
     case HalfHoliday:
-      return 0.5;
     case HalfVacationHalfHoliday:
       return 0.5;
     default:
@@ -239,15 +236,15 @@ Qt::ItemFlags Plan::flags(const QModelIndex& index) const
 }
 
 std::optional<std::vector<std::unique_ptr<Plan::Entry>>::const_iterator>
-find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& period) noexcept
+find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& candidate) noexcept
 {
   static constexpr auto projection = [](const auto& e) { return e->period.begin(); };
-  const auto insert_pos = std::ranges::upper_bound(periods, period.begin(), std::less<>{}, projection);
-  if (insert_pos != periods.end() && period.end() >= (*insert_pos)->period.begin()) {
+  const auto insert_pos = std::ranges::upper_bound(periods, candidate.begin(), std::less<>{}, projection);
+  if (insert_pos != periods.end() && candidate.end() >= (*insert_pos)->period.begin()) {
     // there is a subsequent period and its beginning is before the candidate's end.
     return {};
   }
-  if (insert_pos != periods.begin() && (*(insert_pos - 1))->period.end() >= period.begin()) {
+  if (insert_pos != periods.begin() && (*(insert_pos - 1))->period.end() >= candidate.begin()) {
     // there is a previous period and its end is after the candidate's begin.
     return {};
   }
@@ -267,7 +264,7 @@ bool Plan::add(std::unique_ptr<Entry> entry)
     return false;
   }
 
-  const auto row = std::distance(m_periods.cbegin(), *insert_pos);
+  const auto row = static_cast<int>(std::distance(m_periods.cbegin(), *insert_pos));
   beginInsertRows({}, row, row);
   auto& ref = **m_periods.insert(*insert_pos, std::move(entry));
   endInsertRows();
@@ -286,7 +283,7 @@ std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
     // Delete the row before touching the container, so a failure leaves the plan untouched rather
     // than destroying the entry during unwinding and dangling the calling command's reference.
     m_repository.remove(entry);
-    const auto row = std::distance(m_periods.begin(), it);
+    const auto row = static_cast<int>(std::distance(m_periods.begin(), it));
     beginRemoveRows({}, row, row);
     auto ret = std::move(*it);
     m_periods.erase(it);

@@ -37,8 +37,8 @@ std::unique_ptr<Command> make_modify_plan_kind_command(Plan& plan, const Plan::E
 
 std::unique_ptr<Command> make_modify_plan_period_command(Plan& plan, const Plan::Entry& entry, Period period)
 {
-  const auto swapper = [&entry](Plan& p, Period q) { return p.swap_period(entry, std::move(q)); };
-  return make_modify_command(plan, std::move(period), swapper, [] {});
+  const auto swapper = [&entry](Plan& p, Period q) { return p.swap_period(entry, q); };
+  return make_modify_command(plan, period, swapper, [] {});
 }
 
 std::unique_ptr<Command> make_modify_plan_start_command(Plan& plan, QDate start)

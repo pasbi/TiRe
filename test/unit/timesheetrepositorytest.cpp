@@ -30,7 +30,7 @@ protected:
     m_repository = std::make_unique<SqlTimeSheetRepository>(*m_database);
   }
 
-  [[nodiscard]] Project& add_project(const TimeSheet& time_sheet, const QString& name, const QColor& color) const
+  [[nodiscard]] static Project& add_project(const TimeSheet& time_sheet, const QString& name, const QColor& color)
   {
     return time_sheet.project_model().add(std::make_unique<Project>(name, color));
   }

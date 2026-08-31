@@ -65,7 +65,6 @@ cppcoreguidelines-narrowing-conversions,
 cppcoreguidelines-pro-type-member-init,
 cppcoreguidelines-pro-type-static-cast-downcast,
 cppcoreguidelines-slicing,
-google-default-arguments,
 google-explicit-constructor,
 google-runtime-operator,
 hicpp-exception-baseclass,
@@ -145,3 +144,15 @@ readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
 readability-use-anyofallof'
+
+# google-default-arguments is deliberately absent. Every hit was a QAbstractItemModel
+# override such as `rowCount(const QModelIndex& parent = {}) const override`, where the
+# default argument is part of the Qt base-class interface and cannot be dropped.
+
+# Vendored KDSingleApplication keeps upstream style, and ui_*.h / moc files are generated
+# into the build tree by AUTOUIC/AUTOMOC -- neither is ours to fix.
+ExcludeHeaderFilterRegex: '.*(kdsingleapplication|_autogen).*'
+
+# HeaderFilterRegex is intentionally unset here: it has to be an absolute path to the
+# repo, which differs between machines and CI. scripts/clang-tidy.sh passes it. A bare
+# `clang-tidy` invocation therefore reports only main-file warnings.

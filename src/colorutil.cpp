@@ -2,17 +2,27 @@
 #include <QApplication>
 #include <QDate>
 #include <QPalette>
+#include <cmath>
+
+namespace
+{
+/** @brief Interpolates one 0-255 color channel, rounding rather than truncating. */
+[[nodiscard]] int lerp_channel(const int a, const int b, const double t)
+{
+  return static_cast<int>(std::lround(std::lerp(a, b, t)));
+}
+}  // namespace
 
 QColor lerp(const double t, const QColor& a, const QColor& b)
 {
-  return QColor(std::lerp(a.red(), b.red(), t), std::lerp(a.green(), b.green(), t), std::lerp(a.blue(), b.blue(), t),
-                std::lerp(a.alpha(), b.alpha(), t));
+  return {::lerp_channel(a.red(), b.red(), t), ::lerp_channel(a.green(), b.green(), t),
+          ::lerp_channel(a.blue(), b.blue(), t), ::lerp_channel(a.alpha(), b.alpha(), t)};
 }
 
 QColor contrast_color(const QColor& color)
 {
   const auto is_bright = color.lightnessF() > 0.5;
-  return QColor(is_bright ? Qt::black : Qt::white);
+  return {is_bright ? Qt::black : Qt::white};
 }
 
 QColor background(const QDate& date)

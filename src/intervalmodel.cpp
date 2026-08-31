@@ -181,7 +181,7 @@ void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> interval
 std::vector<Interval*> IntervalModel::intervals() const
 {
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 std::vector<Interval*> IntervalModel::intervals(const Period& period) const
@@ -191,7 +191,7 @@ std::vector<Interval*> IntervalModel::intervals(const Period& period) const
       m_intervals
       | std::views::filter([&period](const auto& interval) { return period.contains(interval->begin().date()); })
       | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 const Interval* IntervalModel::interval(const std::size_t index) const
@@ -203,7 +203,7 @@ std::vector<Interval*> IntervalModel::open_intervals() const
 {
   auto view = m_intervals | std::views::filter([](const auto& interval) { return !interval->end().isValid(); })
               | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,

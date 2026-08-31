@@ -17,7 +17,7 @@ public:
     setCurrentIndex(static_cast<int>(value));
   }
 
-  Enum current_enum() const
+  [[nodiscard]] Enum current_enum() const
   {
     return static_cast<Enum>(currentIndex());
   }

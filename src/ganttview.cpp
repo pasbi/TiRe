@@ -179,8 +179,10 @@ double GanttView::pos_x(const QTime& time) const
 {
   using std::chrono_literals::operator""h;
   using std::chrono_literals::operator""min;
-  return (static_cast<double>(time.hour()) * 1.0h + static_cast<double>(time.minute()) * 1.0min) / 24.0h
-         * static_cast<double>(width());
+  // The chrono literals are long double-backed, so the ratio is narrowed to double explicitly.
+  const auto fraction_of_day = static_cast<double>(
+      (static_cast<double>(time.hour()) * 1.0h + static_cast<double>(time.minute()) * 1.0min) / 24.0h);
+  return fraction_of_day * static_cast<double>(width());
 }
 
 QTime GanttView::time_at(const double x) const

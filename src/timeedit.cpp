@@ -14,7 +14,7 @@ TimeEdit::~TimeEdit() = default;
 
 QTime TimeEdit::time() const
 {
-  return QTime(m_ui->sp_h->value(), m_ui->sp_min->value());
+  return {m_ui->sp_h->value(), m_ui->sp_min->value()};
 }
 
 void TimeEdit::set_time(const QTime& time) noexcept

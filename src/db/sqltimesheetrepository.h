@@ -44,7 +44,7 @@ public:
   void update_plan_setting(const Plan& plan) override;
 
 private:
-  [[nodiscard]] EntityId next_id(EntityId::Value& counter) const noexcept;
+  [[nodiscard]] static EntityId next_id(EntityId::Value& counter) noexcept;
   void seed_id_counters();
 
   Database& m_database;

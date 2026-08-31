@@ -156,8 +156,8 @@ fmt::formatter<Period>::format_return_type fmt::formatter<Period>::format(const 
   return fmt::format_to(ctx.out(), "{}({}, {})", p.type(), p.begin(), p.end());
 }
 
-fmt::formatter<Period>::format_return_type fmt::formatter<Period::Type>::format(const Period::Type& t,
-                                                                                fmt::format_context& ctx) const
+fmt::formatter<Period::Type>::format_return_type fmt::formatter<Period::Type>::format(const Period::Type& t,
+                                                                                      fmt::format_context& ctx)
 {
   return fmt::format_to(ctx.out(), "{}", ::type_label(t));
 }
@@ -214,10 +214,13 @@ std::pair<QDate, QDate> Period::limits() const noexcept
 
 std::vector<QDate> Period::dates() const
 {
-  std::vector<QDate> days;
-  days.reserve(this->days());
-  for (std::size_t i = 0; i < days.capacity(); ++i) {
-    days.emplace_back(m_begin.addDays(i));
+  // Bound by days(), not by capacity(): reserve() is free to over-allocate, which would have
+  // yielded more dates than the period actually spans.
+  const auto count = days();
+  std::vector<QDate> dates;
+  dates.reserve(count);
+  for (auto i = 0; i < count; ++i) {
+    dates.emplace_back(m_begin.addDays(i));
   }
-  return days;
+  return dates;
 }

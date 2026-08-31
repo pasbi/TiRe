@@ -60,7 +60,7 @@ ProjectModel::~ProjectModel() = default;
 std::vector<Project*> ProjectModel::projects() const
 {
   auto view = m_projects | std::views::transform(&std::unique_ptr<Project>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 Project& ProjectModel::add(std::unique_ptr<Project> project)

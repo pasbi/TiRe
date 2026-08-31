@@ -25,7 +25,7 @@ public:
   struct Entry
   {
     Period period;
-    Kind kind;
+    Kind kind = Kind::Normal;
     /**
      * @brief Identity of this entry's row, invalid until it has been persisted.
      * Deliberately the last member and deliberately public: Entry is an aggregate, initialized
@@ -73,7 +73,7 @@ public:
   bool add(std::unique_ptr<Entry> entry);
   std::unique_ptr<Entry> extract(const Entry& entry);
 
-  const Entry& entry(int row) const noexcept;
+  [[nodiscard]] const Entry& entry(int row) const noexcept;
 
   /**
    * @name Mutators

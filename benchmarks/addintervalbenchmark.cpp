@@ -33,7 +33,7 @@ private:
 int main()
 {
   for (const int exponent : std::views::iota(0, 20)) {
-    const auto n = std::pow(2, exponent);
+    const auto n = 1 << exponent;
     RAIITimer timer(fmt::format("n = {:8}", n));
     const auto time_sheet = ::create_large_time_sheet(n);
   }

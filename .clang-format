@@ -8,7 +8,7 @@ AlignConsecutiveAssignments: false
 #AlignConsecutiveBitFields: None
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: DontAlign
-AlignOperands:  Align
+AlignOperands: Align
 AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
@@ -74,10 +74,10 @@ BasedOnStyle: ''
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 AllowAllConstructorInitializersOnNextLine: true
 FixNamespaceComments: true
-ForEachMacros: []
+ForEachMacros: [ ]
 #IfMacros: []
 IncludeBlocks: Preserve
-IncludeCategories: []
+IncludeCategories: [ ]
 IncludeIsMainRegex: '(Test)?$'
 IncludeIsMainSourceRegex: ''
 #IndentAccessModifiers: false
@@ -124,14 +124,14 @@ SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
-#SpaceBeforeParensOptions:
+  #SpaceBeforeParensOptions:
   #AfterControlStatements: true
   #AfterForeachMacros: true
   #AfterFunctionDefinitionName: false
   #AfterFunctionDeclarationName: false
   #AfterIfMacros: true
   #AfterOverloadedOperator: false
-  #BeforeNonEmptyParentheses: false
+#BeforeNonEmptyParentheses: false
 #SpaceAroundPointerQualifiers: Default
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyBlock: false
@@ -152,5 +152,5 @@ Standard: Latest
 TabWidth: 8
 UseCRLF: false
 UseTab: Never
-WhitespaceSensitiveMacros: []
+WhitespaceSensitiveMacros: [ ]
 ...

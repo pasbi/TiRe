@@ -60,7 +60,7 @@ void SqlTimeSheetRepository::seed_id_counters()
   m_next_plan_entry_id = highest_id(QStringLiteral("plan_entry"));
 }
 
-EntityId SqlTimeSheetRepository::next_id(EntityId::Value& counter) const noexcept
+EntityId SqlTimeSheetRepository::next_id(EntityId::Value& counter) noexcept
 {
   ++counter;
   return EntityId{counter};

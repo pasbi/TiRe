@@ -4,7 +4,7 @@
 class PlanTableView : public TableView
 {
 public:
-  PlanTableView(QWidget* parent = nullptr);
+  explicit PlanTableView(QWidget* parent = nullptr);
 
 private:
   void open_period_edit(const QModelIndex& index);
