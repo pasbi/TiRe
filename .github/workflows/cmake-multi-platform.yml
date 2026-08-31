@@ -94,8 +94,19 @@ jobs:
     - name: Build
       run: cmake --build --preset conan-release --parallel
 
-    - name: Test
-      run: ctest --test-dir build/Release --build-config Release --output-on-failure
+    # Tarred rather than uploaded as a directory: actions/upload-artifact zips, and zip
+    # drops the execute bit, which would leave ctest with unrunnable test binaries. One
+    # tar is also far quicker than thousands of individual files.
+    - name: Pack build tree
+      run: tar -c -I zstd -f build-release.tar.zst build/Release
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-release
+        path: build-release.tar.zst
+        retention-days: 1
+        # Already zstd-compressed.
+        compression-level: 0
 
     # Drop sources, build trees and temporaries so only the package binaries are cached.
     - name: Clean Conan cache
@@ -109,3 +120,62 @@ jobs:
       with:
         path: ${{ env.CONAN_HOME }}
         key: ${{ steps.cache-conan.outputs.cache-primary-key }}
+
+  test:
+    needs: build
+
+    env:
+      # Must match the build job: Qt is a shared-library dependency, so the test
+      # binaries carry an RPATH into this directory. The path has to be identical.
+      CONAN_HOME: "${{ github.workspace }}/.conan2"
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    # No submodules: googletest is already built into the artifact, and the tests read
+    # no data from the source tree. Only conanfile.py and conan.lock are needed below.
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Conan
+      run: python -m pip install --upgrade "conan>=2,<3"
+
+    # The build job saved this under the primary key, so an exact hit is expected;
+    # a miss means the test binaries would fail to find their Qt libraries.
+    - name: Restore Conan cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.CONAN_HOME }}
+        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock') }}
+        fail-on-cache-miss: true
+
+    - name: Detect Conan profile
+      run: conan profile detect --force
+
+    # Not to build anything -- the cache holds every binary -- but to apt-install the
+    # system libraries Qt links against at runtime (X11, GL, ...). Those were installed
+    # on the build job's runner, and this is a fresh one. Deliberately no --build flag:
+    # a missing binary should fail fast, not silently start compiling Qt from source.
+    - name: Install runtime dependencies
+      run: >
+        conan install .
+        --lockfile=conan.lock
+        -s build_type=Release
+        -s compiler.cppstd=gnu20
+        -c "tools.cmake.cmaketoolchain:generator=Ninja"
+        -c tools.system.package_manager:mode=install
+        -c tools.system.package_manager:sudo=True
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: build-release
+
+    - name: Unpack build tree
+      run: tar -x -I zstd -f build-release.tar.zst
+
+    - name: Test
+      run: ctest --test-dir build/Release --build-config Release --output-on-failure
