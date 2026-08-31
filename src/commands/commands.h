@@ -12,6 +12,7 @@ class Interval;
 class IntervalModel;
 
 void delete_intervals(IntervalModel& interval_model, const std::set<const Interval*>& selection);
+void delete_plan_entries(Plan& plan, const std::set<const Plan::Entry*>& selection);
 void split_interval(IntervalModel& interval_model, const Interval& interval);
 
 /**

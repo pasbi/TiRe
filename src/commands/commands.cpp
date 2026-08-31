@@ -14,6 +14,19 @@ void delete_intervals(IntervalModel& interval_model, const std::set<const Interv
   }
 }
 
+void delete_plan_entries(Plan& plan, const std::set<const Plan::Entry*>& selection)
+{
+  if (selection.empty()) {
+    // An empty macro still lands on the undo stack as a no-op step and opens a transaction for
+    // nothing, so pressing Delete with no selection must not get that far.
+    return;
+  }
+  const auto macro = Application::undo_stack().start_macro(QObject::tr("Delete selected plan entries"));
+  for (const auto* const entry : selection) {
+    Application::undo_stack().push(make<RemoveCommand>(plan, *entry));
+  }
+}
+
 // Both capture the entry, not its row: changing a period re-sorts the plan, so by the time undo
 // runs, the original row index would point at a different entry.
 std::unique_ptr<Command> make_modify_plan_kind_command(Plan& plan, const Plan::Entry& entry, const Plan::Kind kind)

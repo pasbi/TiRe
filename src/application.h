@@ -23,7 +23,7 @@ public:
 
   [[nodiscard]] static QDateTime current_date_time();
   [[nodiscard]] static UndoStack& undo_stack() noexcept;
-  QApplication& qapp() const noexcept;
+  [[nodiscard]] QApplication& qapp() const noexcept;
 
   /** @brief Where the timesheet database lives; the --database option overrides the default. */
   [[nodiscard]] static const std::filesystem::path& database_path() noexcept;

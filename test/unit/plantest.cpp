@@ -114,6 +114,31 @@ TEST(PlanTest, undo_period_change_that_reorders)
   EXPECT_EQ(moved, &plan.entry(0)) << "and the original order should be back";
 }
 
+TEST(PlanTest, delete_entries_is_undoable)
+{
+  FullTimePlan plan;
+  const auto add = [&plan](const QDate& begin, const QDate& end) {
+    plan.add(std::make_unique<Plan::Entry>(Period{begin, end}, Plan::Kind::Holiday, EntityId{}));
+  };
+  add(QDate{2026, 1, 5}, QDate{2026, 1, 5});
+  add(QDate{2026, 3, 5}, QDate{2026, 3, 5});
+  const auto* const deleted = &plan.entry(0);
+  const auto* const kept = &plan.entry(1);
+
+  const auto undo_count = Application::undo_stack().impl().count();
+  delete_plan_entries(plan, {});
+  EXPECT_EQ(undo_count, Application::undo_stack().impl().count()) << "deleting nothing must not add an undo step";
+
+  delete_plan_entries(plan, {deleted});
+  ASSERT_EQ(1, plan.rowCount({}));
+  EXPECT_EQ(kept, &plan.entry(0)) << "the other entry must survive";
+
+  Application::undo_stack().undo();
+  ASSERT_EQ(2, plan.rowCount({}));
+  EXPECT_EQ(deleted, &plan.entry(0)) << "undo must put the very same entry back, in its old place";
+  EXPECT_EQ(Period(QDate(2026, 1, 5), QDate(2026, 1, 5)), plan.entry(0).period);
+}
+
 TEST(PlanTest, add_sorted)
 {
   std::vector<std::unique_ptr<Plan::Entry>> periods;

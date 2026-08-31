@@ -10,6 +10,7 @@
 #include "exceptions.h"
 #include "views/callbackdelegate.h"
 
+#include <QAction>
 #include <QComboBox>
 #include <QMessageBox>
 #include <QStyledItemDelegate>
@@ -52,6 +53,32 @@ PlanTableView::PlanTableView(QWidget* parent)
 {
   setItemDelegateForColumn(0, m_period_delegate.get());
   setItemDelegateForColumn(1, m_kind_delegate.get());
+
+  // Deletion works on whole entries, so selectedRows() must actually report something.
+  setSelectionBehavior(QAbstractItemView::SelectRows);
+  setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+  setContextMenuPolicy(Qt::ActionsContextMenu);
+  auto* const delete_action = new QAction{tr("Delete"), this};
+  // Widget-scoped on purpose: PeriodDetailView carries its own window-scoped Delete, and two
+  // shortcuts claiming Del in the same window resolve as ambiguous, firing neither.
+  delete_action->setShortcut(QKeySequence{Qt::Key_Delete});
+  delete_action->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+  connect(delete_action, &QAction::triggered, this, &PlanTableView::delete_selected_entries);
+  addAction(delete_action);
+}
+
+void PlanTableView::delete_selected_entries()
+{
+  auto* const plan = dynamic_cast<Plan*>(model());
+  if (plan == nullptr) {
+    return;
+  }
+  std::set<const Plan::Entry*> selection;
+  for (const auto& index : selectionModel()->selectedRows()) {
+    selection.insert(&plan->entry(index.row()));
+  }
+  delete_plan_entries(*plan, selection);
 }
 
 void PlanTableView::open_period_edit(const QModelIndex& index)

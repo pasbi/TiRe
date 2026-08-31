@@ -259,6 +259,9 @@ void PeriodDetailView::init_context_menu_actions()
     auto& action = *m_context_menu_actions.emplace_back(std::make_unique<QAction>(label));
     addAction(&action);
     action.setShortcut(shortcut);
+    // Scoped to this view: the plan table claims Del too, and two window-scoped shortcuts on the
+    // same key resolve as ambiguous, firing neither.
+    action.setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(&action, &QAction::triggered, this, slot);
   };
   add_action(tr("Delete"), QKeySequence(Qt::Key_Delete),
