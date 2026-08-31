@@ -14,18 +14,8 @@ struct PeriodConstrainTestParameter
   }
 };
 
-using std::chrono_literals::operator""y;
-using std::chrono::August;
-using std::chrono::December;
-using std::chrono::January;
-using std::chrono::June;
-using std::chrono::last;
-using std::chrono::October;
-using std::chrono::September;
-
-const QDate start_date = 2024y / October / 16;
-const QDate today = 2024y / September / 23;
-;
+const QDate start_date{2024, 10, 16};
+const QDate today{2024, 9, 23};
 
 using PeriodConstrainTestFixture = ::testing::TestWithParam<PeriodConstrainTestParameter>;
 
@@ -48,26 +38,26 @@ INSTANTIATE_TEST_CASE_P(PeriodConstrainTests, PeriodConstrainTestFixture,
                         ::testing::Values(
                             PeriodConstrainTestParameter{
                                 // candidate starts before `today` and ends after `start_date`
-                                .candidate = Period{2024y / August / 17, Period::Type::Year},
+                                .candidate = Period{QDate{2024, 8, 17}, Period::Type::Year},
                                 .constrained_period = Period{start_date, Period::Type::Year},
                             },
                             PeriodConstrainTestParameter{
                                 // candidate ends before `start_date`
-                                .candidate = Period{2023y / August / 17, Period::Type::Year},
+                                .candidate = Period{QDate{2023, 8, 17}, Period::Type::Year},
                                 .constrained_period = Period{start_date, Period::Type::Year},
                             },
                             PeriodConstrainTestParameter{
                                 // candidate starts after `today`
-                                .candidate = Period{2025y / August / 17, Period::Type::Year},
+                                .candidate = Period{QDate{2025, 8, 17}, Period::Type::Year},
                                 .constrained_period = Period{start_date, Period::Type::Year},
                             },
                             PeriodConstrainTestParameter{
                                 // candidate ends before `start_date`
-                                .candidate = Period{2024y / June / 17, Period::Type::Month},
+                                .candidate = Period{QDate{2024, 6, 17}, Period::Type::Month},
                                 .constrained_period = Period{start_date, Period::Type::Month},
                             },
                             PeriodConstrainTestParameter{
                                 // candidate starts after `today`
-                                .candidate = Period{2024y / October / 17, Period::Type::Month},
+                                .candidate = Period{QDate{2024, 10, 17}, Period::Type::Month},
                                 .constrained_period = Period{today, Period::Type::Month},
                             }));

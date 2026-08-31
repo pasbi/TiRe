@@ -1,12 +1,10 @@
 #include "colorutil.h"
 #include "fmt.h"
 
-#include <QApplication>
 #include <QDate>
-#include <chrono>
 #include <gtest/gtest.h>
+#include <ranges>
 #include <spdlog/spdlog.h>
-#include <unordered_set>
 
 [[nodiscard]] bool operator<(const QColor& a, const QColor& b) noexcept
 {
@@ -26,9 +24,8 @@ TEST(ColorTest, background)
   std::set<QColor> colors_weekend;
   std::set<QColor> colors_week;
 
-  using std::chrono_literals::operator""y;
-  const QDate base = 2024y / std::chrono::January / 1;
-  for (int offset = 0; offset < 365; ++offset) {
+  const auto base = QDate{2024, 1, 1};
+  for (const auto offset : std::views::iota(0, 365)) {
     const auto date = base.addDays(offset);
     const auto color = ::background(date);
     if (date.dayOfWeek() == Qt::Sunday || date.dayOfWeek() == Qt::Saturday) {
