@@ -42,6 +42,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - if: ${{ matrix.os == 'ubuntu-latest' }}
       run: sudo apt-get update; sudo apt-get install ninja-build
@@ -108,8 +110,8 @@ jobs:
 
     - name: Build
       run: |
-        cmake -G "${{ matrix.generator }}" -S . -B build -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        cmake -G "${{ matrix.generator }}" -S . -B build -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
         cmake --build build --config ${{ matrix.build_type }} --parallel
 
     - name: Test
-      run: ctest --build-config ${{ matrix.build_type }} --test-dir build
+      run: ctest --build-config ${{ matrix.build_type }} --test-dir build --output-on-failure

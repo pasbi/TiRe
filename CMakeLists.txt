@@ -11,9 +11,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+include(CTest)
+
 add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(googletest)
     include(CTest)
+    add_subdirectory(benchmarks)
     add_subdirectory(test/unit)
 endif ()
