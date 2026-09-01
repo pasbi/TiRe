@@ -9,8 +9,12 @@
 #include <QSqlQuery>
 #include <QTemporaryDir>
 #include <QVariant>
+#include <QtGlobal>
 #include <gtest/gtest.h>
-#include <unistd.h>
+#if defined(Q_OS_UNIX)
+// for ::geteuid()
+#  include <unistd.h>
+#endif
 
 namespace
 {
@@ -194,6 +198,12 @@ TEST_F(DatabaseTest, OpeningACorruptFileFails)
 
 TEST_F(DatabaseTest, OpeningInAnUnwritableDirectoryFails)
 {
+#if defined(Q_OS_WIN)
+  // Not merely a missing ::geteuid(): on Windows QFile::setPermissions maps to the read-only
+  // attribute, which does not stop file creation inside a directory, so the setup below cannot
+  // produce an unwritable directory at all. Testing this would take a real ACL denying write.
+  GTEST_SKIP() << "directory write permissions are not expressible via QFile::setPermissions";
+#else
   if (::geteuid() == 0) {
     GTEST_SKIP() << "running as root, which ignores directory permissions";
   }
@@ -212,6 +222,7 @@ TEST_F(DatabaseTest, OpeningInAnUnwritableDirectoryFails)
       DatabaseError);
 
   QFile::setPermissions(sub_directory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+#endif
 }
 
 TEST_F(DatabaseTest, MigrationSurvivesReopen)
