@@ -14,7 +14,7 @@ TimeEdit::~TimeEdit() = default;
 
 QTime TimeEdit::time() const
 {
-  return QTime(m_ui->sp_h->value(), m_ui->sp_min->value());
+  return {m_ui->sp_h->value(), m_ui->sp_min->value()};
 }
 
 void TimeEdit::set_time(const QTime& time) noexcept
@@ -50,4 +50,14 @@ void TimeEdit::handle_change()
   m_ui->sp_min->set_block_wrap_down(h == m_min.hour());
   m_ui->sp_min->set_block_wrap_up(h == m_max.hour());
   m_ui->sp_min->setRange(min_m, max_m);
+}
+
+QWidget* TimeEdit::first_focus_widget() const
+{
+  return m_ui->sp_h;
+}
+
+QWidget* TimeEdit::last_focus_widget() const
+{
+  return m_ui->sp_min;
 }

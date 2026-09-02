@@ -1,9 +1,10 @@
 #include "intervalmodel.h"
 #include "colorutil.h"
+#include "db/abstracttimesheetrepository.h"
+#include "exceptions.h"
 #include "period.h"
 #include <QColor>
 #include <complex>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace
@@ -36,7 +37,16 @@ template<typename Intervals> [[nodiscard]] auto find(Intervals&& intervals, cons
 
 }  // namespace
 
-IntervalModel::IntervalModel(std::deque<std::unique_ptr<Interval>> intervals) : m_intervals(std::move(intervals))
+IntervalModel::IntervalModel() : IntervalModel(null_repository())
+{
+}
+
+IntervalModel::IntervalModel(AbstractTimeSheetRepository& repository) : m_repository(repository)
+{
+}
+
+IntervalModel::IntervalModel(AbstractTimeSheetRepository& repository, std::deque<std::unique_ptr<Interval>> intervals)
+  : m_repository(repository), m_intervals(std::move(intervals))
 {
 }
 
@@ -131,33 +141,34 @@ void IntervalModel::add(std::unique_ptr<Interval> interval)
 {
   const auto row = static_cast<int>(m_intervals.size());
   beginInsertRows({}, row, row);
-  m_intervals.emplace_back(std::move(interval));
+  auto& ref = *m_intervals.emplace_back(std::move(interval));
   endInsertRows();
+  // An interval that already carries an id is one an undone removal is putting back; insert()
+  // reuses it so the row returns to where it was.
+  m_repository.insert(ref);
   Q_EMIT data_changed();
-}
-
-void IntervalModel::split_interval(const Interval& interval, const QDateTime& split_point)
-{
-  const auto location = ::find(m_intervals, interval);
-  auto& left_interval = **location.iterator;
-  beginInsertRows({}, location.row, location.row);
-  const auto& right_interval =
-      *m_intervals.emplace(std::next(location.iterator), std::make_unique<Interval>(interval.project()));
-  endInsertRows();
-  right_interval->swap_end(left_interval.end());
-  left_interval.swap_end(split_point);
-  right_interval->swap_begin(split_point);
 }
 
 std::unique_ptr<Interval> IntervalModel::extract(const Interval& interval)
 {
   const auto location = ::find(m_intervals, interval);
+  if (location.iterator == m_intervals.end()) {
+    throw RuntimeError("Cannot extract an interval that this model does not own.");
+  }
+  // Delete the row before touching the container, so a failure leaves the model untouched rather
+  // than destroying the interval during unwinding and dangling the calling command's reference.
+  m_repository.remove(interval);
   beginRemoveRows({}, location.row, location.row);
   auto extracted_interval = std::move(*location.iterator);
   m_intervals.erase(location.iterator);
   endRemoveRows();
   Q_EMIT data_changed();
   return extracted_interval;
+}
+
+void IntervalModel::persist(const Interval& interval)
+{
+  m_repository.update(interval);
 }
 
 void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> intervals)
@@ -170,7 +181,7 @@ void IntervalModel::set_intervals(std::deque<std::unique_ptr<Interval>> interval
 std::vector<Interval*> IntervalModel::intervals() const
 {
   auto view = m_intervals | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 std::vector<Interval*> IntervalModel::intervals(const Period& period) const
@@ -180,7 +191,7 @@ std::vector<Interval*> IntervalModel::intervals(const Period& period) const
       m_intervals
       | std::views::filter([&period](const auto& interval) { return period.contains(interval->begin().date()); })
       | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 const Interval* IntervalModel::interval(const std::size_t index) const
@@ -192,7 +203,7 @@ std::vector<Interval*> IntervalModel::open_intervals() const
 {
   auto view = m_intervals | std::views::filter([](const auto& interval) { return !interval->end().isValid(); })
               | std::views::transform(&std::unique_ptr<Interval>::get);
-  return std::vector(view.begin(), view.end());
+  return {view.begin(), view.end()};
 }
 
 std::chrono::minutes IntervalModel::minutes(const std::optional<Period>& period,

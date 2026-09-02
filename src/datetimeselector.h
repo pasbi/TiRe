@@ -44,6 +44,6 @@ private:
   [[nodiscard]] std::chrono::minutes advance() const;
   void set_left_fence(const QDateTime& left_fence);
   [[nodiscard]] static std::chrono::minutes px_to_min(int px);
-  QDateTime constrain(QDateTime date_time, const std::chrono::minutes& overshoot = {}) const;
+  [[nodiscard]] QDateTime constrain(QDateTime date_time, const std::chrono::minutes& overshoot = {}) const;
   int m_accumulated_wheel_y = 0;
 };

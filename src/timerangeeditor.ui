@@ -14,13 +14,6 @@
    <string>Edit Time Range</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="4">
-    <widget class="QPushButton" name="pb_end_to_now">
-     <property name="text">
-      <string>Now</string>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="1">
     <widget class="QSpinBox" name="sp_end_offset">
      <property name="specialValueText">
@@ -31,13 +24,6 @@
      </property>
      <property name="prefix">
       <string>+</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="3">
-    <widget class="QPushButton" name="pb_end_to_begin">
-     <property name="text">
-      <string>to Begin</string>
      </property>
     </widget>
    </item>
@@ -58,7 +44,7 @@
    <item row="1" column="2">
     <widget class="TimeEdit" name="te_end" native="true"/>
    </item>
-   <item row="2" column="4">
+   <item row="2" column="0" colspan="3">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
@@ -81,24 +67,10 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
-    <widget class="QPushButton" name="pb_begin_to_last_end">
-     <property name="text">
-      <string>to last End</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="2">
     <widget class="TimeEdit" name="te_begin" native="true"/>
    </item>
-   <item row="0" column="4">
-    <widget class="QPushButton" name="pb_begin_to_now">
-     <property name="text">
-      <string>Now</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="3" colspan="2">
+   <item row="3" column="0" colspan="3">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
@@ -115,6 +87,11 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>de_begin</tabstop>
+  <tabstop>cb_has_end</tabstop>
+  <tabstop>sp_end_offset</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

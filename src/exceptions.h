@@ -12,13 +12,12 @@ public:
   }
 };
 
-class DeserializationError final : public RuntimeError
-{
-public:
-  using RuntimeError::RuntimeError;
-};
-
-class InvalidEnumNameException final : public RuntimeError
+/**
+ * @brief Thrown when the database cannot be opened, migrated, read or written.
+ * Derives from RuntimeError so call sites that already report a RuntimeError to the user
+ * (e.g. PlanTableView::open_period_edit) handle persistence failures without change.
+ */
+class DatabaseError final : public RuntimeError
 {
 public:
   using RuntimeError::RuntimeError;

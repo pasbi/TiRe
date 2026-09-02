@@ -19,7 +19,7 @@ void SharesWidget::update(const TimeSheet& time_sheet, const Period& period)
   double total = 0.0;
   for (const auto& project : time_sheet.project_model().projects()) {
     using std::chrono_literals::operator""min;
-    const auto d = interval_model.minutes(period, project->name()) / 1.min;
+    const auto d = static_cast<double>(interval_model.minutes(period, project->name()) / 1.min);
     m_shares.emplace_back(project, d);
     total += d;
   }

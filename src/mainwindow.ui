@@ -35,16 +35,8 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="layoutWidget">
-       <layout class="QHBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="PlanView" name="plan_view" native="true"/>
-        </item>
-        <item>
-         <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
-        </item>
-       </layout>
-      </widget>
+      <widget class="PlanView" name="plan_view" native="true"/>
+      <widget class="PeriodDetailView" name="period_detail_view" native="true"/>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
         <number>0</number>
@@ -134,11 +126,7 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="action_New_time_sheet"/>
-    <addaction name="action_Load"/>
-    <addaction name="separator"/>
-    <addaction name="action_Save_As"/>
-    <addaction name="action_Save"/>
+    <addaction name="actionPlan_Settings"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -187,30 +175,6 @@
    <addaction name="menuNavigation"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action_Load">
-   <property name="text">
-    <string>&amp;Load ...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="action_Save_As">
-   <property name="text">
-    <string>&amp;Save As ...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+S</string>
-   </property>
-  </action>
-  <action name="action_Save">
-   <property name="text">
-    <string>&amp;Save</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
-   </property>
-  </action>
   <action name="actionQuit">
    <property name="text">
     <string>&amp;Quit</string>
@@ -295,9 +259,9 @@
     <string>Ctrl+Space</string>
    </property>
   </action>
-  <action name="action_New_time_sheet">
+  <action name="actionPlan_Settings">
    <property name="text">
-    <string>&amp;New time sheet</string>
+    <string>&amp;Plan Settings ...</string>
    </property>
   </action>
   <action name="action_Switch_Task">

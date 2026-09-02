@@ -2,7 +2,6 @@
 
 #include <QDate>
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 class Interval;
 
@@ -57,10 +56,5 @@ template<> struct fmt::formatter<Period> : fmt::formatter<std::string>
 template<> struct fmt::formatter<Period::Type> : fmt::formatter<std::string>
 {
   using format_return_type = decltype(std::declval<format_context>().out());
-  [[nodiscard]] format_return_type format(const Period::Type& t, fmt::format_context& ctx) const;
+  [[nodiscard]] static format_return_type format(const Period::Type& t, fmt::format_context& ctx);
 };
-
-void to_json(nlohmann::json& j, const Period& value);
-void from_json(const nlohmann::json& j, Period& value);
-void to_json(nlohmann::json& j, const Period::Type& value);
-void from_json(const nlohmann::json& j, Period::Type& value);

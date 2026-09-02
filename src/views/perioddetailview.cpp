@@ -30,8 +30,15 @@ void init_style_selected(QStyleOptionViewItem* option, const QModelIndex& index)
   if (option->state & QStyle::State_Selected) {
     option->font.setBold(true);
     option->font.setUnderline(true);
-    option->palette.setBrush(QPalette::Highlight, index.data(Qt::BackgroundRole).value<QBrush>());
-    option->palette.setBrush(QPalette::HighlightedText, index.data(Qt::ForegroundRole).value<QBrush>());
+    // An interval without a project supplies neither role, and QVariant{}.value<QBrush>() is an
+    // opaque black one -- which would paint black text on a black selection. Keep the palette's
+    // own highlight colors in that case. The two are taken together because the foreground is
+    // chosen to contrast with the background; mixing one with the palette's other loses that.
+    const auto background = index.data(Qt::BackgroundRole);
+    if (const auto foreground = index.data(Qt::ForegroundRole); background.isValid() && foreground.isValid()) {
+      option->palette.setBrush(QPalette::Highlight, background.value<QBrush>());
+      option->palette.setBrush(QPalette::HighlightedText, foreground.value<QBrush>());
+    }
   }
 }
 
@@ -90,7 +97,7 @@ public:
     for (const auto& project : m_time_sheet->project_model().projects()) {
       editor->addItem(project->name());
     }
-    editor->addItem(tr("No Project"));
+    editor->addItem(no_project_label());
     return editor.release();
   }
 
@@ -106,19 +113,26 @@ public:
   void setModelData(QWidget* const editor, QAbstractItemModel* const model, const QModelIndex& index) const override
   {
     const auto& combo_box = dynamic_cast<QComboBox&>(*editor);
+    const auto current_text = combo_box.currentText();
+    const auto* const known = m_time_sheet->project_model().find(current_text);
+
     const Project* project = nullptr;
-    if (combo_box.currentIndex() >= m_time_sheet->project_model().projects().size()) {
+    if (known != nullptr) {
+      project = known;
+    } else if (current_text.isEmpty() || current_text == no_project_label()) {
       project = nullptr;
-    } else if (const auto current_text = combo_box.currentText();
-               current_text == combo_box.itemText(combo_box.currentIndex()))
-    {
-      project = &m_time_sheet->project_model().project(combo_box.currentIndex());
     } else if (QMessageBox::question(editor, QApplication::applicationDisplayName(),
                                      tr("There is no project '%1'. Do you want to create it?").arg(current_text),
                                      QMessageBox::Yes | QMessageBox::No)
                == QMessageBox::Yes)
     {
+      // Creating the project and assigning it are one user action, so they share a macro: one
+      // undo step, and one transaction.
+      const auto macro = Application::undo_stack().start_macro(tr("Assign new project"));
       project = &create_project(current_text);
+      Application::undo_stack().push(make_modify_interval_command(m_time_sheet->interval_model(), interval(index),
+                                                                  project, &Interval::swap_project));
+      return;
     } else {
       return;
     }
@@ -141,6 +155,12 @@ protected:
 private:
   const TimeSheet* m_time_sheet = nullptr;
   PeriodDetailProxyModel& m_proxy_model;
+
+  /** @brief The sentinel entry standing for "this interval belongs to no project". */
+  [[nodiscard]] static QString no_project_label()
+  {
+    return tr("No Project");
+  }
 
   [[nodiscard]] const Interval& interval(const QModelIndex& index) const
   {
@@ -239,6 +259,9 @@ void PeriodDetailView::init_context_menu_actions()
     auto& action = *m_context_menu_actions.emplace_back(std::make_unique<QAction>(label));
     addAction(&action);
     action.setShortcut(shortcut);
+    // Scoped to this view: the plan table claims Del too, and two window-scoped shortcuts on the
+    // same key resolve as ambiguous, firing neither.
+    action.setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(&action, &QAction::triggered, this, slot);
   };
   add_action(tr("Delete"), QKeySequence(Qt::Key_Delete),
@@ -259,11 +282,23 @@ void PeriodDetailView::show_table_context_menu(const QPoint& pos)
   menu.exec(pos);
 }
 
-void PeriodDetailView::edit_date_time(const QModelIndex& index) const
+void PeriodDetailView::edit_date_time(const QModelIndex& index)
 {
-  TimeRangeEditor e{time_sheet()->interval_model()};
+  TimeRangeEditor e{this};
   const auto& interval = *time_sheet()->interval_model().interval(index.row());
-  e.set_range(interval.begin(), interval.end());
+  // Clicking the end column of a still-running interval means the user wants to end it: hand the
+  // dialog an end of "now" so the field is filled in and editable, rather than a disabled one
+  // they must first hunt down the checkbox to unlock.
+  const auto ends_a_running_interval = !interval.end().isValid() && index.column() == IntervalModel::end_column;
+  const auto end = ends_a_running_interval ? Application::current_date_time() : interval.end();
+  e.set_range(interval.begin(), end);
+  // Start on the field the user clicked. Must follow set_range, which decides whether the end is
+  // enabled at all.
+  if (index.column() == IntervalModel::end_column) {
+    e.focus_end_time();
+  } else if (index.column() == IntervalModel::begin_column) {
+    e.focus_begin_time();
+  }
   if (e.exec() != QDialog::Accepted) {
     return;
   }

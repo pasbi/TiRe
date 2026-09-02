@@ -1,41 +1,26 @@
 #include "timerangeeditor.h"
 
 #include "application.h"
-#include "datetimeselector.h"
-#include "intervalmodel.h"
 #include "ui_timerangeeditor.h"
 
 #include <QMessageBox>
 
-TimeRangeEditor::TimeRangeEditor(const IntervalModel& interval_model, QWidget* const parent)
-  : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor>())
+TimeRangeEditor::TimeRangeEditor(QWidget* const parent) : QDialog(parent), m_ui(std::make_unique<Ui::TimeRangeEditor>())
 {
   m_ui->setupUi(this);
+
+  // The .ui file's <tabstops> chain de_begin -> cb_has_end -> sp_end_offset. The two TimeEdits
+  // cannot be named there: they are compound widgets whose focusable children live in
+  // timeedit.ui, so they would otherwise be stranded at the end of the chain, after the buttons
+  // and in reverse order. Weave them in here so focus follows the visual grid.
+  setTabOrder(m_ui->de_begin, m_ui->te_begin->first_focus_widget());
+  setTabOrder(m_ui->te_begin->first_focus_widget(), m_ui->te_begin->last_focus_widget());
+  setTabOrder(m_ui->te_begin->last_focus_widget(), m_ui->cb_has_end);
+  setTabOrder(m_ui->sp_end_offset, m_ui->te_end->first_focus_widget());
+  setTabOrder(m_ui->te_end->first_focus_widget(), m_ui->te_end->last_focus_widget());
+  setTabOrder(m_ui->te_end->last_focus_widget(), m_ui->buttonBox);
+
   connect(m_ui->cb_has_end, &QCheckBox::toggled, this, &TimeRangeEditor::update_enabledness);
-  connect(m_ui->pb_begin_to_last_end, &QPushButton::clicked, this, [&interval_model, this]() {
-    auto ends_view =
-        interval_model.intervals() | std::views::transform(&Interval::end) | std::views::filter(&QDateTime::isValid);
-    if (const std::vector ends(ends_view.begin(), ends_view.end()); ends.empty()) {
-      QMessageBox::critical(this, "Error", "No end intervals were found");
-    } else {
-      const auto end = std::ranges::max_element(ends);
-      m_ui->de_begin->setDate(end->date());
-      m_ui->te_begin->set_time(end->time());
-    }
-  });
-  connect(m_ui->pb_begin_to_now, &QPushButton::clicked, this, [this]() {
-    m_ui->te_begin->set_time(Application::current_date_time().time());
-    m_ui->de_begin->setDate(Application::current_date_time().date());
-  });
-  connect(m_ui->pb_end_to_begin, &QPushButton::clicked, this, [this]() {
-    m_ui->te_end->set_time(m_ui->te_begin->time());
-    m_ui->sp_end_offset->setValue(0);
-  });
-  connect(m_ui->pb_end_to_now, &QPushButton::clicked, this, [this]() {
-    const auto offset = m_ui->de_begin->date().daysTo(Application::current_date_time().date());
-    m_ui->sp_end_offset->setValue(offset);
-    m_ui->te_end->set_time(Application::current_date_time().time());
-  });
   update_enabledness();
 }
 
@@ -47,7 +32,7 @@ void TimeRangeEditor::set_range(const QDateTime& begin, const QDateTime& end)
   m_ui->te_begin->set_time(begin.time());
   m_ui->de_begin->setDate(begin.date());
   m_ui->te_end->set_time(proposed_end.time());
-  m_ui->sp_end_offset->setValue(begin.date().daysTo(proposed_end.date()));
+  m_ui->sp_end_offset->setValue(static_cast<int>(begin.date().daysTo(proposed_end.date())));
   m_ui->cb_has_end->setChecked(end.isValid());
   update();
 }
@@ -64,17 +49,21 @@ QDateTime TimeRangeEditor::end() const noexcept
              : QDateTime{};
 }
 
-void TimeRangeEditor::set_end(const QDateTime& end)
+void TimeRangeEditor::focus_begin_time()
 {
-  set_range(begin(), end);
+  m_ui->te_begin->first_focus_widget()->setFocus();
+}
+
+void TimeRangeEditor::focus_end_time()
+{
+  // Only has an effect while the end is enabled, i.e. the interval is not marked as running.
+  m_ui->te_end->first_focus_widget()->setFocus();
 }
 
 void TimeRangeEditor::update_enabledness() const
 {
-  for (auto* const w :
-       std::vector<QWidget*>{m_ui->pb_end_to_begin, m_ui->pb_end_to_now, m_ui->te_end, m_ui->sp_end_offset})
-  {
-    w->setEnabled(m_ui->cb_has_end->isChecked());
+  for (auto* const widget : std::vector<QWidget*>{m_ui->te_end, m_ui->sp_end_offset}) {
+    widget->setEnabled(m_ui->cb_has_end->isChecked());
   }
 }
 

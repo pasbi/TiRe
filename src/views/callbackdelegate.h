@@ -15,7 +15,7 @@ class CallbackDelegate : public QStyledItemDelegate
 {
 public:
   explicit CallbackDelegate(std::function<void(const QModelIndex&)> edit_callback, QObject* parent = nullptr);
-  QWidget* createEditor(QWidget* const parent, const QStyleOptionViewItem&, const QModelIndex& index) const override;
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex& index) const override;
 
 private:
   std::function<void(const QModelIndex&)> m_edit_callback;

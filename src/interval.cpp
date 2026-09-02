@@ -1,10 +1,7 @@
 #include "interval.h"
 #include "application.h"
 #include "exceptions.h"
-#include "json.h"
 #include "period.h"
-
-#include <nlohmann/json.hpp>
 
 Interval::Interval(const Project* project) : m_project(project)
 {
@@ -72,6 +69,16 @@ std::chrono::minutes Interval::duration() const
 Period Interval::period() const
 {
   return Period{m_begin.date(), m_end.date()};
+}
+
+EntityId Interval::id() const noexcept
+{
+  return m_id;
+}
+
+void Interval::set_id(const EntityId id) noexcept
+{
+  m_id = id;
 }
 
 std::weak_ordering operator<=>(const Interval& a, const Interval& b) noexcept

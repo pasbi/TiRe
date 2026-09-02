@@ -1,24 +1,17 @@
 #include "plan.h"
 
-#include "enum.h"
+#include "db/abstracttimesheetrepository.h"
+#include "exceptions.h"
 #include "intervalmodel.h"
-#include "json.h"
 #include "period.h"
 #include "periodedit.h"
 
 #include <QDate>
 #include <fmt/ranges.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace
 {
-constexpr auto start_key = "start";
-constexpr auto overtime_offset_key = "overtime_offset";
-constexpr auto periods_key = "periods";
-constexpr auto period_key = "period";
-constexpr auto kind_key = "kind";
-
 struct SickLeaveFactors
 {
   using enum Plan::Kind;
@@ -40,11 +33,9 @@ struct VacationLeaveFactors
   {
     switch (kind) {
     case Holiday:
-      return 1.0;
     case Vacation:
       return 1.0;
     case HalfVacation:
-      return 0.5;
     case HalfVacationHalfHoliday:
       return 0.5;
     default:
@@ -62,7 +53,6 @@ struct HolidayLeaveFactors
     case Holiday:
       return 1.0;
     case HalfHoliday:
-      return 0.5;
     case HalfVacationHalfHoliday:
       return 0.5;
     default:
@@ -73,49 +63,24 @@ struct HolidayLeaveFactors
 
 }  // namespace
 
-template<> struct nlohmann::adl_serializer<std::unique_ptr<Plan::Entry>>
+Plan::Plan() : Plan(null_repository())
 {
-  static void to_json(json& json_value, const std::unique_ptr<Plan::Entry>& ptr)
-  {
-    if (ptr == nullptr) {
-      json_value = nullptr;
-    } else {
-      json_value = *ptr;
-    }
-  }
+}
 
-  static void from_json(const json& json_value, std::unique_ptr<Plan::Entry>& ptr)
-  {
-    if (json_value.is_null()) {
-      ptr = {};
-    } else {
-      ptr = std::make_unique<Plan::Entry>(static_cast<Plan::Entry>(json_value));
-    }
-  }
-};
-
-Plan::Plan(const nlohmann::json& data) : m_start(data.at(start_key)), m_overtime_offset(data.at(overtime_offset_key))
+Plan::Plan(AbstractTimeSheetRepository& repository) : m_repository(repository)
 {
-  if (data.contains(periods_key)) {
-    m_periods = data.at(periods_key);
-  }
+}
+
+Plan::Plan(AbstractTimeSheetRepository& repository, const QDate& start, const std::chrono::minutes overtime_offset,
+           std::vector<std::unique_ptr<Entry>> entries)
+  : m_repository(repository), m_start(start), m_overtime_offset(overtime_offset), m_periods(std::move(entries))
+{
+  // Deliberately not going through add(): these entries are already stored, and add() would
+  // write every one of them straight back.
   sort();
   if (!is_sorted()) {
-    throw RuntimeError("Failed to sort periods in plan: overlapping periods cannot be sorted.");
+    throw DatabaseError("The stored plan contains overlapping periods and cannot be sorted.");
   }
-}
-
-Plan::Plan()
-{
-}
-
-nlohmann::json Plan::to_json() const noexcept
-{
-  return {
-      {start_key, m_start},
-      {overtime_offset_key, m_overtime_offset},
-      {periods_key, m_periods},
-  };
 }
 
 std::chrono::minutes Plan::planned_working_time(const QDate& date, const Kind kind,
@@ -211,7 +176,10 @@ Period Plan::default_period() const noexcept
 {
   const auto date = Application::current_date_time().date();
   const Period candidate{date, Period::Type::Day};
-  if (find_period_insert_pos(m_periods, candidate) == m_periods.end()) {
+  // has_value(), not "== end()": find_period_insert_pos returns an optional, and comparing it to
+  // end() asked for "insertable *and* last", so today was skipped whenever any later entry
+  // existed.
+  if (find_period_insert_pos(m_periods, candidate).has_value()) {
     return candidate;
   }
   return Period{m_periods.back()->period.end().addDays(1), Period::Type::Day};
@@ -236,12 +204,12 @@ QVariant Plan::data(const QModelIndex& index, const int role) const
     return {};
   }
 
-  const auto& [period, kind] = *m_periods.at(index.row());
+  const auto& entry = *m_periods.at(index.row());
   switch (index.column()) {
   case period_column:
-    return period.label();
+    return entry.period.label();
   case kind_column:
-    return QString::fromStdString(fmt::format("{}", kind));
+    return QString::fromStdString(fmt::format("{}", entry.kind));
   default:
     Q_UNREACHABLE();
   }
@@ -268,15 +236,15 @@ Qt::ItemFlags Plan::flags(const QModelIndex& index) const
 }
 
 std::optional<std::vector<std::unique_ptr<Plan::Entry>>::const_iterator>
-find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& period) noexcept
+find_period_insert_pos(const std::vector<std::unique_ptr<Plan::Entry>>& periods, const Period& candidate) noexcept
 {
   static constexpr auto projection = [](const auto& e) { return e->period.begin(); };
-  const auto insert_pos = std::ranges::upper_bound(periods, period.begin(), std::less<>{}, projection);
-  if (insert_pos != periods.end() && period.end() >= (*insert_pos)->period.begin()) {
+  const auto insert_pos = std::ranges::upper_bound(periods, candidate.begin(), std::less<>{}, projection);
+  if (insert_pos != periods.end() && candidate.end() >= (*insert_pos)->period.begin()) {
     // there is a subsequent period and its beginning is before the candidate's end.
     return {};
   }
-  if (insert_pos != periods.begin() && (*(insert_pos - 1))->period.end() >= period.begin()) {
+  if (insert_pos != periods.begin() && (*(insert_pos - 1))->period.end() >= candidate.begin()) {
     // there is a previous period and its end is after the candidate's begin.
     return {};
   }
@@ -288,15 +256,19 @@ bool Plan::add(std::unique_ptr<Entry> entry)
 {
   const auto insert_pos = find_period_insert_pos(m_periods, entry->period);
   if (!insert_pos.has_value()) {
-    spdlog::warn("Failed to find insert position for {} in {} because it overlaps with the existing periods.",
-                 entry->period, m_periods | std::views::transform([](const auto& e) { return e->period; }));
+    // Caution: returning false here destroys `entry`. An AddCommand that hit this would be left
+    // holding a dangling reference, so callers must ensure the period is free first -- see
+    // can_set_period() and default_period(). Kept loud rather than silent for that reason.
+    spdlog::error("Refusing to add {} because it overlaps the existing periods {}. The entry is dropped.",
+                  entry->period, m_periods | std::views::transform([](const auto& e) { return e->period; }));
     return false;
   }
 
-  const auto row = std::distance(m_periods.cbegin(), *insert_pos);
+  const auto row = static_cast<int>(std::distance(m_periods.cbegin(), *insert_pos));
   beginInsertRows({}, row, row);
-  m_periods.insert(*insert_pos, std::move(entry));
+  auto& ref = **m_periods.insert(*insert_pos, std::move(entry));
   endInsertRows();
+  m_repository.insert(ref);
   Q_EMIT plan_changed();
   assert(is_sorted());
   return true;
@@ -308,7 +280,10 @@ std::unique_ptr<Plan::Entry> Plan::extract(const Entry& entry)
           std::ranges::find_if(m_periods, [&entry](const auto& candidate) { return candidate.get() == &entry; });
       it != m_periods.end())
   {
-    const auto row = std::distance(m_periods.begin(), it);
+    // Delete the row before touching the container, so a failure leaves the plan untouched rather
+    // than destroying the entry during unwinding and dangling the calling command's reference.
+    m_repository.remove(entry);
+    const auto row = static_cast<int>(std::distance(m_periods.begin(), it));
     beginRemoveRows({}, row, row);
     auto ret = std::move(*it);
     m_periods.erase(it);
@@ -357,24 +332,81 @@ std::chrono::minutes Plan::planned_normal_working_time(const Period& period) con
   return result;
 }
 
-void Plan::set_data(const int row, Kind kind)
+QDate Plan::swap_start(QDate start)
 {
   using std::swap;
-  swap(m_periods.at(row)->kind, kind);
-  data_changed(row, kind_column);
+  swap(m_start, start);
+  m_repository.update_plan_setting(*this);
+  Q_EMIT plan_changed();
+  return start;
 }
 
-void Plan::set_data(const int row, Period period)
+std::chrono::minutes Plan::swap_overtime_offset(std::chrono::minutes overtime_offset)
 {
-  Period& old_period = m_periods.at(row)->period;
-  swap(old_period, period);
+  using std::swap;
+  swap(m_overtime_offset, overtime_offset);
+  m_repository.update_plan_setting(*this);
+  Q_EMIT plan_changed();
+  return overtime_offset;
+}
+
+Plan::Entry& Plan::find_entry(const Entry& entry)
+{
+  const auto it = std::ranges::find(m_periods, &entry, [](const auto& candidate) { return candidate.get(); });
+  if (it == m_periods.end()) {
+    throw RuntimeError("The entry does not belong to this plan.");
+  }
+  return **it;
+}
+
+int Plan::row_of(const Entry& entry) const
+{
+  const auto it = std::ranges::find(m_periods, &entry, [](const auto& candidate) { return candidate.get(); });
+  return static_cast<int>(std::distance(m_periods.begin(), it));
+}
+
+Plan::Kind Plan::swap_kind(const Entry& entry_ref, Kind kind)
+{
+  using std::swap;
+  auto& entry = find_entry(entry_ref);
+  swap(entry.kind, kind);
+  m_repository.update(entry);
+  data_changed(row_of(entry), kind_column);
+  return kind;
+}
+
+Period Plan::swap_period(const Entry& entry_ref, Period period)
+{
+  auto& entry = find_entry(entry_ref);
+  swap(entry.period, period);
+  // A new period generally belongs at a different row, so this is a reordering, not a cell edit.
+  // Announcing it as a reset keeps the view and any persistent indices honest -- emitting only
+  // dataChanged for one cell would leave every other row displaying the wrong entry.
+  beginResetModel();
   sort();
-  if (!is_sorted()) {
-    swap(old_period, period);
+  const auto sorted = is_sorted();
+  if (!sorted) {
+    // Put it back before anyone observes the broken ordering, and persist nothing.
+    swap(entry.period, period);
     sort();
+  }
+  endResetModel();
+  if (!sorted) {
     throw RuntimeError("Failed to change period because it would overlap.");
   }
-  data_changed(row, period_column);
+  m_repository.update(entry);
+  Q_EMIT plan_changed();
+  return period;
+}
+
+bool Plan::can_set_period(const Entry& entry, const Period& period) const
+{
+  // The entry being moved is excluded, because it may of course overlap its own current period.
+  // Period::overlap treats touching periods (one's end equal to the next one's begin) as
+  // overlapping, which is the same rule is_sorted() enforces, so this agrees with swap_period().
+  const auto is_other = [&entry](const auto& candidate) { return candidate.get() != &entry; };
+  const auto overlaps = [&period](const auto& candidate) { return candidate->period.overlap(period).has_value(); };
+  return std::ranges::none_of(m_periods | std::views::filter(is_other), overlaps);
 }
 
 std::chrono::minutes Plan::sick_time(const Period& period) const
@@ -398,30 +430,6 @@ std::chrono::minutes FullTimePlan::planned_normal_working_time(const QDate& date
   using std::chrono_literals::operator""h;
   const auto day = date.dayOfWeek();
   return day == Qt::Saturday || day == Qt::Sunday ? 0min : 8h;
-}
-
-void to_json(nlohmann::json& j, const Plan::Entry& value)
-{
-  j = {
-      {period_key, value.period},
-      {kind_key, value.kind},
-  };
-}
-
-void from_json(const nlohmann::json& j, Plan::Entry& value)
-{
-  value.period = j.at(period_key);
-  value.kind = j.at(kind_key);
-}
-
-void to_json(nlohmann::json& j, const Plan::Kind& value)
-{
-  j = fmt::format("{}", value);
-}
-
-void from_json(const nlohmann::json& j, Plan::Kind& value)
-{
-  value = ::enum_from_string<Plan::Kind, 7>(j);
 }
 
 [[nodiscard]] bool Plan::is_sorted() const noexcept

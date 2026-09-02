@@ -7,109 +7,225 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned rather than floating: this line is the only statement of which Qt the project
+  # is built against, so a silent upstream bump would otherwise be indistinguishable from
+  # a code regression.
+  #
+  # Held at 6.10.3 rather than the newest release because of the Windows job. Qt changed
+  # its Windows repository layout in 6.11.0 -- the metadata moved from
+  # .../qt6_<ver>/qt6_<ver>/Updates.xml to a per-architecture
+  # .../qt6_<ver>/qt6_<ver>_msvc2022_64/Updates.xml -- and aqtinstall 3.3.0, the newest
+  # release, still looks only at the old path and fails with "Failed to locate XML data".
+  # Linux is unaffected; it kept the old layout. Raise this only once aqtinstall ships a
+  # version that resolves 6.11+ on Windows, and check that job rather than just this one.
+  QT_VERSION: 6.10.3
 
 jobs:
-  build:
-    env:
-      CONAN_HOME: "${{ github.workspace }}/.conan2"
-
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
-      fail-fast: false
-
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        compiler: [gcc, msvc]
-        build_type: [Release]
-        exclude:
-          - os: windows-latest
-            compiler: gcc
-          - os: ubuntu-latest
-            compiler: msvc
-        include:
-          - compiler: gcc
-            generator: "Unix Makefiles"
-            cppstd: gnu20
-            libcxx: libstdc++
-            compiler_version: 11
-          - compiler: msvc
-            generator: "Visual Studio 17 2022"
-            cppstd: 20
-            compiler_runtime: dynamic
-            compiler_version: 194
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - uses: actions/checkout@v4
 
-    - if: ${{ matrix.os == 'ubuntu-latest' }}
-      run: sudo apt-get update; sudo apt-get install ninja-build
-
-    - name: Install Conan
-      id: conan
-      uses: turtlebrowser/get-conan@main
-
-    - name: Conan version
-      run: echo "${{ steps.conan.outputs.version }}"
-
-    - name: Cache Conan Dependencies
-      id: cache-conan
-      uses: actions/cache@v4
+    - uses: actions/setup-python@v5
       with:
-        path: ${{ env.CONAN_HOME }}
-        key: conan-cache-${{ runner.os }}-${{ hashFiles('conanfile.py') }}
-        restore-keys: conan-cache-${{ runner.os }}-
+        python-version: '3.12'
 
-    - uses: DamianReeves/write-file-action@master
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+    - name: Install clang-format
+      run: python -m pip install --upgrade "clang-format==22.1.8"
+
+    - name: Check formatting
+      run: git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/checkout@v4
       with:
-        path: ${{ env.CONAN_HOME }}/profiles/default
-        contents: |
-          [settings]
-          arch=x86_64
-          build_type=${{ matrix.build_type }}
-          compiler=${{ matrix.compiler }}
-          compiler.cppstd=${{ matrix.cppstd }}
-          compiler.version=${{ matrix.compiler_version }}
-          os=${{ runner.os }}
-          compiler.libcxx=${{ matrix.libcxx }}
+        submodules: recursive
 
-          [conf]
-          tools.system.package_manager:mode=install
-          tools.system.package_manager:sudo=True
-        write-mode: append
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
 
-    - uses: DamianReeves/write-file-action@master
-      if: ${{ matrix.os == 'windows-latest' }}
+    # Official prebuilt Qt, so nothing is compiled here. install-deps (on by default)
+    # apt-installs the system libraries those binaries link against. Every job below
+    # repeats this step: the action also exports QT_ROOT_DIR and LD_LIBRARY_PATH, which
+    # the build tree's absolute paths depend on, and a cache hit makes it cheap.
+    - uses: jurplel/install-qt-action@v4
       with:
-        path: ${{ env.CONAN_HOME }}/profiles/default
-        contents: |
-          [settings]
-          arch=x86_64
-          build_type=${{ matrix.build_type }}
-          compiler=${{ matrix.compiler }}
-          compiler.cppstd=${{ matrix.cppstd }}
-          compiler.version=${{ matrix.compiler_version }}
-          os=${{ runner.os }}
-          compiler.runtime=${{ matrix.compiler_runtime }}
-        write-mode: append
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
 
-
-    - name: PrintProfile
-      run: cat ${{ env.CONAN_HOME }}/profiles/default
-
-    - name: list packages
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      run: dpkg --list
-
-    - name: Install Dependencies
-      run: conan install . --build=missing --output-folder=build
+    # fmt and spdlog are not installed here. CMakeLists.txt pulls them via FetchContent
+    # and they compile in seconds, which is cheaper than caching them would be.
+    - name: Configure
+      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
 
     - name: Build
-      run: |
-        cmake -G "${{ matrix.generator }}" -S . -B build -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        cmake --build build --config ${{ matrix.build_type }} --parallel
+      run: cmake --build build --parallel
+
+    # Tarred rather than uploaded as a directory: actions/upload-artifact zips, and zip
+    # drops the execute bit, which would leave ctest with unrunnable test binaries. One
+    # tar is also far quicker than thousands of individual files.
+    - name: Pack build tree
+      run: tar -c -I zstd -f build-release.tar.zst build
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-release
+        path: build-release.tar.zst
+        retention-days: 1
+        # Already zstd-compressed.
+        compression-level: 0
+
+  test:
+    needs: build
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    # No submodules: googletest is already built into the artifact, and the tests read
+    # no data from the source tree.
+    - uses: actions/checkout@v4
+
+    # Qt is a shared-library dependency, so the test binaries need it at the same path
+    # the build job used. This is a fresh runner, so its system libraries have to be
+    # apt-installed again too.
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: build-release
+
+    - name: Unpack build tree
+      run: tar -x -I zstd -f build-release.tar.zst
 
     - name: Test
-      run: ctest --build-config ${{ matrix.build_type }} --test-dir build
+      run: ctest --test-dir build --output-on-failure
+
+  tidy:
+    needs: build
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    # Submodules are required here even though the artifact already holds the built
+    # gtest libraries: the test translation units include <gtest/gtest.h>, and those
+    # headers only exist in the submodule's source tree.
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    # Pinned to the same release as clang-format above. An unpinned clang-tidy would
+    # change its diagnostics under us and turn a green gate red without a code change.
+    # This wheel provides clang-tidy, run-clang-tidy.py and clang-apply-replacements.
+    - name: Install clang-tidy
+      run: python -m pip install --upgrade "clang-tidy==22.1.8"
+
+    # clang-tidy never links or runs anything, so this is only about headers: the entries
+    # in compile_commands.json point into QT_ROOT_DIR by absolute path.
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: linux_gcc_64
+        cache: true
+
+    # For compile_commands.json, for the ui_*.h and moc sources AUTOUIC/AUTOMOC generate,
+    # and for the fmt and spdlog headers FetchContent placed under build/_deps --
+    # clang-tidy cannot parse the widget classes without them.
+    - uses: actions/download-artifact@v4
+      with:
+        name: build-release
+
+    - name: Unpack build tree
+      run: tar -x -I zstd -f build-release.tar.zst
+
+    - name: Check clang-tidy
+      run: scripts/clang-tidy.sh build
+
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: win64_msvc2022_64
+        cache: true
+
+    # No -G and no CMAKE_BUILD_TYPE: the default Visual Studio generator locates MSVC by
+    # itself, which avoids both a developer-prompt action and the assumption that Ninja is
+    # on the image. It is multi-config, so the configuration is named per command below
+    # rather than at configure time.
+    - name: Configure
+      run: cmake -S . -B build -DBUILD_TESTING=ON
+
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    # Uploaded as a directory rather than tarred like the Linux job. The tar there exists
+    # only because zip drops the execute bit, which would leave ctest with unrunnable ELF
+    # binaries; a .exe carries no such bit, so zip is lossless here. It also avoids
+    # depending on which tar is first on PATH -- the image has both bsdtar and GNU tar,
+    # and they disagree about how a compression program is spelled.
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-windows
+        path: build
+        retention-days: 1
+
+  windows-test:
+    needs: windows-build
+
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+    # No submodules, matching the Linux test job: gtest is already built into the
+    # artifact and the tests read nothing from the source tree.
+    - uses: actions/checkout@v4
+
+    # For the Qt DLLs the test binaries link against. Windows has no RPATH, so they are
+    # found through PATH, which the action puts QT_ROOT_DIR/bin on.
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        arch: win64_msvc2022_64
+        cache: true
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: build-windows
+        path: build
+
+    - name: Test
+      run: ctest --test-dir build --build-config Release --output-on-failure

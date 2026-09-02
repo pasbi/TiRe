@@ -50,7 +50,7 @@ void SplitPointEditor::update_percent() const
 void SplitPointEditor::update_date_time() const
 {
   const auto total = static_cast<double>(m_lower.msecsTo(m_upper));
-  const auto split_point = m_lower.addMSecs(total * m_ui->sp_split->value() / 100.0);
+  const auto split_point = m_lower.addMSecs(static_cast<qint64>(total * m_ui->sp_split->value() / 100.0));
   m_ui->de_split->setDate(split_point.date());
   m_ui->te_split->set_time(split_point.time());
 }

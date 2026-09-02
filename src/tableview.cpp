@@ -19,7 +19,7 @@ public:
     }
 
     const int size_hint;
-    int actual_size;
+    int actual_size = 0;
     bool fixed = false;
   };
 
@@ -112,6 +112,7 @@ void TableView::update_column_widths()
   QAbstractScrollArea::updateGeometry();
   const auto column_count = model()->columnCount();
   std::vector<int> size_hints;
+  size_hints.reserve(column_count);
   for (int i = 0; i < column_count; ++i) {
     size_hints.emplace_back(sizeHintForColumn(i));
   }
