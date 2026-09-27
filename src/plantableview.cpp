@@ -1,6 +1,7 @@
 #include "plantableview.h"
 
 #include "application.h"
+#include "combobox.h"
 #include "commands/commands.h"
 #include "commands/undostack.h"
 #include "periodedit.h"
@@ -11,7 +12,6 @@
 #include "views/callbackdelegate.h"
 
 #include <QAction>
-#include <QComboBox>
 #include <QMessageBox>
 #include <QSpinBox>
 #include <QStyledItemDelegate>
@@ -79,7 +79,7 @@ class ShareDelegate : public QStyledItemDelegate
     // The only two shares anybody books. Plan::Share itself takes any fraction, which is what
     // lets a finer split exist later without another migration, but offering one here would only
     // be a way to mistype a day.
-    auto editor = std::make_unique<QComboBox>(parent);
+    auto editor = std::make_unique<ComboBox>(parent);
     editor->addItem(tr("Full day"), Plan::Share::whole().permille());
     editor->addItem(tr("Half day"), ::half_day.permille());
     return editor.release();

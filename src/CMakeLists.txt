@@ -37,6 +37,8 @@ target_sources(tire-impl PRIVATE
         timesheet.h
         colorutil.cpp
         colorutil.h
+        combobox.cpp
+        combobox.h
         shareswidget.cpp
         shareswidget.h
         timeedit.cpp

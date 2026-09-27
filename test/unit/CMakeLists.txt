@@ -8,6 +8,7 @@ macro(package_add_test SOURCE_FILE)
 endmacro()
 
 package_add_test(colortest.cpp)
+package_add_test(comboboxtest.cpp)
 package_add_test(databasetest.cpp)
 package_add_test(enumnamestest.cpp)
 package_add_test(periodtest.cpp)

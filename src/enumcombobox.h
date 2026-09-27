@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QComboBox>
+#include "combobox.h"
 
-template<typename Enum, int enum_size> class EnumComboBox : public QComboBox
+template<typename Enum, int enum_size> class EnumComboBox : public ComboBox
 {
 public:
-  explicit EnumComboBox(QWidget* const parent = nullptr) : QComboBox(parent)
+  explicit EnumComboBox(QWidget* const parent = nullptr) : ComboBox(parent)
   {
     for (int i = 0; i < enum_size; ++i) {
       addItem(QString::fromStdString(fmt::format("{}", static_cast<Enum>(i))));

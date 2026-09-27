@@ -2,6 +2,7 @@
 
 #include "application.h"
 #include "callbackdelegate.h"
+#include "combobox.h"
 #include "commands/addremovecommand.h"
 #include "commands/commands.h"
 #include "commands/undostack.h"
@@ -91,7 +92,7 @@ public:
 
   QWidget* createEditor(QWidget* const parent, const QStyleOptionViewItem&, const QModelIndex& index) const override
   {
-    auto editor = std::make_unique<QComboBox>(parent);
+    auto editor = std::make_unique<ComboBox>(parent);
     editor->setEditable(true);
     editor->setInsertPolicy(QComboBox::NoInsert);
     for (const auto& project : m_time_sheet->project_model().projects()) {
