@@ -186,21 +186,21 @@ TEST(PlanTest, undo_period_change_that_reorders)
 
   // Identify the entries by address: Plan owns them through unique_ptrs, so sorting moves the
   // pointers around but never the Entry objects themselves.
-  const auto* const moved = &plan.entry(0);
-  const auto* const other = &plan.entry(1);
+  const auto& moved = plan.entry(0);
+  const auto& other = plan.entry(1);
 
   // Move the first entry past the second, which reorders them.
   Application::undo_stack().push(
-      make_modify_plan_period_command(plan, *moved, Period{QDate{2026, 6, 5}, QDate{2026, 6, 5}}));
-  ASSERT_EQ(other, &plan.entry(0)) << "the entries should have swapped places";
-  ASSERT_EQ(moved, &plan.entry(1));
+      make_modify_plan_period_command(plan, moved, Period{QDate{2026, 6, 5}, QDate{2026, 6, 5}}));
+  ASSERT_EQ(&other, &plan.entry(0)) << "the entries should have swapped places";
+  ASSERT_EQ(&moved, &plan.entry(1));
 
   Application::undo_stack().undo();
 
   ASSERT_EQ(2, plan.rowCount({}));
-  EXPECT_EQ(Period(QDate(2026, 1, 5), QDate(2026, 1, 5)), moved->period) << "undo must restore the moved entry";
-  EXPECT_EQ(Period(QDate(2026, 3, 5), QDate(2026, 3, 5)), other->period) << "undo must not touch the other entry";
-  EXPECT_EQ(moved, &plan.entry(0)) << "and the original order should be back";
+  EXPECT_EQ(Period(QDate(2026, 1, 5), QDate(2026, 1, 5)), moved.period) << "undo must restore the moved entry";
+  EXPECT_EQ(Period(QDate(2026, 3, 5), QDate(2026, 3, 5)), other.period) << "undo must not touch the other entry";
+  EXPECT_EQ(&moved, &plan.entry(0)) << "and the original order should be back";
 }
 
 TEST(PlanTest, delete_entries_is_undoable)
@@ -211,20 +211,20 @@ TEST(PlanTest, delete_entries_is_undoable)
   };
   add(QDate{2026, 1, 5});
   add(QDate{2026, 3, 5});
-  const auto* const deleted = &plan.entry(0);
-  const auto* const kept = &plan.entry(1);
+  const auto& deleted = plan.entry(0);
+  const auto& kept = plan.entry(1);
 
   const auto undo_count = Application::undo_stack().impl().count();
   delete_plan_entries(plan, {});
   EXPECT_EQ(undo_count, Application::undo_stack().impl().count()) << "deleting nothing must not add an undo step";
 
-  delete_plan_entries(plan, {deleted});
+  delete_plan_entries(plan, {&deleted});
   ASSERT_EQ(1, plan.rowCount({}));
-  EXPECT_EQ(kept, &plan.entry(0)) << "the other entry must survive";
+  EXPECT_EQ(&kept, &plan.entry(0)) << "the other entry must survive";
 
   Application::undo_stack().undo();
   ASSERT_EQ(2, plan.rowCount({}));
-  EXPECT_EQ(deleted, &plan.entry(0)) << "undo must put the very same entry back, in its old place";
+  EXPECT_EQ(&deleted, &plan.entry(0)) << "undo must put the very same entry back, in its old place";
   EXPECT_EQ(Period(QDate(2026, 1, 5), QDate(2026, 1, 5)), plan.entry(0).period);
 }
 

@@ -37,8 +37,8 @@ TEST_F(ComboBoxTest, PopupIsAsWideAsItsWidestEntry)
   combo_box.show();
 
   combo_box.showPopup();
-  auto* const popup = combo_box.view();
-  EXPECT_GE(popup->minimumWidth(), popup->sizeHintForColumn(0)) << "the widest entry must fit";
-  EXPECT_GT(popup->minimumWidth(), combo_box.width()) << "the popup must not inherit the width of the box";
+  auto& popup = *combo_box.view();
+  EXPECT_GE(popup.minimumWidth(), popup.sizeHintForColumn(0)) << "the widest entry must fit";
+  EXPECT_GT(popup.minimumWidth(), combo_box.width()) << "the popup must not inherit the width of the box";
   combo_box.hidePopup();
 }

@@ -141,15 +141,15 @@ PlanTableView::PlanTableView(QWidget* parent)
 
 void PlanTableView::delete_selected_entries()
 {
-  auto* const plan = dynamic_cast<Plan*>(model());
-  if (plan == nullptr) {
-    return;
-  }
+  // The same reference cast open_period_edit uses: MainWindow sets the model in its constructor,
+  // so a PlanTableView the user can reach always has one, and one that is not a Plan is a bug to
+  // hear about rather than to return silently from.
+  auto& plan = dynamic_cast<Plan&>(*model());
   std::set<const Plan::Entry*> selection;
   for (const auto& index : selectionModel()->selectedRows()) {
-    selection.insert(&plan->entry(index.row()));
+    selection.insert(&plan.entry(index.row()));
   }
-  delete_plan_entries(*plan, selection);
+  delete_plan_entries(plan, selection);
 }
 
 void PlanTableView::open_period_edit(const QModelIndex& index)
