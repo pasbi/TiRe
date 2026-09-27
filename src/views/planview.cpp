@@ -41,9 +41,9 @@ PlanView::~PlanView() = default;
 
 void PlanView::clear() const
 {
-  for (auto* const lb :
-       {m_ui->lb_holiday, m_ui->lb_total_balance, m_ui->lb_actual_worktime, m_ui->lb_balance_carryover,
-        m_ui->lb_expected_worktime, m_ui->lb_period, m_ui->lb_period, m_ui->lb_sick, m_ui->lb_period_balance})
+  for (auto* const lb : {m_ui->lb_holiday, m_ui->lb_total_balance, m_ui->lb_actual_worktime, m_ui->lb_balance_carryover,
+                         m_ui->lb_expected_worktime, m_ui->lb_period, m_ui->lb_period, m_ui->lb_sick,
+                         m_ui->lb_child_sick, m_ui->lb_period_balance})
   {
     lb->setText("-");
     lb->setTextInteractionFlags(Qt::TextSelectableByKeyboard | Qt::TextSelectableByMouse);
@@ -70,9 +70,9 @@ void PlanView::invalidate()
   using std::chrono_literals::operator""min;
   const auto& interval_model = time_sheet()->interval_model();
   const auto actual_working_time = interval_model.minutes(current_period);
-  const auto sick_time = time_sheet()->plan().sick_time(current_period);
-  const auto vacation_time = time_sheet()->plan().vacation_time(current_period);
-  const auto holiday_time = time_sheet()->plan().holiday_time(current_period);
+  const auto leave_time = [&plan, &current_period, &interval_model](const Plan::Kind kind) {
+    return plan.leave_time(kind, current_period, interval_model);
+  };
   const auto expected_working_time = ::expected_working_time(plan, interval_model, current_period);
   const auto balance = actual_working_time - expected_working_time;
   const Period total_period{plan.start(), current_period.end()};
@@ -84,9 +84,10 @@ void PlanView::invalidate()
   m_ui->lb_period->setToolTip(
       tr("From %1 to %2").arg(current_period.begin().toString()).arg(current_period.end().toString()));
   m_ui->lb_expected_worktime->setText(::format_minutes(expected_working_time));
-  m_ui->lb_sick->setText(::format_minutes(sick_time));
-  m_ui->lb_holiday->setText(::format_minutes(holiday_time));
-  m_ui->lb_vacation->setText(::format_minutes(vacation_time));
+  m_ui->lb_sick->setText(::format_minutes(leave_time(Plan::Kind::Sick)));
+  m_ui->lb_child_sick->setText(::format_minutes(leave_time(Plan::Kind::ChildSick)));
+  m_ui->lb_holiday->setText(::format_minutes(leave_time(Plan::Kind::Holiday)));
+  m_ui->lb_vacation->setText(::format_minutes(leave_time(Plan::Kind::Vacation)));
   m_ui->lb_actual_worktime->setText(::format_minutes(actual_working_time));
   m_ui->lb_balance_carryover->setText(::format_minutes(balance_carryover));
   m_ui->lb_balance_carryover->setToolTip(

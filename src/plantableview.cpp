@@ -13,15 +13,37 @@
 #include <QAction>
 #include <QComboBox>
 #include <QMessageBox>
+#include <QSpinBox>
 #include <QStyledItemDelegate>
 #include <spdlog/spdlog.h>
 
 namespace
 {
 
+/** @brief Half of a day, the one share besides a whole one that the editor offers. */
+constexpr auto half_day = Plan::Share::from_percent(50);
+
+/** @brief The message shown when the plan refuses a booking. */
+[[nodiscard]] QString conflict_message(const Plan::Conflict conflict)
+{
+  switch (conflict) {
+    using enum Plan::Conflict;
+  case None:
+    return {};
+  case Overbooked:
+    return QObject::tr("The day would hold more leave than it is long.");
+  case MixedSickness:
+    return QObject::tr("Your own and your child's sickness cannot share a day, because the hours you missed could "
+                       "not be told apart afterwards.");
+  case ImpossibleShare:
+    return QObject::tr("The share must be between 1% and 100% of a day.");
+  }
+  Q_UNREACHABLE();
+}
+
 class KindDelegate : public QStyledItemDelegate
 {
-  using Editor = EnumComboBox<Plan::Kind, 7>;
+  using Editor = EnumComboBox<Plan::Kind, Plan::kind_count>;
   QWidget* createEditor(QWidget* const parent, const QStyleOptionViewItem&, const QModelIndex& index) const override
   {
     return std::make_unique<Editor>(parent).release();
@@ -40,7 +62,54 @@ class KindDelegate : public QStyledItemDelegate
     if (kind == entry.kind) {
       return;
     }
+    // Validate up front: pushing a command whose redo() throws would leave the undo stack holding
+    // an entry that never applied.
+    if (const auto conflict = plan.check_kind(entry, kind); conflict != Plan::Conflict::None) {
+      QMessageBox::critical(editor, tr("Failed to set kind"), ::conflict_message(conflict));
+      return;
+    }
     Application::undo_stack().push(make_modify_plan_kind_command(plan, entry, kind));
+  }
+};
+
+class ShareDelegate : public QStyledItemDelegate
+{
+  QWidget* createEditor(QWidget* const parent, const QStyleOptionViewItem&, const QModelIndex& index) const override
+  {
+    // The only two shares anybody books. Plan::Share itself takes any fraction, which is what
+    // lets a finer split exist later without another migration, but offering one here would only
+    // be a way to mistype a day.
+    auto editor = std::make_unique<QComboBox>(parent);
+    editor->addItem(tr("Full day"), Plan::Share::whole().permille());
+    editor->addItem(tr("Half day"), ::half_day.permille());
+    return editor.release();
+  }
+
+  void setEditorData(QWidget* const editor, const QModelIndex& index) const override
+  {
+    auto& combo_box = dynamic_cast<QComboBox&>(*editor);
+    const auto share = dynamic_cast<const Plan&>(*index.model()).entry(index.row()).share;
+    if (combo_box.findData(share.permille()) < 0) {
+      // A share this editor could not have produced -- a hand-edited database, say. Offered as it
+      // stands rather than silently rounded to whichever preset is nearest.
+      combo_box.addItem(QString::fromStdString(fmt::format("{}", share)), share.permille());
+    }
+    combo_box.setCurrentIndex(combo_box.findData(share.permille()));
+  }
+
+  void setModelData(QWidget* const editor, QAbstractItemModel* const model, const QModelIndex& index) const override
+  {
+    auto& plan = dynamic_cast<Plan&>(*model);
+    const auto& entry = plan.entry(index.row());
+    const auto share = Plan::Share::from_permille(dynamic_cast<const QComboBox&>(*editor).currentData().toInt());
+    if (share == entry.share) {
+      return;
+    }
+    if (const auto conflict = plan.check_share(entry, share); conflict != Plan::Conflict::None) {
+      QMessageBox::critical(editor, tr("Failed to set share"), ::conflict_message(conflict));
+      return;
+    }
+    Application::undo_stack().push(make_modify_plan_share_command(plan, entry, share));
   }
 };
 
@@ -50,9 +119,11 @@ PlanTableView::PlanTableView(QWidget* parent)
   : TableView(parent)
   , m_period_delegate(std::make_unique<CallbackDelegate>([this](const QModelIndex& index) { open_period_edit(index); }))
   , m_kind_delegate(std::make_unique<KindDelegate>())
+  , m_share_delegate(std::make_unique<ShareDelegate>())
 {
-  setItemDelegateForColumn(0, m_period_delegate.get());
-  setItemDelegateForColumn(1, m_kind_delegate.get());
+  setItemDelegateForColumn(Plan::period_column, m_period_delegate.get());
+  setItemDelegateForColumn(Plan::kind_column, m_kind_delegate.get());
+  setItemDelegateForColumn(Plan::share_column, m_share_delegate.get());
 
   // Deletion works on whole entries, so selectedRows() must actually report something.
   setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -93,8 +164,8 @@ void PlanTableView::open_period_edit(const QModelIndex& index)
   const auto period = period_edit.period();
   // Validate up front: pushing a command whose redo() throws would leave the undo stack holding
   // an entry that never applied.
-  if (!plan.can_set_period(entry, period)) {
-    QMessageBox::critical(this, tr("Failed to set period"), tr("The period would overlap another one."));
+  if (const auto conflict = plan.check_period(entry, period); conflict != Plan::Conflict::None) {
+    QMessageBox::critical(this, tr("Failed to set period"), ::conflict_message(conflict));
     return;
   }
   Application::undo_stack().push(make_modify_plan_period_command(plan, entry, period));

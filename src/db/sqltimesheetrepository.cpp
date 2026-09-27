@@ -137,27 +137,30 @@ void SqlTimeSheetRepository::insert(Plan::Entry& entry)
   if (!entry.id.is_valid()) {
     entry.id = next_id(m_next_plan_entry_id);
   }
-  auto query =
-      m_database.prepare(QStringLiteral("INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind) "
-                                        "VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET "
-                                        "period_begin = excluded.period_begin, period_end = excluded.period_end, "
-                                        "period_type = excluded.period_type, kind = excluded.kind"));
+  auto query = m_database.prepare(
+      QStringLiteral("INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind, share_permille) "
+                     "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET "
+                     "period_begin = excluded.period_begin, period_end = excluded.period_end, "
+                     "period_type = excluded.period_type, kind = excluded.kind, "
+                     "share_permille = excluded.share_permille"));
   query.addBindValue(::id_to_sql(entry.id));
   query.addBindValue(to_sql(entry.period.begin()));
   query.addBindValue(to_sql(entry.period.end()));
   query.addBindValue(db_name(entry.period.type()));
   query.addBindValue(db_name(entry.kind));
+  query.addBindValue(entry.share.permille());
   m_database.execute(query);
 }
 
 void SqlTimeSheetRepository::update(const Plan::Entry& entry)
 {
   auto query = m_database.prepare(QStringLiteral("UPDATE plan_entry SET period_begin = ?, period_end = ?, "
-                                                 "period_type = ?, kind = ? WHERE id = ?"));
+                                                 "period_type = ?, kind = ?, share_permille = ? WHERE id = ?"));
   query.addBindValue(to_sql(entry.period.begin()));
   query.addBindValue(to_sql(entry.period.end()));
   query.addBindValue(db_name(entry.period.type()));
   query.addBindValue(db_name(entry.kind));
+  query.addBindValue(entry.share.permille());
   query.addBindValue(::id_to_sql(entry.id));
   m_database.execute(query);
 }
@@ -229,8 +232,9 @@ std::unique_ptr<TimeSheet> SqlTimeSheetRepository::load()
 
   auto entries = std::vector<std::unique_ptr<Plan::Entry>>{};
   {
-    auto query = m_database.prepare(QStringLiteral(
-        "SELECT id, period_begin, period_end, period_type, kind FROM plan_entry ORDER BY period_begin, id"));
+    auto query = m_database.prepare(
+        QStringLiteral("SELECT id, period_begin, period_end, period_type, kind, share_permille FROM plan_entry "
+                       "ORDER BY period_begin, id"));
     m_database.execute(query);
     while (query.next()) {
       const auto begin = date_from_sql(query.value(1));
@@ -243,6 +247,7 @@ std::unique_ptr<TimeSheet> SqlTimeSheetRepository::load()
                      end.toString(Qt::ISODate).toStdString(), period.end().toString(Qt::ISODate).toStdString());
       }
       entries.push_back(std::make_unique<Plan::Entry>(period, plan_kind_from_db_name(query.value(4).toString()),
+                                                      Plan::Share::from_permille(query.value(5).toInt()),
                                                       EntityId{query.value(0).toLongLong()}));
     }
   }

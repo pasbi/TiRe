@@ -81,6 +81,46 @@ TEST_F(DatabaseTest, StepwiseMigration)
   EXPECT_EQ(latest_schema_version(), database.schema_version());
 }
 
+TEST_F(DatabaseTest, LegacyPlanKindsBecomeKindAndShare)
+{
+  auto database = Database::open_in_memory();
+  database.migrate_to(1);
+
+  auto insert = database.prepare(QStringLiteral(
+      "INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind) VALUES (?, ?, ?, ?, ?)"));
+  const auto add_legacy_entry = [&database, &insert](const int id, const QString& kind) {
+    insert.addBindValue(id);
+    insert.addBindValue(QStringLiteral("2026-03-0%1").arg(id));
+    insert.addBindValue(QStringLiteral("2026-03-0%1").arg(id));
+    insert.addBindValue(QStringLiteral("DAY"));
+    insert.addBindValue(kind);
+    database.execute(insert);
+  };
+  add_legacy_entry(1, QStringLiteral("NORMAL"));
+  add_legacy_entry(2, QStringLiteral("HALF_VACATION"));
+  add_legacy_entry(3, QStringLiteral("SICK"));
+  add_legacy_entry(4, QStringLiteral("HALF_VACATION_HALF_HOLIDAY"));
+
+  database.migrate();
+
+  auto query =
+      database.prepare(QStringLiteral("SELECT id, kind, share_permille FROM plan_entry ORDER BY period_begin, kind"));
+  database.execute(query);
+  std::vector<std::tuple<int, QString, int>> rows;
+  while (query.next()) {
+    rows.emplace_back(query.value(0).toInt(), query.value(1).toString(), query.value(2).toInt());
+  }
+
+  // The normal day is gone -- an ordinary working day is the absence of an entry now -- and the
+  // one combined kind became the two bookings it always stood for, the new one taking the next
+  // free id.
+  ASSERT_EQ(4U, rows.size());
+  EXPECT_EQ(std::make_tuple(2, QStringLiteral("VACATION"), 500), rows.at(0));
+  EXPECT_EQ(std::make_tuple(3, QStringLiteral("SICK"), 1000), rows.at(1));
+  EXPECT_EQ(std::make_tuple(5, QStringLiteral("HOLIDAY"), 500), rows.at(2));
+  EXPECT_EQ(std::make_tuple(4, QStringLiteral("VACATION"), 500), rows.at(3));
+}
+
 TEST_F(DatabaseTest, RejectsNewerSchema)
 {
   auto database = Database::open_in_memory();
@@ -240,6 +280,7 @@ TEST_F(DatabaseTest, MigrationSurvivesReopen)
     auto database = Database::open_file(path);
     EXPECT_EQ(latest_schema_version(), database.schema_version());
     database.migrate();  // must be a no-op
-    EXPECT_EQ(1, count_rows(database, QStringLiteral("schema_version")));
+    // One row per migration and not one more: reopening must not re-apply what already ran.
+    EXPECT_EQ(static_cast<int>(migrations().size()), count_rows(database, QStringLiteral("schema_version")));
   }
 }

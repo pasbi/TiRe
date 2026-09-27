@@ -18,13 +18,10 @@ constexpr auto period_type_names = std::array{
 };
 
 constexpr auto plan_kind_names = std::array{
-    std::pair{Plan::Kind::Normal, "NORMAL"},
     std::pair{Plan::Kind::Sick, "SICK"},
+    std::pair{Plan::Kind::ChildSick, "CHILD_SICK"},
     std::pair{Plan::Kind::Holiday, "HOLIDAY"},
-    std::pair{Plan::Kind::HalfHoliday, "HALF_HOLIDAY"},
     std::pair{Plan::Kind::Vacation, "VACATION"},
-    std::pair{Plan::Kind::HalfVacation, "HALF_VACATION"},
-    std::pair{Plan::Kind::HalfVacationHalfHoliday, "HALF_VACATION_HALF_HOLIDAY"},
 };
 
 template<typename Enum, std::size_t n> [[nodiscard]] Enum
@@ -59,20 +56,14 @@ QString db_name(const Period::Type type)
 QString db_name(const Plan::Kind kind)
 {
   switch (kind) {
-  case Plan::Kind::Normal:
-    return QStringLiteral("NORMAL");
   case Plan::Kind::Sick:
     return QStringLiteral("SICK");
+  case Plan::Kind::ChildSick:
+    return QStringLiteral("CHILD_SICK");
   case Plan::Kind::Holiday:
     return QStringLiteral("HOLIDAY");
-  case Plan::Kind::HalfHoliday:
-    return QStringLiteral("HALF_HOLIDAY");
   case Plan::Kind::Vacation:
     return QStringLiteral("VACATION");
-  case Plan::Kind::HalfVacation:
-    return QStringLiteral("HALF_VACATION");
-  case Plan::Kind::HalfVacationHalfHoliday:
-    return QStringLiteral("HALF_VACATION_HALF_HOLIDAY");
   }
   throw DatabaseError("Unknown Plan::Kind: {}.", static_cast<int>(kind));
 }

@@ -11,6 +11,9 @@
 #include <QHelpEvent>
 #include <QPainter>
 #include <QToolTip>
+#include <algorithm>
+#include <optional>
+#include <ranges>
 
 namespace
 {
@@ -34,24 +37,41 @@ private:
 
 constexpr auto default_gantt_length_days = 30;
 
-Qt::BrushStyle brush_style(const Plan::Kind kind)
+/** @brief The kind that decides a day's hatching: the one claiming most of it. */
+[[nodiscard]] std::optional<Plan::Kind> dominant_kind(const Plan::DayShares& shares)
 {
-  switch (kind) {
-    using enum Plan::Kind;
-  case Normal:
+  using enum Plan::Kind;
+  // Listed rather than generated, because the order is the tie-breaker: max_element returns the
+  // first of equal shares, so half a sick day next to half a vacation day reads as sick.
+  static constexpr auto kinds = std::array{Sick, ChildSick, Holiday, Vacation};
+  static_assert(kinds.size() == Plan::kind_count, "every kind must be able to win");
+  const auto share_of = [&shares](const auto kind) { return shares[kind]; };
+  const auto dominant = *std::ranges::max_element(kinds, std::less<>{}, share_of);
+  if (shares[dominant] == Plan::Share::none()) {
+    return {};
+  }
+  return dominant;
+}
+
+Qt::BrushStyle brush_style(const Plan::DayShares& shares)
+{
+  const auto kind = ::dominant_kind(shares);
+  if (!kind.has_value()) {
     return Qt::NoBrush;
+  }
+  // The pattern names the leave, its density says whether the day is off entirely -- so half a
+  // bank holiday topped up with half a vacation day still reads as a whole day off, which is
+  // what it is.
+  const auto whole_day = shares.budget() + shares.waiver() >= Plan::Share::whole();
+  switch (*kind) {
+    using enum Plan::Kind;
   case Sick:
-    return Qt::DiagCrossPattern;
-  case Vacation:
-    [[fallthrough]];
+    return whole_day ? Qt::DiagCrossPattern : Qt::FDiagPattern;
+  case ChildSick:
+    return whole_day ? Qt::Dense4Pattern : Qt::Dense6Pattern;
   case Holiday:
-    [[fallthrough]];
-  case HalfVacationHalfHoliday:
-    return Qt::CrossPattern;
-  case HalfVacation:
-    [[fallthrough]];
-  case HalfHoliday:
-    return Qt::VerPattern;
+  case Vacation:
+    return whole_day ? Qt::CrossPattern : Qt::VerPattern;
   }
   Q_UNREACHABLE();
 }
@@ -113,8 +133,10 @@ void GanttView::paintEvent(QPaintEvent* event)
     }
   }
 
-  for (const auto& date : m_period.dates()) {
-    painter.fillRect(rect(date), ::brush_style(m_time_sheet->plan().find_kind(date)));
+  // Asked for in one go rather than per day: every lookup walks all plan entries.
+  const auto shares = m_time_sheet->plan().shares_in(m_period);
+  for (const auto i : std::views::iota(0uz, shares.size())) {
+    painter.fillRect(rect(m_period.begin().addDays(static_cast<qint64>(i))), ::brush_style(shares.at(i)));
   }
 
   draw_grid(painter);
@@ -153,10 +175,10 @@ void GanttView::paintEvent(QPaintEvent* event)
 void GanttView::mouseMoveEvent(QMouseEvent* event)
 {
   const auto date_time = datetime_at(event->pos());
-  const auto kind_of_day = m_time_sheet->plan().find_kind(date_time.date());
-  const auto kind_of_day_text = kind_of_day == Plan::Kind::Normal ? "" : fmt::format(" [{}]", kind_of_day);
+  const auto shares_of_day = m_time_sheet->plan().shares_on(date_time.date());
+  const auto shares_of_day_text = shares_of_day.empty() ? "" : fmt::format(" [{}]", shares_of_day);
   QToolTip::showText(event->globalPosition().toPoint(),
-                     date_time.toString("dddd, dd.MM. hh:mm") + QString::fromStdString(kind_of_day_text), this);
+                     date_time.toString("dddd, dd.MM. hh:mm") + QString::fromStdString(shares_of_day_text), this);
 }
 
 void GanttView::mousePressEvent(QMouseEvent* const event)

@@ -18,7 +18,7 @@ TEST(EnumNamesTest, PeriodTypeRoundTrip)
 TEST(EnumNamesTest, PlanKindRoundTrip)
 {
   using enum Plan::Kind;
-  for (const auto kind : {Normal, Sick, Holiday, HalfHoliday, Vacation, HalfVacation, HalfVacationHalfHoliday}) {
+  for (const auto kind : {Sick, ChildSick, Holiday, Vacation}) {
     EXPECT_EQ(kind, plan_kind_from_db_name(db_name(kind)));
   }
 }
@@ -29,15 +29,15 @@ TEST(EnumNamesTest, NamesArePinned)
   // them here: a rename must be a deliberate migration, not an accident.
   EXPECT_EQ(QStringLiteral("CUSTOM"), db_name(Period::Type::Custom));
   EXPECT_EQ(QStringLiteral("YEAR"), db_name(Period::Type::Year));
-  EXPECT_EQ(QStringLiteral("NORMAL"), db_name(Plan::Kind::Normal));
-  EXPECT_EQ(QStringLiteral("HALF_VACATION_HALF_HOLIDAY"), db_name(Plan::Kind::HalfVacationHalfHoliday));
+  EXPECT_EQ(QStringLiteral("VACATION"), db_name(Plan::Kind::Vacation));
+  EXPECT_EQ(QStringLiteral("CHILD_SICK"), db_name(Plan::Kind::ChildSick));
 }
 
 TEST(EnumNamesTest, PersistenceNamesAreNotDisplayNames)
 {
   // The fmt formatters go through QObject::tr(), so they are locale-dependent and unusable as a
   // storage format. This guards against anyone re-coupling the two.
-  EXPECT_NE(QString::fromStdString(fmt::format("{}", Plan::Kind::HalfHoliday)), db_name(Plan::Kind::HalfHoliday));
+  EXPECT_NE(QString::fromStdString(fmt::format("{}", Plan::Kind::ChildSick)), db_name(Plan::Kind::ChildSick));
 }
 
 TEST(EnumNamesTest, UnknownNameThrows)

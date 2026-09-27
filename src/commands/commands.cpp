@@ -35,6 +35,12 @@ std::unique_ptr<Command> make_modify_plan_kind_command(Plan& plan, const Plan::E
   return make_modify_command(plan, kind, swapper, [] {});
 }
 
+std::unique_ptr<Command> make_modify_plan_share_command(Plan& plan, const Plan::Entry& entry, const Plan::Share share)
+{
+  const auto swapper = [&entry](Plan& p, const Plan::Share s) { return p.swap_share(entry, s); };
+  return make_modify_command(plan, share, swapper, [] {});
+}
+
 std::unique_ptr<Command> make_modify_plan_period_command(Plan& plan, const Plan::Entry& entry, Period period)
 {
   const auto swapper = [&entry](Plan& p, Period q) { return p.swap_period(entry, q); };

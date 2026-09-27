@@ -178,10 +178,10 @@ TEST_F(TimeSheetRepositoryTest, OngoingIntervalStaysOngoing)
 TEST_F(TimeSheetRepositoryTest, PeriodTypeSurvivesRoundTrip)
 {
   const auto time_sheet = m_repository->load();
-  time_sheet->plan().add(
-      std::make_unique<Plan::Entry>(Period{QDate{2026, 5, 4}, Period::Type::Month}, Plan::Kind::Vacation, EntityId{}));
+  time_sheet->plan().add(std::make_unique<Plan::Entry>(Period{QDate{2026, 5, 4}, Period::Type::Month},
+                                                       Plan::Kind::Vacation, Plan::Share::whole(), EntityId{}));
   time_sheet->plan().add(std::make_unique<Plan::Entry>(Period{QDate{2026, 8, 3}, QDate{2026, 8, 7}},
-                                                       Plan::Kind::HalfVacationHalfHoliday, EntityId{}));
+                                                       Plan::Kind::Holiday, Plan::Share::from_percent(50), EntityId{}));
 
   const auto reloaded = m_repository->load();
   ASSERT_EQ(2, reloaded->plan().rowCount({}));
@@ -196,18 +196,19 @@ TEST_F(TimeSheetRepositoryTest, PeriodTypeSurvivesRoundTrip)
   EXPECT_EQ(Period::Type::Custom, custom.period.type());
   EXPECT_EQ(QDate(2026, 8, 3), custom.period.begin());
   EXPECT_EQ(QDate(2026, 8, 7), custom.period.end());
-  EXPECT_EQ(Plan::Kind::HalfVacationHalfHoliday, custom.kind);
+  EXPECT_EQ(Plan::Kind::Holiday, custom.kind);
+  EXPECT_EQ(Plan::Share::from_percent(50), custom.share) << "the share is stored alongside the kind";
 }
 
 TEST_F(TimeSheetRepositoryTest, EveryPlanKindSurvivesRoundTrip)
 {
   const auto time_sheet = m_repository->load();
   using enum Plan::Kind;
-  constexpr auto kinds =
-      std::array{Normal, Sick, Holiday, HalfHoliday, Vacation, HalfVacation, HalfVacationHalfHoliday};
+  constexpr auto kinds = std::array{Sick, ChildSick, Holiday, Vacation};
   for (auto i = 0U; i < kinds.size(); ++i) {
     const auto day = QDate{2026, 6, static_cast<int>(i) + 1};
-    time_sheet->plan().add(std::make_unique<Plan::Entry>(Period{day, day}, kinds.at(i), EntityId{}));
+    time_sheet->plan().add(
+        std::make_unique<Plan::Entry>(Period{day, day}, kinds.at(i), Plan::Share::whole(), EntityId{}));
   }
 
   const auto reloaded = m_repository->load();
@@ -228,20 +229,41 @@ TEST_F(TimeSheetRepositoryTest, PlanSettingsSurviveRoundTrip)
   EXPECT_EQ(-90min, reloaded->plan().overtime_offset());
 }
 
-TEST_F(TimeSheetRepositoryTest, PlanEntryOverlapIsRejectedOnLoad)
+TEST_F(TimeSheetRepositoryTest, UnaccountableStoredLeaveIsRejectedOnLoad)
 {
-  auto insert_entry = [this](const int id, const QString& begin, const QString& end) {
-    auto query = m_database->prepare(QStringLiteral(
-        "INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind) VALUES (?, ?, ?, 'CUSTOM', 'SICK')"));
+  // Overlapping entries are ordinary now, so only a day that cannot be accounted for is refused
+  // -- something no editor produces, but a hand-edited or future-version database might.
+  auto insert_entry = [this](const int id, const QString& kind, const int share_permille) {
+    auto query = m_database->prepare(
+        QStringLiteral("INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind, share_permille) "
+                       "VALUES (?, '2026-01-01', '2026-01-10', 'CUSTOM', ?, ?)"));
     query.addBindValue(id);
-    query.addBindValue(begin);
-    query.addBindValue(end);
+    query.addBindValue(kind);
+    query.addBindValue(share_permille);
     m_database->execute(query);
   };
-  insert_entry(1, QStringLiteral("2026-01-01"), QStringLiteral("2026-01-10"));
-  insert_entry(2, QStringLiteral("2026-01-05"), QStringLiteral("2026-01-15"));
+  insert_entry(1, QStringLiteral("SICK"), 600);
+  insert_entry(2, QStringLiteral("VACATION"), 600);
 
   EXPECT_THROW(m_repository->load(), DatabaseError);
+}
+
+TEST_F(TimeSheetRepositoryTest, OverlappingStoredLeaveLoadsFine)
+{
+  auto insert_entry = [this](const int id, const QString& kind) {
+    auto query = m_database->prepare(
+        QStringLiteral("INSERT INTO plan_entry (id, period_begin, period_end, period_type, kind, share_permille) "
+                       "VALUES (?, '2026-01-01', '2026-01-10', 'CUSTOM', ?, 500)"));
+    query.addBindValue(id);
+    query.addBindValue(kind);
+    m_database->execute(query);
+  };
+  insert_entry(1, QStringLiteral("HOLIDAY"));
+  insert_entry(2, QStringLiteral("VACATION"));
+
+  const auto time_sheet = m_repository->load();
+  ASSERT_EQ(2, time_sheet->plan().rowCount({}));
+  EXPECT_EQ(Plan::Share::whole(), time_sheet->plan().shares_on(QDate{2026, 1, 5}).budget());
 }
 
 TEST_F(TimeSheetRepositoryTest, ModelsWorkWithoutDatabase)
@@ -254,8 +276,8 @@ TEST_F(TimeSheetRepositoryTest, ModelsWorkWithoutDatabase)
     auto interval = std::make_unique<Interval>(&project);
     interval->swap_begin(QDateTime{QDate{2026, 3, 1}, QTime{8, 0}});
     time_sheet.interval_model().add(std::move(interval));
-    time_sheet.plan().add(
-        std::make_unique<Plan::Entry>(Period{QDate{2026, 3, 5}, QDate{2026, 3, 6}}, Plan::Kind::Sick, EntityId{}));
+    time_sheet.plan().add(std::make_unique<Plan::Entry>(Period{QDate{2026, 3, 5}, QDate{2026, 3, 6}}, Plan::Kind::Sick,
+                                                        Plan::Share::whole(), EntityId{}));
     time_sheet.plan().swap_overtime_offset(15min);
   });
   EXPECT_EQ(1U, time_sheet.project_model().projects().size());

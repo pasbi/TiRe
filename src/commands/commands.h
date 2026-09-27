@@ -17,12 +17,14 @@ void split_interval(IntervalModel& interval_model, const Interval& interval);
 
 /**
  * @name Plan edit commands
- * Plan::swap_kind and Plan::swap_period already persist and emit, so these carry no extra signal.
+ * Plan's swap_* mutators already persist and emit, so these carry no extra signal.
+ * Each one's check_*() must have passed first -- redo() must not throw.
  * @{
  */
 [[nodiscard]] std::unique_ptr<Command> make_modify_plan_kind_command(Plan& plan, const Plan::Entry& entry,
                                                                      Plan::Kind kind);
-/** @pre Plan::can_set_period(entry, period) -- redo() must not throw. */
+[[nodiscard]] std::unique_ptr<Command> make_modify_plan_share_command(Plan& plan, const Plan::Entry& entry,
+                                                                      Plan::Share share);
 [[nodiscard]] std::unique_ptr<Command> make_modify_plan_period_command(Plan& plan, const Plan::Entry& entry,
                                                                        Period period);
 [[nodiscard]] std::unique_ptr<Command> make_modify_plan_start_command(Plan& plan, QDate start);

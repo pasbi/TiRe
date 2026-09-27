@@ -174,7 +174,8 @@ TEST_F(UndoStackTransactionTest, MacroIsOneUndoStepAndLandsCompletely)
 TEST_F(UndoStackTransactionTest, PlanEditsAreUndoableAndPersisted)
 {
   auto& plan = m_time_sheet->plan();
-  plan.add(std::make_unique<Plan::Entry>(Period{QDate{2026, 7, 1}, QDate{2026, 7, 3}}, Plan::Kind::Normal, EntityId{}));
+  plan.add(std::make_unique<Plan::Entry>(Period{QDate{2026, 7, 1}, QDate{2026, 7, 3}}, Plan::Kind::Vacation,
+                                         Plan::Share::whole(), EntityId{}));
   ASSERT_EQ(1, Application::sql_repository().load()->plan().rowCount({}));
 
   Application::undo_stack().push(make_modify_plan_kind_command(plan, plan.entry(0), Plan::Kind::Sick));
@@ -182,7 +183,7 @@ TEST_F(UndoStackTransactionTest, PlanEditsAreUndoableAndPersisted)
 
   // Plan edits used to bypass the undo stack entirely; they must not any more.
   Application::undo_stack().undo();
-  EXPECT_EQ(Plan::Kind::Normal, Application::sql_repository().load()->plan().entry(0).kind);
+  EXPECT_EQ(Plan::Kind::Vacation, Application::sql_repository().load()->plan().entry(0).kind);
 
   for (auto* const entry_owner = &plan.entry(0); entry_owner != nullptr;) {
     plan.extract(*entry_owner);

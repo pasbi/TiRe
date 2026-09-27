@@ -92,8 +92,10 @@ MainWindow::MainWindow(std::unique_ptr<TimeSheet> time_sheet)
     m_ui->tabWidget->setCurrentWidget(m_ui->tv_plan->parentWidget());
     Application::undo_stack().push(
         make<AddCommand>(m_time_sheet->plan(), std::make_unique<Plan::Entry>(Plan::Entry{
+                                                   // A whole day, which is what default_period()
+                                                   // looks for room for.
                                                    .period = m_time_sheet->plan().default_period(),
-                                                   .kind = Plan::Kind::Normal,
+                                                   .kind = Plan::Kind::Vacation,
                                                })));
   });
 
