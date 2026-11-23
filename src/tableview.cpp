@@ -1,91 +1,43 @@
 #include "tableview.h"
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <cstdint>
+#include <numeric>
 #include <spdlog/spdlog.h>
 
 namespace
 {
 
 /**
-* @brief Distribute the `total_size` evenly among the bins, but don't shrink below its size hint.
-*/
-class SizesCalculator
+ * @brief Give every bin the size its content asks for, and share whatever `total_size` has left
+ *  over in proportion to that -- so the column with the most to show, the project names usually,
+ *  keeps the largest part of the slack rather than an equal fifth of it.
+ *
+ * Content that does not fit at all is not squeezed: the bins keep their full size hint and the
+ * view scrolls, which beats cutting every column short.
+ */
+[[nodiscard]] std::vector<int> distribute(const int total_size, const std::vector<int>& size_hints)
 {
-public:
-  struct Size
-  {
-    explicit Size(const int size_hint) : size_hint(size_hint)
-    {
-    }
-
-    const int size_hint;
-    int actual_size = 0;
-    bool fixed = false;
-  };
-
-  explicit SizesCalculator(const int total_size, const std::vector<int>& size_hints) : m_total_size(total_size)
-  {
-    m_sizes.reserve(size_hints.size());
-    for (const auto& size_hint : size_hints) {
-      m_sizes.emplace_back(size_hint);
-    }
-
-    while (iterate()) {
-    }
+  const auto required = std::accumulate(size_hints.begin(), size_hints.end(), 0);
+  if (required >= total_size || required == 0) {
+    return size_hints;
   }
 
-  [[nodiscard]] std::vector<int> sizes() const
-  {
-    std::vector<int> sizes;
-    sizes.reserve(sizes.size());
-    for (const auto& size : m_sizes) {
-      sizes.emplace_back(size.actual_size);
-    }
-    return sizes;
+  const auto surplus = total_size - required;
+  // Hand out the surplus against the running total rather than bin by bin, so the rounding losses
+  // cannot pile up into a gap at the right edge.
+  auto accumulated_hint = 0;
+  auto distributed = 0;
+  std::vector<int> sizes;
+  sizes.reserve(size_hints.size());
+  for (const auto& size_hint : size_hints) {
+    accumulated_hint += size_hint;
+    const auto share = static_cast<int>(static_cast<std::int64_t>(surplus) * accumulated_hint / required) - distributed;
+    distributed += share;
+    sizes.emplace_back(size_hint + share);
   }
-
-private:
-  [[nodiscard]] int count_unfixed() const
-  {
-    return static_cast<int>(m_sizes.size() - std::ranges::count_if(m_sizes, &Size::fixed));
-  }
-
-  [[nodiscard]] int left_size() const
-  {
-    static constexpr auto accu = [](const int accu, const Size& size) {
-      return size.fixed ? size.actual_size + accu : accu;
-    };
-    return m_total_size - std::accumulate(m_sizes.begin(), m_sizes.end(), 0, accu);
-  }
-
-  bool iterate()
-  {
-    const auto unfixed_count = count_unfixed();
-    if (unfixed_count == 0) {
-      return false;  // all sizes are fixed, abort iteration.
-    }
-
-    const auto ideal_width = left_size() / unfixed_count;
-    bool greater_than_average = false;
-    for (auto& size : m_sizes) {
-      if (size.fixed) {
-        continue;
-      }
-      if (size.size_hint > ideal_width) {
-        size.actual_size = size.size_hint;
-        size.fixed = true;
-        greater_than_average = true;
-      } else {
-        size.actual_size = ideal_width;
-      }
-    }
-    // continue iteration if any size requires more space than it would get if the left space was uniformly distrubted.
-    return greater_than_average;
-  }
-
-  const int m_total_size;
-  std::vector<Size> m_sizes;
-};
+  return sizes;
+}
 
 }  // namespace
 
@@ -96,12 +48,21 @@ TableView::TableView(QWidget* parent) : QTableView(parent)
 
 void TableView::setModel(QAbstractItemModel* model)
 {
-  connect(model, &QAbstractItemModel::modelReset, this, &TableView::update_column_widths, Qt::QueuedConnection);
-  connect(model, &QAbstractItemModel::columnsAboutToBeInserted, this, &TableView::update_column_widths,
-          Qt::QueuedConnection);
-  connect(model, &QAbstractItemModel::columnsAboutToBeRemoved, this, &TableView::update_column_widths,
-          Qt::QueuedConnection);
   QTableView::setModel(model);
+  if (model == nullptr) {
+    return;
+  }
+  // Whatever changes the cells can change what the columns need, so every such signal recomputes.
+  // Queued, because the hints come from the rows the view has laid out: it must see the change
+  // first.
+  const auto recompute = [this] { update_column_widths(); };
+  connect(model, &QAbstractItemModel::modelReset, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::layoutChanged, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::dataChanged, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::rowsInserted, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::rowsRemoved, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::columnsInserted, this, recompute, Qt::QueuedConnection);
+  connect(model, &QAbstractItemModel::columnsRemoved, this, recompute, Qt::QueuedConnection);
 }
 
 void TableView::update_column_widths()
@@ -117,8 +78,7 @@ void TableView::update_column_widths()
     size_hints.emplace_back(sizeHintForColumn(i));
   }
 
-  const SizesCalculator sc(maximumViewportSize().width(), size_hints);
-  const auto sizes = sc.sizes();
+  const auto sizes = ::distribute(maximumViewportSize().width(), size_hints);
   for (int i = 0; i < static_cast<int>(sizes.size()); ++i) {
     setColumnWidth(i, sizes.at(i));
   }

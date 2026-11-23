@@ -13,6 +13,7 @@
 #include <QAbstractItemDelegate>
 #include <QApplication>
 #include <QComboBox>
+#include <QCompleter>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTableView>
@@ -172,6 +173,25 @@ TEST_F(ProjectEditorTest, DecliningCreatesNothing)
 
   EXPECT_TRUE(m_time_sheet->project_model().projects().empty());
   EXPECT_EQ(nullptr, m_time_sheet->interval_model().intervals().front()->project());
+}
+
+TEST_F(ProjectEditorTest, CompletionMatchesTheMiddleOfAName)
+{
+  // Names that share a prefix are the point: completing from the front alone would offer both
+  // until the whole shared part is typed.
+  answer_next_question(QMessageBox::Yes);
+  type_project(QStringLiteral("abcdefG"));
+  answer_next_question(QMessageBox::Yes);
+  type_project(QStringLiteral("abcdefH"));
+
+  const auto index = m_table_view->model()->index(0, project_column);
+  auto* const delegate = m_table_view->itemDelegateForColumn(project_column);
+  const std::unique_ptr<QWidget> editor{delegate->createEditor(m_table_view->viewport(), {}, index)};
+  auto& completer = *dynamic_cast<QComboBox&>(*editor).completer();
+
+  completer.setCompletionPrefix(QStringLiteral("h"));
+  ASSERT_EQ(1, completer.completionCount()) << "only the one name containing an 'h' may match";
+  EXPECT_EQ(QStringLiteral("abcdefH"), completer.currentCompletion());
 }
 
 TEST_F(ProjectEditorTest, TheNoProjectSentinelClearsTheAssignment)

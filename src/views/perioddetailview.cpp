@@ -15,6 +15,7 @@
 #include "views/perioddetailproxymodel.h"
 
 #include <QApplication>
+#include <QCompleter>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QMenu>
@@ -95,6 +96,14 @@ public:
     auto editor = std::make_unique<ComboBox>(parent);
     editor->setEditable(true);
     editor->setInsertPolicy(QComboBox::NoInsert);
+    // Project names tend to share a long prefix, and completing from the front alone means typing
+    // all of it before the suggestion narrows to one. Match anywhere in the name instead, and
+    // offer what matches in a popup -- an inline completion can only show a name that continues
+    // what was typed, which a match found in the middle does not.
+    auto& completer = *editor->completer();
+    completer.setCompletionMode(QCompleter::PopupCompletion);
+    completer.setFilterMode(Qt::MatchContains);
+    completer.setCaseSensitivity(Qt::CaseInsensitive);
     for (const auto& project : m_time_sheet->project_model().projects()) {
       editor->addItem(project->name());
     }
